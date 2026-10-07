@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.21" />
+  <meta name="p4sgi-ui-version" content="0.4.22" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -291,6 +291,35 @@
     #secPrivacy .st.attested, #secPrivacy .st.partial { border-color: var(--warn); color: var(--warn); }
     #secPrivacy .st.gap { border-color: var(--bad); color: var(--bad); }
     #secPrivacy .st.no_data { color: var(--muted); }
+
+    /* 0.4.22 selection toolbar, Admin assist pop-up, Help panel */
+    .sel-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.3rem 0 0.4rem; font-size: 0.8rem; color: var(--muted); }
+    .sel-bar button { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
+    .sel-tbl { overflow-x: auto; max-width: 100%; }
+    .sel-tbl td.chk, .sel-tbl th.chk { width: 1.6rem; text-align: center; }
+    .sel-tbl input[type=checkbox] { width: 1.05rem; height: 1.05rem; cursor: pointer; }
+    .sel-tbl button.assist { padding: 0.2rem 0.55rem; font-size: 0.75rem; white-space: nowrap; }
+    .sel-tbl tr.picked td { background: rgba(56,189,248,0.08); }
+    #aaModal .modal { width: min(780px, 100%); }
+    #aaModal header, #gamModal header { display: flex; align-items: center; gap: 0.6rem; justify-content: space-between; }
+    #aaBody { display: flex; flex-direction: column; gap: 0.6rem; }
+    .aa-bubble { max-width: 94%; padding: 0.55rem 0.75rem; border-radius: 10px; white-space: pre-wrap; line-height: 1.45; font-size: 0.88rem; }
+    .aa-bubble.bot { background: #0f172a; border: 1px solid var(--border); align-self: flex-start; }
+    .aa-bubble.me { background: #1e3a5f; align-self: flex-end; }
+    .aa-opts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .aa-opts button.danger { border-color: var(--warn); }
+    .aa-card { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.82rem; }
+    .aa-card pre { margin: 0.25rem 0; white-space: pre-wrap; word-break: break-all; background: #020617; padding: 0.4rem 0.5rem; border-radius: 6px; font-size: 0.78rem; }
+    .aa-card textarea, #aaText { background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; width: 100%; box-sizing: border-box; }
+    #aaForm { display: flex; gap: 0.5rem; width: 100%; }
+    .aa-small { color: var(--muted); font-size: 0.74rem; }
+    #secHelp .hl-art { border: 1px solid var(--border); border-radius: 8px; margin: 0.3rem 0; padding: 0.35rem 0.7rem; background: #0f172a; }
+    #secHelp .hl-art summary { cursor: pointer; font-size: 0.85rem; }
+    #secHelp .hl-body { white-space: pre-wrap; font-size: 0.84rem; line-height: 1.45; margin: 0.4rem 0; }
+    #secHelp .hl-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.4rem 0; }
+    #secHelp input[type=text], #secHelp textarea { background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; }
+    #secHelp .hl-cat { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0.8rem 0 0.2rem; }
+    #secApproved { overflow-x: auto; max-width: 100%; }
   </style>
 </head>
 <body>
@@ -299,7 +328,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.21</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.22</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -673,6 +702,9 @@
         </details>
         <p class="msg" id="secMsg"></p>
         <div class="cards" id="secCards"><p class="empty">Click <em>Load / Reload</em>.</p></div>
+        <p class="section-help" style="margin:0.5rem 0 0">New: tick rows (or use <em>Select all</em>) and press <strong>Admin assist</strong>, or press <strong>Assist</strong> at the end of a row. The assistant explains the issue in plain words and offers next steps. It never changes anything by itself.</p>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Known &amp; approved apps</h3>
+        <div id="secApproved"><p class="empty">Click <em>Load / Reload</em>.</p></div>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">OAuth apps (30 d)</h3>
         <div id="secOauth"></div>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Users needing attention</h3>
@@ -807,7 +839,45 @@
       </div>
     </section>
 
+    <section id="secHelp">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secHelp" aria-expanded="false" aria-controls="secHelpBody">
+          <span class="chevron" aria-hidden="true">▸</span> Help &amp; guides <span class="chip warn" style="margin-left:0.4rem"><span class="chip-val">EXPERIMENTAL</span></span>
+        </button>
+        <button type="button" class="secondary" id="btnHelpReload">Load / Reload</button>
+        <span class="spin" id="helpSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secHelpBody" hidden>
+        <p class="section-help">Plain-language guides for this dashboard. Questions asked in <strong>Admin assist</strong> and here are saved (without names or email addresses) as <em>drafts</em>; a super-admin reviews them, and approved ones become part of the help and the Ask-the-data knowledge. Nothing here changes Google Workspace.</p>
+        <p class="msg" id="helpMsg"></p>
+        <form id="helpForm" class="hl-row">
+          <input type="text" id="helpQ" maxlength="600" minlength="3" required placeholder="Ask anything, e.g. What does CRITICAL mean for an app?" style="flex:1;min-width:16rem">
+          <button type="submit">Ask</button>
+          <button type="button" class="secondary" id="helpSearchBtn">Search guides</button>
+        </form>
+        <div id="helpAnswer"></div>
+        <div id="helpList"></div>
+        <div id="helpAdmin"></div>
+      </div>
+    </section>
+
   </main>
+
+
+  <div class="modal-backdrop" id="aaModal" role="dialog" aria-modal="true" aria-labelledby="aaTitle">
+    <div class="modal">
+      <header>
+        <h2 id="aaTitle" style="margin:0;font-size:1rem;">Admin assist</h2>
+        <span class="chip" id="aaEngine" title="Which AI answers"><span class="chip-val">…</span></span>
+        <button type="button" class="secondary" id="aaClose">Close</button>
+      </header>
+      <div class="body"><div id="aaBody"></div></div>
+      <div class="foot">
+        <form id="aaForm"><input type="text" id="aaText" maxlength="600" placeholder="Or type your own question about these items…" autocomplete="off"><button type="submit" id="aaSend">Send</button></form>
+        <span class="aa-small" style="width:100%">The AI sees labels (U1, A1, D1), risk flags and counts only: no email addresses, names or serial numbers. It cannot run anything.</span>
+      </div>
+    </div>
+  </div>
 
   <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
     <div class="modal">
@@ -826,7 +896,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.21';
+    const UI_VERSION = '0.4.22';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -861,6 +931,7 @@
       secSecurity: false,
       secPrivacy: false,
       secChat: false,
+      secHelp: false,
     };
 
     const DEV_DEFAULT_COLS = [
@@ -2512,7 +2583,7 @@
       return path + q + (extra ? sep + extra : '');
     }
     function secLevelChip(level) {
-      const cls = (level === 'CRITICAL' || level === 'HIGH') ? 'chip warn' : 'chip';
+      const cls = (level === 'CRITICAL' || level === 'HIGH') ? 'chip warn' : (level === 'APPROVED' ? 'chip ok' : 'chip');
       return `<span class="${cls}"><span class="chip-val">${esc(level)}</span></span>`;
     }
     function secTable(cols, rows, empty) {
@@ -2531,7 +2602,7 @@
       try {
         const [sum, oa, us, dv] = await Promise.all([
           api(secUrl('/api/v1/security/summary')),
-          api(secUrl('/api/v1/security/oauth', 'limit=25')),
+          api(secUrl('/api/v1/security/oauth', 'limit=60')),
           api(secUrl('/api/v1/security/users', 'limit=50')),
           api(secUrl('/api/v1/security/devices', 'limit=50')),
         ]);
@@ -2547,21 +2618,25 @@
         if (!sum.oauth.scope_data_present && sum.oauth.apps) notes.push('token_activity has no scope columns, so apps are UNKNOWN risk.');
         notes.push('As of ' + sum.as_of + '. Data is only as fresh as the cached GAM runs.');
         msg.textContent = notes.filter(Boolean).join(' ');
-        $('secOauth').innerHTML = secTable([
+        secSelRender('oauth', 'secOauth', [
           { h: 'App', f: r => esc(r.app_name) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) + ' ' + esc(r.risk_score ?? '—') },
           { h: 'Users', f: r => esc(r.user_count) }, { h: 'Last seen', f: r => esc(r.last_seen || '—') },
-          { h: 'Why', wrap: true, f: r => esc((r.reasons || []).join('; ')) }, { h: 'Client ID', f: r => `<span class="mono">${esc(r.client_id || '—')}</span>` },
+          { h: 'Why', wrap: true, f: r => r.approved
+              ? `<span class="aa-small">Approved by ${esc(r.approved.approved_by)} until ${esc(String(r.approved.review_by).slice(0, 10))}: ${esc(r.approved.note)} (real level ${esc(r.risk_level_raw)})</span>`
+              : esc((r.reasons || []).join('; ')) + (r.approval_stale ? ` <span class="chip warn"><span class="chip-val">${esc(r.approval_stale)}</span></span>` : '') },
+          { h: 'Client ID', f: r => `<span class="mono">${esc(r.client_id || '—')}</span>` },
         ], oa.rows, 'No OAuth apps in scope (or token_activity not cached).');
-        $('secUsers').innerHTML = secTable([
+        secSelRender('users', 'secUsers', [
           { h: 'User', f: r => esc(r.email) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) },
           { h: 'Flags', f: r => esc(r.flags.join(', ')) }, { h: 'Days idle', f: r => esc(r.days_since_login ?? '—') },
           { h: '2SV', f: r => r.two_sv_enrolled === null ? '—' : (r.two_sv_enrolled ? 'yes' : 'no') }, { h: 'Failed 7d', f: r => esc(r.failed_logins_7d) },
         ], us.rows, 'No flagged users in scope (or users_full not cached).');
-        $('secDevices').innerHTML = secTable([
+        secSelRender('devices', 'secDevices', [
           { h: 'User', f: r => esc(r.email) }, { h: 'Model', f: r => esc(r.model || '—') }, { h: 'OS', f: r => esc(r.os || '—') },
           { h: 'Status', f: r => secLevelChip(r.compliance_status) + ' ' + esc(r.compliance_score) },
           { h: 'Flags', wrap: true, f: r => esc(r.flags.join(', ') || '—') }, { h: 'Last sync', f: r => esc(r.last_sync || '—') },
         ], dv.rows, 'No devices in scope (or device reports not cached).');
+        secLoadApproved();
       } catch (e) {
         msg.className = 'msg err'; msg.textContent = e.message;
         toast(e.message, 'err');
@@ -2940,6 +3015,210 @@
       } catch (e) { chatErr(e); } finally { $('chatSpin').hidden = true; }
     }
     $('btnChatReload').addEventListener('click', loadChat);
+
+    /* ---- 0.4.22 row selection, Admin assist pop-up, approved apps, Help ---- */
+    const SEL = { oauth: new Set(), users: new Set(), devices: new Set() };
+    const SEC_KEY = { oauth: r => r.client_id || r.app_name, users: r => r.email, devices: r => r.device_id };
+    const SEC_NOUN = { oauth: 'app', users: 'user', devices: 'device' };
+    function secSelRender(kind, boxId, cols, rows, empty) {
+      const box = $(boxId); SEL[kind].clear();
+      if (!rows.length) { box.innerHTML = `<p class="empty">${esc(empty)}</p>`; return; }
+      const keyed = rows.map(r => ({ r, k: String(SEC_KEY[kind](r) || '') })).filter(x => x.k);
+      const head = `<th class="chk"><input type="checkbox" data-all aria-label="Select all rows"></th>` + cols.map(c => `<th>${esc(c.h)}</th>`).join('') + '<th></th>';
+      const body = keyed.map(({ r, k }) => `<tr data-k="${esc(k)}"><td class="chk"><input type="checkbox" class="selrow" data-k="${esc(k)}" aria-label="Select this row"></td>`
+        + cols.map(c => `<td${c.wrap ? ' class="wrap"' : ''}>${c.f(r)}</td>`).join('')
+        + `<td><button type="button" class="secondary assist" data-assist-row="${esc(k)}" title="Get plain-language help with this row">Assist</button></td></tr>`).join('');
+      box.innerHTML = `<div class="sel-bar"><button type="button" class="secondary" data-selall>Select all</button><button type="button" class="secondary" data-selnone>Select none</button>
+        <span data-selcount>0 selected</span><button type="button" data-assist-sel disabled>Admin assist (0)</button></div>
+        <div class="sel-tbl"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+      const refresh = () => {
+        const n = SEL[kind].size, tot = keyed.length;
+        box.querySelector('[data-selcount]').textContent = n + ' selected';
+        const b = box.querySelector('[data-assist-sel]'); b.disabled = !n; b.textContent = `Admin assist (${n})`;
+        const all = box.querySelector('input[data-all]'); all.checked = n > 0 && n === tot; all.indeterminate = n > 0 && n < tot;
+        box.querySelectorAll('tr[data-k]').forEach(tr => tr.classList.toggle('picked', SEL[kind].has(tr.dataset.k)));
+      };
+      const setAll = (on) => { box.querySelectorAll('input.selrow').forEach(cb => { cb.checked = on; on ? SEL[kind].add(cb.dataset.k) : SEL[kind].delete(cb.dataset.k); }); refresh(); };
+      box.onchange = (ev) => {
+        const t = ev.target;
+        if (t.matches('input[data-all]')) return setAll(t.checked);
+        if (t.matches('input.selrow')) { t.checked ? SEL[kind].add(t.dataset.k) : SEL[kind].delete(t.dataset.k); refresh(); }
+      };
+      box.onclick = (ev) => {
+        const b = ev.target.closest('button'); if (!b) return;
+        if (b.hasAttribute('data-selall')) setAll(true);
+        else if (b.hasAttribute('data-selnone')) setAll(false);
+        else if (b.hasAttribute('data-assist-sel')) aaOpen(kind, [...SEL[kind]]);
+        else if (b.dataset.assistRow) aaOpen(kind, [b.dataset.assistRow]);
+      };
+      refresh();
+    }
+
+    async function secLoadApproved() {
+      const box = $('secApproved');
+      try {
+        const d = await api('/api/v1/security/approved-apps');
+        if (!d.rows.length) { box.innerHTML = '<p class="empty">No apps approved yet. Use <em>Assist</em> on an app you know and want, then choose "approve".</p>'; return; }
+        const now = Date.now();
+        box.innerHTML = secTable([
+          { h: 'App', f: r => esc(r.app_name) }, { h: 'Approved by', f: r => esc(r.approved_by) },
+          { h: 'Review by', f: r => { const late = new Date(r.review_by).getTime() < now; return esc(String(r.review_by).slice(0, 10)) + (late ? ' <span class="chip warn"><span class="chip-val">review due</span></span>' : ''); } },
+          { h: 'Reason', wrap: true, f: r => esc(r.note) },
+          { h: '', f: r => d.can_edit ? `<button type="button" class="secondary assist" data-unapprove="${esc(r.key)}">Remove approval</button>` : '' },
+        ], d.rows, '');
+        box.onclick = async (ev) => {
+          const b = ev.target.closest('button[data-unapprove]'); if (!b) return;
+          if (!confirm('Remove this approval? The app will show its real risk level again.')) return;
+          try { await api('/api/v1/security/approved-apps?key=' + encodeURIComponent(b.dataset.unapprove), { method: 'DELETE' }); toast('Approval removed', 'ok'); loadSecurity(); }
+          catch (e) { toast(aaText(e), 'err'); }
+        };
+      } catch (e) { box.innerHTML = `<p class="empty">${esc(aaText(e))}</p>`; }
+    }
+
+    const AA = { sid: null, kind: null, busy: false };
+    function aaText(e) {
+      let t = (e && e.message) || String(e);
+      try { const j = JSON.parse(t); t = j.detail || j.message || j.error || t; } catch { /* plain */ }
+      return typeof t === 'string' ? t : JSON.stringify(t);
+    }
+    function aaAdd(html) { const b = $('aaBody'); b.insertAdjacentHTML('beforeend', html); b.parentElement.scrollTop = b.parentElement.scrollHeight; }
+    function aaBusy(on) { AA.busy = on; $('aaSend').disabled = on; $('aaText').disabled = on; document.querySelectorAll('#aaBody .aa-opts button').forEach(b => { b.disabled = on; }); }
+    function aaCopy(text) {
+      const done = () => toast('Copied', 'ok');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('Copy failed: select the text and copy it', 'err'));
+      else toast('Copy not available here: select the text and copy it', 'err');
+    }
+    function aaResultCard(res) {
+      if (!res) return '';
+      if (res.type === 'plan') {
+        const steps = (res.steps || []).map((st, i) => `<div><strong>${esc(st.step)}</strong><pre>${esc(st.command)}</pre><button type="button" class="secondary assist" data-copy="${esc(st.command)}">Copy</button></div>`).join('');
+        const skipped = (res.skipped || []).length ? `<p class="aa-small">Skipped: ${(res.skipped).map(x => esc(x.who) + ' (' + esc(x.reason) + ')').join('; ')}</p>` : '';
+        const all = (res.steps || []).map(st => st.command).join('\n');
+        return `<div class="aa-card"><strong>${esc(res.title)}</strong>${steps || '<p>No steps could be prepared.</p>'}${skipped}
+          ${all ? `<button type="button" class="secondary assist" data-copy="${esc(all)}">Copy all</button>` : ''}
+          ${res.alternative ? `<p class="aa-small">${esc(res.alternative)}</p>` : ''}<p class="aa-small">${esc(res.note || '')}</p></div>`;
+      }
+      if (res.type === 'email') {
+        const href = /^mailto:/.test(res.mailto || '') ? res.mailto : '#';
+        return `<div class="aa-card"><strong>Email draft</strong><div class="aa-small">To: ${esc((res.to || []).join(', '))}</div><div><strong>${esc(res.subject)}</strong></div><pre>${esc(res.body)}</pre>
+          <a href="${esc(href)}" class="aa-open"><button type="button">Open in my mail program</button></a> <button type="button" class="secondary assist" data-copy="${esc(res.body)}">Copy text</button>
+          <p class="aa-small">${esc(res.note || '')}</p></div>`;
+      }
+      if (res.type === 'confirm') {
+        return `<div class="aa-card" data-confirm="${esc(res.option_id || '')}"><p>${esc(res.text)}</p><textarea id="aaNote" rows="2" maxlength="500" placeholder="Reason (for example: used by the IT team for mail)"></textarea>
+          <div class="aa-opts" style="margin-top:0.4rem"><button type="button" id="aaDoApprove">Yes, approve it</button><button type="button" class="secondary" id="aaCancelApprove">Cancel</button></div></div>`;
+      }
+      if (res.text) return `<div class="aa-card">${esc(res.text)}</div>`;
+      return '';
+    }
+    function aaRender(r) {
+      if (r.engine) { const e = $('aaEngine'); e.querySelector('.chip-val').textContent = r.engine.label; e.className = r.engine.cloud ? 'chip warn' : 'chip ok'; }
+      if (r.result && r.result.type === 'confirm') { aaAdd(aaResultCard(r.result)); return; }
+      if (r.message) aaAdd(`<div class="aa-bubble bot">${esc(r.message)}</div>`);
+      if (r.result) aaAdd(aaResultCard(r.result));
+      (r.warnings || []).forEach(w => aaAdd(`<div class="aa-small">${esc(w)}</div>`));
+      if ((r.options || []).length) aaAdd('<div class="aa-opts">' + r.options.map(o => `<button type="button" class="${o.danger ? 'secondary danger' : 'secondary'}" data-opt="${esc(o.id)}">${esc(o.label)}</button>`).join('') + '</div>');
+    }
+    async function aaPost(body, echo) {
+      if (AA.busy) return;
+      if (echo) aaAdd(`<div class="aa-bubble me">${esc(echo)}</div>`);
+      document.querySelectorAll('#aaBody .aa-opts').forEach(el => el.remove());
+      aaBusy(true); aaAdd('<div class="aa-small" id="aaThink">Thinking… a local model can take up to a minute.</div>');
+      try {
+        const r = await api('/api/v1/assist/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ session_id: AA.sid, ...body }) });
+        const t = $('aaThink'); if (t) t.remove();
+        aaRender(r);
+      } catch (e) { const t = $('aaThink'); if (t) t.remove(); aaAdd(`<div class="aa-card">${esc(aaText(e))}</div>`); }
+      finally { aaBusy(false); }
+    }
+    async function aaOpen(kind, keys) {
+      if (!keys.length) return;
+      AA.sid = null; AA.kind = kind;
+      $('aaBody').innerHTML = ''; $('aaModal').classList.add('open'); $('aaEngine').className = 'chip'; $('aaEngine').querySelector('.chip-val').textContent = '…';
+      aaAdd(`<div class="aa-small">Looking at ${keys.length} ${SEC_NOUN[kind]}${keys.length > 1 ? 's' : ''}…</div><div class="aa-small" id="aaThink">Thinking… a local model can take up to a minute.</div>`);
+      aaBusy(true);
+      try {
+        const r = await api('/api/v1/assist/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ kind, keys: keys.slice(0, 25) }) });
+        AA.sid = r.session_id;
+        const t = $('aaThink'); if (t) t.remove();
+        aaAdd(`<div class="aa-card"><strong>Selected:</strong> ${r.items.map(i => esc(i.label)).join(' · ')}${r.skipped.length ? `<div class="aa-small">${r.skipped.length} row(s) were not found (reload the table).</div>` : ''}${keys.length > 25 ? '<div class="aa-small">Only the first 25 rows are used.</div>' : ''}</div>`);
+        aaRender(r);
+      } catch (e) { const t = $('aaThink'); if (t) t.remove(); aaAdd(`<div class="aa-card">${esc(aaText(e))}</div>`); }
+      finally { aaBusy(false); $('aaText').focus(); }
+    }
+    function aaClose() { $('aaModal').classList.remove('open'); AA.sid = null; }
+    $('aaClose').addEventListener('click', aaClose);
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('aaModal').classList.contains('open')) aaClose(); });
+    $('aaForm').addEventListener('submit', (ev) => { ev.preventDefault(); const t = $('aaText').value.trim(); if (!t || !AA.sid) return; $('aaText').value = ''; aaPost({ text: t }, t); });
+    $('aaBody').addEventListener('click', (ev) => {
+      const c = ev.target.closest('button[data-copy]'); if (c) { aaCopy(c.dataset.copy); return; }
+      const o = ev.target.closest('button[data-opt]'); if (o && AA.sid) { aaPost({ option_id: o.dataset.opt }, o.textContent); return; }
+      if (ev.target.id === 'aaCancelApprove') { const card = ev.target.closest('.aa-card'); if (card) card.remove(); aaAdd('<div class="aa-small">Cancelled. Nothing was changed.</div>'); return; }
+      if (ev.target.id === 'aaDoApprove') {
+        const card = ev.target.closest('.aa-card'), note = ($('aaNote').value || '').trim(), oid = card.dataset.confirm;
+        if (note.length < 3) { toast('Please write a short reason', 'err'); return; }
+        card.remove(); aaPost({ option_id: oid, confirm: true, note }, 'Yes, approve it: ' + note);
+      }
+    });
+
+    /* Help & guides */
+    const HELP = { loaded: false, admin: false };
+    function helpMsg(t, k) { const m = $('helpMsg'); m.className = 'msg' + (k ? ' ' + k : ''); m.textContent = t || ''; }
+    function helpArt(a, canEdit) {
+      const badge = a.status === 'draft' ? ' <span class="chip warn"><span class="chip-val">draft: awaiting review</span></span>' : (a.status === 'archived' ? ' <span class="chip"><span class="chip-val">archived</span></span>' : '');
+      const stored = a.source !== 'seed';
+      const votes = stored ? `<button type="button" class="secondary assist" data-vote="${esc(a.id)}" data-v="1">Helpful</button> <button type="button" class="secondary assist" data-vote="${esc(a.id)}" data-v="0">Not helpful</button> <span class="aa-small">asked ${esc(a.asked || 0)}× · ${esc(a.helpful || 0)} 👍 ${esc(a.unhelpful || 0)} 👎</span>` : '';
+      const adm = (canEdit && stored) ? `<span style="margin-left:auto"></span>${a.status !== 'approved' ? `<button type="button" class="assist" data-st="${esc(a.id)}" data-s="approved">Approve</button>` : `<button type="button" class="secondary assist" data-st="${esc(a.id)}" data-s="archived">Archive</button>`}<button type="button" class="secondary assist" data-del="${esc(a.id)}">Delete</button>` : '';
+      return `<details class="hl-art"><summary>${esc(a.title)}${badge}</summary><div class="hl-body">${esc(a.body)}</div><div class="hl-row">${votes}${adm}</div></details>`;
+    }
+    function helpRender(d, hits) {
+      const rows = hits || d.rows;
+      if (!rows.length) { $('helpList').innerHTML = '<p class="empty">No matching guides. Press Ask to save your question for the administrators.</p>'; return; }
+      const by = {}; rows.forEach(a => { (by[a.category || 'Other'] = by[a.category || 'Other'] || []).push(a); });
+      $('helpList').innerHTML = Object.keys(by).sort().map(c => `<div class="hl-cat">${esc(c)}</div>${by[c].map(a => helpArt(a, HELP.admin)).join('')}`).join('');
+    }
+    async function loadHelp() {
+      $('helpSpin').hidden = false; helpMsg('');
+      try {
+        const d = await api('/api/v1/help/articles'); HELP.admin = d.can_edit; HELP.data = d; HELP.loaded = true;
+        helpRender(d);
+        const drafts = d.rows.filter(a => a.status === 'draft').length;
+        helpMsg(`${d.total} guides${HELP.admin && drafts ? ' · ' + drafts + ' draft(s) from admin questions are waiting for your review' : ''}.`);
+        $('helpAdmin').innerHTML = HELP.admin ? `<details class="hl-art"><summary>Write a new guide (super-admin)</summary>
+          <div class="hl-row"><input type="text" id="hlTitle" maxlength="200" placeholder="Title" style="flex:1;min-width:14rem"><input type="text" id="hlCat" maxlength="60" placeholder="Category" value="Our procedures"></div>
+          <textarea id="hlBody" rows="5" maxlength="6000" placeholder="Plain-language steps. No names or email addresses." style="width:100%;box-sizing:border-box"></textarea>
+          <div class="hl-row"><button type="button" id="hlSave">Publish guide</button></div></details>` : '';
+        const sv = $('hlSave'); if (sv) sv.onclick = async () => {
+          try { await api('/api/v1/help/articles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: $('hlTitle').value, body: $('hlBody').value, category: $('hlCat').value || 'Our procedures' }) }); toast('Guide published', 'ok'); loadHelp(); }
+          catch (e) { helpMsg(aaText(e), 'err'); }
+        };
+      } catch (e) { helpMsg(aaText(e), 'err'); } finally { $('helpSpin').hidden = true; }
+    }
+    $('btnHelpReload').addEventListener('click', loadHelp);
+    $('helpList').addEventListener('click', async (ev) => {
+      const b = ev.target.closest('button'); if (!b) return;
+      try {
+        if (b.dataset.vote) { const r = await api(`/api/v1/help/articles/${encodeURIComponent(b.dataset.vote)}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ helpful: b.dataset.v === '1' }) }); toast(r.ok ? 'Thanks' : 'Built-in guides are not voted on', r.ok ? 'ok' : 'err'); }
+        else if (b.dataset.st) { await api(`/api/v1/help/articles/${encodeURIComponent(b.dataset.st)}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: b.dataset.s }) }); toast('Updated', 'ok'); loadHelp(); }
+        else if (b.dataset.del) { if (!confirm('Delete this saved guide?')) return; await api('/api/v1/help/articles/' + encodeURIComponent(b.dataset.del), { method: 'DELETE' }); toast('Deleted', 'ok'); loadHelp(); }
+      } catch (e) { helpMsg(aaText(e), 'err'); }
+    });
+    $('helpSearchBtn').addEventListener('click', async () => {
+      const q = $('helpQ').value.trim(); if (q.length < 2) { if (HELP.data) helpRender(HELP.data); return; }
+      try { const r = await api('/api/v1/help/search?q=' + encodeURIComponent(q)); const d = HELP.data || { rows: [] }; helpRender(d, r.rows.map(x => ({ ...x, source: (d.rows.find(a => a.id === x.id) || {}).source, asked: (d.rows.find(a => a.id === x.id) || {}).asked }))); }
+      catch (e) { helpMsg(aaText(e), 'err'); }
+    });
+    $('helpForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault(); $('helpSpin').hidden = false; $('helpAnswer').innerHTML = '<p class="empty">Thinking… a local model can take up to a minute.</p>';
+      try {
+        const r = await api('/api/v1/help/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ question: $('helpQ').value }) });
+        $('helpAnswer').innerHTML = `<div class="aa-card"><div style="white-space:pre-wrap">${esc(r.answer)}</div>
+          <p class="aa-small">${esc(r.engine)}${r.sources.length ? ' · from: ' + r.sources.map(s => esc(s.title)).join(' | ') : ''}${(r.warnings || []).length ? ' · ' + esc(r.warnings.join(' ')) : ''}${r.new_question ? ' · your question was saved for the administrators' : ''}</p></div>`;
+      } catch (e) { $('helpAnswer').innerHTML = `<p class="msg err">${esc(aaText(e))}</p>`; } finally { $('helpSpin').hidden = true; }
+    });
+    // load guides / model list automatically the first time a panel is opened (no extra click)
+    document.querySelector('.section-toggle[data-section="secHelp"]').addEventListener('click', () => setTimeout(() => { if (!HELP.loaded && sectionOpen.secHelp) loadHelp(); }, 0));
+    document.querySelector('.section-toggle[data-section="secChat"]').addEventListener('click', () => setTimeout(() => { if (!CHAT.status && sectionOpen.secChat) loadChat(); }, 0));
     $('chatSetup').addEventListener('click', async () => { try { const r = await api('/api/v1/chat/setup', { method: 'POST' }); toast('Set up. pgvector: ' + (r.pgvector ? 'yes' : 'no'), 'ok'); loadChat(); } catch (e) { chatErr(e); } });
     $('chatReindex').addEventListener('click', async () => {
       $('chatSpin').hidden = false; chatMsg('Indexing PIA and docs with the local embedding model…');

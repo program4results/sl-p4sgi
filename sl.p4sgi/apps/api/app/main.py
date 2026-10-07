@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.21"
+APP_VERSION = "0.4.22"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -5960,3 +5960,30 @@ if os.getenv("ASK_DATA_ENABLED", "1").strip().lower() not in ("0", "false", "no"
         )
     except Exception as _chat_exc:  # noqa: BLE001
         print(f"[ask_data] disabled: {_chat_exc!r}", flush=True)
+
+
+# 0.4.22 Admin assist (AI-guided help on Security-audit rows) + help database. EXPERIMENTAL, additive, own JSON state.
+# Suggests and drafts only; never runs a change. Isolated module: any failure here must never stop the API.
+# Disable with ASSIST_ENABLED=0.
+if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import admin_assist as _assist
+        from . import security_audit as _secaudit2
+
+        app.include_router(
+            _assist.build_router(
+                _secaudit2.Helpers(
+                    insight_scope=_insight_scope,
+                    load_sources=_load_sources,
+                    build_device_rows=_build_device_rows,
+                    row_email=_row_email,
+                    in_scope=_in_scope,
+                    request_scope=_request_scope,
+                    is_superadmin=is_superadmin,
+                    data_dir=DATA_DIR,
+                    app_version=APP_VERSION,
+                )
+            )
+        )
+    except Exception as _assist_exc:  # noqa: BLE001
+        print(f"[admin_assist] disabled: {_assist_exc!r}", flush=True)

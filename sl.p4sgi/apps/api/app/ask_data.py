@@ -364,6 +364,18 @@ def collect_knowledge(data_dir: Path) -> list[tuple[str, str, str]]:
             rows.append(("pia-legal", f"L{i + 1:02d}", f"{x['topic']}: {x['text']}"))
     except Exception:  # noqa: BLE001
         pass
+    try:  # 0.4.22: built-in help articles + approved admin-assist articles (no personal data: generalised text only)
+        from .help_seed import HELP_SEED
+
+        for a in HELP_SEED:
+            rows.append(("help", str(a["id"]), f"Help: {a['title']}. {a['body']}"))
+        hp = data_dir / "help" / "articles.json"
+        if hp.is_file():
+            for aid, a in json.loads(hp.read_text(encoding="utf-8")).items():
+                if isinstance(a, dict) and a.get("status") == "approved":
+                    rows.append(("help", str(aid), f"Help: {a.get('title', '')}. {a.get('body', '')}"))
+    except Exception:  # noqa: BLE001
+        pass
     for n, v in VIEWS.items():
         rows.append(("schema", n, f"Database view {n}: {v['doc']} Columns: {v['cols']}."))
     dirs = [data_dir / "knowledge", *KNOWLEDGE_DIRS]
@@ -419,6 +431,35 @@ def reindex(data_dir: Path) -> dict[str, Any]:
         for h in stale:
             conn.execute("DELETE FROM chat_chunks WHERE source=%s AND ref=%s", (h["source"], h["ref"]))
     return {"chunks": done, "removed_stale": len(stale), "vectors": embedded > 0, "embedded": embedded, "warning": warn}
+
+
+def upsert_chunk(source: str, ref: str, content: str) -> bool:
+    """Best-effort single-chunk index (used when a help article is approved). Never raises."""
+    try:
+        st = ensure_setup()
+        if not st["ok"]:
+            return False
+        content = content[:1200]
+        vec = None
+        if st["vector"]:
+            try:
+                vec = embed([content])[0]
+            except Exception:  # noqa: BLE001
+                vec = None
+        with db.get_conn() as conn:
+            if vec:
+                conn.execute(
+                    "INSERT INTO chat_chunks (source, ref, content, model, embedding) VALUES (%s,%s,%s,%s,%s::vector) "
+                    "ON CONFLICT (source, ref) DO UPDATE SET content=EXCLUDED.content, model=EXCLUDED.model, embedding=EXCLUDED.embedding, created_at=now()",
+                    (source, ref, content, EMBED_MODEL, _vec_literal(vec)))
+            else:
+                conn.execute(
+                    "INSERT INTO chat_chunks (source, ref, content, model) VALUES (%s,%s,%s,%s) "
+                    "ON CONFLICT (source, ref) DO UPDATE SET content=EXCLUDED.content, model=EXCLUDED.model, created_at=now()",
+                    (source, ref, content, None))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def search_chunks(question: str, k: int = 6) -> tuple[list[dict[str, Any]], str]:

@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.23"
+APP_VERSION = "0.4.24"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -5970,6 +5970,21 @@ if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", 
         from . import admin_assist as _assist
         from . import security_audit as _secaudit2
 
+        def _assist_fetch(kind: str, request: Request, allowed: set[str] | None) -> list[dict[str, Any]]:
+            """Re-read rows for Admin assist with the caller's domain scope (same functions the tables use)."""
+            dom = ",".join(sorted(allowed)) if allowed else None
+            if kind == "gam_runs":
+                return list_gam_reports(domain=None, domains=dom)["runs"]
+            if kind == "jobs":
+                return list_jobs(domain=None, domains=dom)["jobs"]
+            if kind == "events":
+                return list_publish_events(emis=None, kind=None, domain=None, domains=dom)["events"]
+            if kind == "fleet":
+                return list_devices(domain=None, domains=dom, emis=None, limit=500)["devices"]
+            if kind == "raw_exports":
+                return list_raw_exports(request)["files"]
+            return []
+
         app.include_router(
             _assist.build_router(
                 _secaudit2.Helpers(
@@ -5982,7 +5997,8 @@ if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", 
                     is_superadmin=is_superadmin,
                     data_dir=DATA_DIR,
                     app_version=APP_VERSION,
-                )
+                ),
+                _assist_fetch,
             )
         )
     except Exception as _assist_exc:  # noqa: BLE001

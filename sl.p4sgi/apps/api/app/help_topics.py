@@ -215,7 +215,7 @@ HELP_TOPICS: list[dict[str, object]] = [
        "Super-admin only. To undo, use Remove approval in the Known & approved apps list."),
     _a("howto-select", "Dashboard how-to", "Selecting many rows and asking for help at once",
        "select,all,none,batch,assist",
-       "Tick the boxes, or use Select all / Select none above the table, then press the green Admin assist button. Up to 25 rows are handled in one conversation. "
+       "Tick the boxes, or use Select all / Select none above the table, then press the green AIdmin button (above the table, or in the section header next to Reload). Up to 25 rows are handled in one conversation. "
        "Use this to ask 'which of these should I look at first?' or to draft one email to all users of an app."),
     _a("howto-reports", "Dashboard how-to", "Which GAM reports feed which table",
        "reports,token_activity,users_full,login_activity,devices",

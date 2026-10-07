@@ -64,7 +64,7 @@ _INDEXED = {"done": False}
 ACTIONS = {"explain", "approve_app", "plan_revoke_token", "plan_offboard_user", "plan_wipe_device", "draft_email", "save_help", "close"}
 SUPER_ONLY = {"approve_app", "plan_revoke_token", "plan_offboard_user", "plan_wipe_device"}
 _EMAIL_ANY = re.compile(r"[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
-_TOKEN = re.compile(r"\b([UAD]\d{1,3})\b")
+_TOKEN = re.compile(r"\b([UADRFJET]\d{1,3})\b")
 _CTRL = re.compile(r"[\x00-\x1f\x7f]+")
 
 
@@ -84,7 +84,7 @@ class Redactor:
         self.names: dict[str, str] = {}  # label -> friendly text shown to the admin (e.g. app name) instead of the raw key
         self.fwd: dict[str, str] = {}
         self.rev: dict[str, str] = {}
-        self.n: dict[str, int] = {"U": 0, "A": 0, "D": 0}
+        self.n: dict[str, int] = {k: 0 for k in "UADRFJET"}
 
     def tok(self, value: str, kind: str = "U") -> str:
         v = value.strip()
@@ -108,12 +108,32 @@ class Redactor:
 
     def generalise(self, text: str) -> str:
         """For the shared help database: labels become generic words, so no one is identifiable."""
-        names = {"U": "the user", "A": "the app", "D": "the device"}
+        names = {"U": "the user", "A": "the app", "D": "the device", "R": "the report run", "F": "the file", "J": "the job", "E": "the event", "T": "the tablet"}
         return _TOKEN.sub(lambda m: names[m.group(1)[0]], text)
 
 
 # --------------------------------------------------------------------- items ---
+EXTRA_KINDS = {"gam_runs": "R", "raw_exports": "F", "jobs": "J", "events": "E", "fleet": "T"}
+ALL_KINDS = ("oauth", "users", "devices", *EXTRA_KINDS, "general")
+KIND_CONTEXT = {
+    "oauth": "third-party apps that people connected to their Google accounts (OAuth apps)",
+    "users": "Google Workspace user accounts flagged by the security audit",
+    "devices": "mobile devices known to Google Workspace, with compliance flags",
+    "gam_runs": "runs of GAM reports: each is one cached CSV export read from Google Workspace; status ok or failed",
+    "raw_exports": "raw CSV files written by GAM into the gam-out folders (contents are never shown to you, only file facts)",
+    "jobs": "school provisioning jobs: a school's configuration waiting for, or past, approval",
+    "events": "publish events: records that a school's attendance or radar data, or a school config, was published to this platform",
+    "fleet": "the tablet registry: tablets enrolled by schools, with last-seen time and data used (no serials or phone numbers are shown to you)",
+    "general": "the whole dashboard (no rows selected): answer questions about how to use it",
+}
+_KEY_FIELD = {"gam_runs": "id", "raw_exports": "path", "jobs": "id", "events": "id", "fleet": "id"}
+
+
 def _key(kind: str, row: dict[str, Any]) -> str:
+    if kind in _KEY_FIELD:
+        return str(row[_KEY_FIELD[kind]])
+    if kind == "general":
+        return "*"
     return sa.app_key(row) if kind == "oauth" else (row["email"] if kind == "users" else row["device_id"])
 
 
@@ -122,10 +142,22 @@ def _label(kind: str, row: dict[str, Any]) -> str:
         return clean(row.get("app_name"), 80)
     if kind == "users":
         return row["email"]
+    if kind == "gam_runs":
+        return f"{row.get('report')} run {str(row.get('created_at', ''))[:16]} ({row.get('status')})"
+    if kind == "raw_exports":
+        return f"{row.get('folder')}/{row.get('name')}"
+    if kind == "jobs":
+        return f"{row.get('school_name') or row.get('emis') or 'job'} ({row.get('status')})"
+    if kind == "events":
+        return f"{row.get('kind')} · {row.get('emis') or '—'} · {str(row.get('created_at', ''))[:16]}"
+    if kind == "fleet":
+        return f"{row.get('school_name') or row.get('emis') or 'tablet'} · {row.get('device_type') or 'tablet'}"
+    if kind == "general":
+        return "The whole dashboard"
     return f"{row.get('model') or 'device'} · {row.get('email') or ''}"
 
 
-def load_items(h: sa.Helpers, request: Request, kind: str, keys: list[str]) -> tuple[list[dict[str, Any]], list[str]]:
+def load_items(h: sa.Helpers, request: Request, kind: str, keys: list[str], fetch: Callable[..., list[dict[str, Any]]] | None = None) -> tuple[list[dict[str, Any]], list[str]]:
     allowed, _ = h.insight_scope(request, None, None)
     now = _now()
     scope_fn = lambda e: h.in_scope(e, allowed)  # noqa: E731
@@ -133,6 +165,13 @@ def load_items(h: sa.Helpers, request: Request, kind: str, keys: list[str]) -> t
     if kind == "oauth":
         data, _ = h.load_sources(sa.SOURCES_OAUTH, allowed)
         rows = sa.apply_approvals(sa.analyse_oauth(data.get("token_activity", []), scope_fn, h.row_email)["rows"], approvals, now)
+    elif kind == "general":
+        _, src = h.load_sources([*sa.SOURCES_OAUTH, *sa.SOURCES_USERS, *sa.SOURCES_DEVICES], allowed)
+        rows = [{"id": "*", "reports": {k: (v or {}).get("status") for k, v in (src or {}).items()}}]
+    elif kind in EXTRA_KINDS:
+        if fetch is None:
+            raise HTTPException(501, {"error": "kind_unavailable"})
+        rows = fetch(kind, request, allowed)
     elif kind == "users":
         data, _ = h.load_sources(sa.SOURCES_USERS, allowed)
         rows = sa.analyse_users(data.get("users_full", []), data.get("login_activity", []), data.get("admins", []), scope_fn, h.row_email, now)["rows"]
@@ -156,6 +195,9 @@ def build_facts(kind: str, rows: list[dict[str, Any]], red: Redactor) -> tuple[l
                           "risk": r["risk_level_raw" if r.get("approved") else "risk_level"], "score": r["risk_score"], "reasons": [clean(x, 60) for x in r.get("reasons", [])][:8],
                           "permissions": [x.rsplit("/", 1)[-1] for x in r.get("scopes", [])][:12], "users": users, "user_count": r["user_count"],
                           "last_seen": str(r.get("last_seen", ""))[:10], "already_approved": bool(r.get("approved")), "approval_problem": r.get("approval_stale")})
+        elif kind in EXTRA_KINDS or kind == "general":
+            ref, fact = _extra_fact(kind, r, red)
+            facts.append(fact)
         elif kind == "users":
             ref = red.tok(r["email"], "U")
             facts.append({"ref": ref, "type": "account", "flags": r["flags"], "risk": r["risk_level"], "days_since_login": r.get("days_since_login"),
@@ -169,6 +211,34 @@ def build_facts(kind: str, rows: list[dict[str, Any]], red: Redactor) -> tuple[l
                           "last_sync": str(r.get("last_sync", ""))[:10], "security_patch": str(r.get("security_patch", ""))[:10]})
         refs[ref] = {"kind": kind, "row": r}
     return facts, refs
+
+
+def _extra_fact(kind: str, r: dict[str, Any], red: Redactor) -> tuple[str, dict[str, Any]]:
+    """Privacy-safe facts for the non-security kinds. Whitelisted fields only; free text is scrubbed of email addresses."""
+    sc = lambda v, n=120: red.scrub(clean(v, n))  # noqa: E731
+    if kind == "general":
+        return "ALL", {"ref": "ALL", "type": "dashboard_overview", "security_reports": r.get("reports", {})}
+    ref = red.tok(_key(kind, r), EXTRA_KINDS[kind])
+    red.names[ref] = _label(kind, r)
+    if kind == "gam_runs":
+        return ref, {"ref": ref, "type": "gam_report_run", "report": clean(r.get("report"), 40), "status": clean(r.get("status"), 20), "exit_code": r.get("exit_code"),
+                     "size_bytes": r.get("size_bytes"), "created": str(r.get("created_at", ""))[:19], "domains": [clean(d, 60) for d in (r.get("domains") or [])[:6]]}
+    if kind == "raw_exports":
+        return ref, {"ref": ref, "type": "csv_file", "folder": sc(r.get("folder"), 60), "name": sc(r.get("name"), 80), "size_bytes": r.get("size_bytes"), "rows": r.get("rows"),
+                     "modified": str(r.get("modified", ""))[:19], "has_error_file": bool(r.get("err")), "error_hint": sc(r.get("err"), 100) if r.get("err") else None}
+    if kind == "jobs":
+        ps = r.get("payload_summary") or {}
+        return ref, {"ref": ref, "type": "school_provision_job", "status": clean(r.get("status"), 20), "emis": clean(r.get("emis"), 20), "school": clean(r.get("school_name"), 80),
+                     "source_format": clean(r.get("source_format"), 20), "source_file": sc(r.get("source_filename"), 80), "created": str(r.get("created_at", ""))[:19],
+                     "approved": bool(r.get("approved_at")), "approved_by": red.tok(r["approved_by"], "U") if r.get("approved_by") and "@" in str(r["approved_by"]) else clean(r.get("approved_by"), 40) or None,
+                     "notes": sc(r.get("notes"), 200) or None, "payload_rows": ps.get("row_count"), "payload_field_count": len(ps.get("fields") or {})}
+    if kind == "events":
+        return ref, {"ref": ref, "type": "publish_event", "kind": clean(r.get("kind"), 40), "status": clean(r.get("status"), 20), "emis": clean(r.get("emis"), 20),
+                     "created": str(r.get("created_at", ""))[:19], "has_site_url": bool(r.get("site_attendance_url")), "school_contact": red.tok(r["school_email"], "U") if r.get("school_email") else None,
+                     "preview": sc(r.get("payload_preview") or r.get("config_path"), 160) or None}
+    return ref, {"ref": ref, "type": "tablet", "emis": clean(r.get("emis"), 20), "school": clean(r.get("school_name"), 80), "device_type": clean(r.get("device_type"), 30),
+                 "app_version": clean(r.get("app_version"), 30), "last_seen": str(r.get("last_seen", ""))[:19] or None, "data_mb": r.get("data_mb"),
+                 "has_serial": bool(r.get("serial")), "has_sim": bool(r.get("sim")), "school_contact": red.tok(r["school_email"], "U") if r.get("school_email") else None}
 
 
 # ----------------------------------------------------------------- text bits ---
@@ -187,8 +257,39 @@ FLAG_TEXT = {
 }
 
 
+def _count(facts: list[dict[str, Any]], field: str) -> str:
+    c: dict[str, int] = {}
+    for f in facts:
+        c[str(f.get(field) or "unknown")] = c.get(str(f.get(field) or "unknown"), 0) + 1
+    return ", ".join(f"{n} {k}" for k, n in sorted(c.items(), key=lambda t: -t[1]))
+
+
+def baseline_extra(kind: str, facts: list[dict[str, Any]]) -> str:
+    n = len(facts)
+    if kind == "general":
+        rep_ = facts[0].get("security_reports", {}) if facts else {}
+        miss = [k for k, v in rep_.items() if v != "ok"]
+        return ("Hello! I am AIdmin. Ask me anything about this dashboard in plain words, or pick a question below. "
+                + (f"These Security audit reports have not been cached yet: {', '.join(miss)}. Run them under GAM reports." if miss else "All the Security audit reports are cached."))
+    if kind == "gam_runs":
+        bad = [f"{f['report']} ({f['status']})" for f in facts if str(f.get("status")) not in ("ok", "None", "")]
+        return f"{n} GAM report run(s): {_count(facts, 'status')}." + (f" Needs a look: {', '.join(bad[:6])}." if bad else " None of them reports a problem.") + " A run is only a saved copy: the data is as old as its date."
+    if kind == "raw_exports":
+        err = [f["name"] for f in facts if f.get("has_error_file")]
+        return f"{n} CSV file(s), {sum(int(f.get('rows') or 0) for f in facts)} rows in total." + (f" {len(err)} have an .err file next to them, which usually means GAM printed a warning or error: {', '.join(err[:5])}." if err else " None has an error file.")
+    if kind == "jobs":
+        pend = [f for f in facts if not f.get("approved")]
+        return f"{n} provisioning job(s): {_count(facts, 'status')}." + (f" {len(pend)} not approved yet: review the payload before approving. Approving only writes the school's config file; it creates no Google Site." if pend else "")
+    if kind == "events":
+        return f"{n} publish event(s): {_count(facts, 'kind')}. Status: {_count(facts, 'status')}. A row only exists when something posted to this platform; republishing a Google Site by itself does not create one."
+    stale = [f for f in facts if not f.get("last_seen")]
+    return f"{n} tablet(s) in the registry. {len(stale)} have never been seen. Tablets that have not reported for weeks are usually switched off, offline, or lost: ask the school."
+
+
 def baseline_message(kind: str, facts: list[dict[str, Any]]) -> str:
     """Deterministic explanation used when no AI model is reachable."""
+    if kind in EXTRA_KINDS or kind == "general":
+        return baseline_extra(kind, facts) + (" Choose a next step below." if kind != "general" else "")
     lines = []
     for f in facts[:8]:
         if kind == "oauth":
@@ -201,6 +302,17 @@ def baseline_message(kind: str, facts: list[dict[str, Any]]) -> str:
 
 
 def default_options(kind: str) -> list[dict[str, Any]]:
+    if kind == "general":
+        return [{"action": "explain", "label": "Where do I start?", "say": "Where should a new administrator start on this dashboard?"},
+                {"action": "explain", "label": "What does each section do?", "say": "Explain each section of the dashboard in one sentence."},
+                {"action": "explain", "label": "Which reports are missing?", "say": "Which reports are missing and how do I run them?"}]
+    if kind in EXTRA_KINDS:
+        opts = [{"action": "explain", "label": "What does this mean?", "say": "Explain in simple terms what these rows show and whether anything looks wrong."},
+                {"action": "explain", "label": "What should I check first?", "say": "What should I check first, and what is the safest next step?"},
+                {"action": "save_help", "label": "Save this advice to the help database"}]
+        if kind == "fleet":
+            opts.insert(2, {"action": "draft_email", "label": "Email the school about these tablets"})
+        return opts
     if kind == "oauth":
         return [{"action": "explain", "label": "Is this app safe? Explain simply", "say": "Is this app safe and what should I check?"},
                 {"action": "draft_email", "label": "Email the people who use it"},
@@ -215,16 +327,18 @@ def default_options(kind: str) -> list[dict[str, Any]]:
             {"action": "plan_wipe_device", "label": "Prepare steps to wipe it (lost or retired)"}]
 
 
-def system_prompt(is_super: bool) -> str:
+def system_prompt(is_super: bool, kind: str = "oauth") -> str:
     acts = [("explain", "answer a follow-up question in plain language"), ("draft_email", "prepare an email draft to the people involved (target = a label)"),
             ("save_help", "save this advice to the shared help database")]
-    if is_super:
+    if kind in EXTRA_KINDS or kind == "general":
+        acts = [a for a in acts if a[0] != "draft_email" or kind == "fleet"]
+    elif is_super:
         acts += [("approve_app", "mark an app as known and approved (target = app label)"), ("plan_revoke_token", "prepare GAM steps to remove an app's access (target = app label)"),
                  ("plan_offboard_user", "prepare steps to suspend an account (target = user label)"), ("plan_wipe_device", "prepare steps to wipe a device (target = device label)")]
     return (
         "You are the built-in IT helper for a school-system administrator in Sierra Leone who may not be technical. "
         "Explain clearly in plain, friendly language, short sentences, no jargon (say 'a third-party app' not 'OAuth client'). "
-        "You are given FACTS about the rows the admin selected. People are labelled U1, U2; apps A1; devices D1. Use only the labels, never invent names or addresses, never ask for personal data. "
+        "You are given FACTS about the rows the admin selected: " + KIND_CONTEXT.get(kind, "") + ". People are labelled U1, U2; apps A1; devices D1; report runs R1; files F1; jobs J1; events E1; tablets T1. If GUIDES are given, base your answer on them. Use only the labels, never invent names or addresses, never ask for personal data. "
         "Be honest about uncertainty: a high score is a reason to look, not proof of harm. You cannot run anything: you only propose steps the admin may choose.\n"
         "Reply with ONE JSON object: {\"message\": \"<=110 words\", \"options\": [{\"label\": \"short button text\", \"action\": \"<one of the actions>\", \"target\": \"<label or null>\", \"say\": \"question text for explain, else null\"}]}. "
         "Give 2 to 5 options, most sensible first, phrased as questions or choices an admin understands (for example: 'Do you want to remove this app's access?', 'Do you want me to draft an email to U1?'). "
@@ -243,6 +357,8 @@ def validate_options(raw: Any, refs: dict[str, Any], red: Redactor, is_super: bo
         act = str(o.get("action") or "")
         if act not in ACTIONS or (act in SUPER_ONLY and not is_super):
             continue
+        if (kind in EXTRA_KINDS or kind == "general") and (act not in ("explain", "save_help", "draft_email") or (act == "draft_email" and kind != "fleet")):
+            continue  # these screens are explain-only (email only to a school about its tablets)
         target = o.get("target")
         target = str(target).strip() if target else None
         if act == "explain":
@@ -291,6 +407,11 @@ def compose_email(kind: str, item: dict[str, Any], recipients: list[str]) -> tup
         else:
             subj, body = ("Do you still use your school Google account?",
                           "Hello,\n\nThis account has not been used for a long time. If you still need it, please sign in once to keep it active. If not, reply and we will close it safely.\n\nThank you.")
+    elif kind == "fleet":
+        subj = "Please check the school tablet"
+        body = ("Hello,\n\nOur records show a school tablet"
+                + (f" (last seen {str(r.get('last_seen'))[:10]})" if r.get("last_seen") else " that has not reported yet")
+                + ". Please check that it is charged, connected to Wi-Fi and that the school app is open. If it is lost, broken or no longer used, please tell us so we can protect the school data on it.\n\nThank you.")
     else:
         fl = ", ".join(FLAG_TEXT.get(x, x.lower()) for x in r.get("flags", [])[:4])
         subj = f"Please check the school device ({clean(r.get('model'), 40)})"
@@ -403,7 +524,7 @@ def search_articles(arts: list[dict[str, Any]], q: str, k: int = 6) -> list[dict
 
 # ----------------------------------------------------------------- request models ---
 class StartIn(BaseModel):
-    kind: str = Field(..., pattern=r"^(oauth|users|devices)$")
+    kind: str = Field(..., pattern=r"^(oauth|users|devices|gam_runs|raw_exports|jobs|events|fleet|general)$")
     keys: list[str] = Field(..., min_length=1, max_length=MAX_ITEMS)
 
 
@@ -479,6 +600,12 @@ def send_smtp(to: str, subject: str, body: str, reply_to: str | None) -> None:
 
 
 SAMPLES = {
+    "gam_runs": ["Did any of these runs fail and why?", "How old is this data?", "Which report should I run next?", "What does each report contain?"],
+    "raw_exports": ["What are these files?", "Why is there an .err file?", "Are these safe to share?", "Which file should I open first?"],
+    "jobs": ["What does approving this job do?", "What should I check before approving?", "Why is a job still pending?", "Which jobs need attention?"],
+    "events": ["What is a publish event?", "Why is there no event for my school?", "Which events failed?", "What changed most recently?"],
+    "fleet": ["Which tablets look lost or switched off?", "What should the school do?", "Why has this tablet not synced?", "Which tablets use the most data?"],
+    "general": ["Where do I start?", "What does CRITICAL mean?", "How do I add a known app?", "What do I do if a tablet is lost?", "Which reports are missing?"],
     "oauth": ["Is this app safe for a school?", "Who uses it and do they still need it?", "What happens if I remove its access?", "Which of these should I look at first?"],
     "users": ["Why is this account flagged?", "What is the safest next step?", "Should this account be suspended?", "Which of these should I look at first?"],
     "devices": ["Is this device probably lost?", "What should the school do about it?", "Should we wipe it?", "Which of these should I look at first?"],
@@ -486,7 +613,7 @@ SAMPLES = {
 
 
 # -------------------------------------------------------------------- router ---
-def build_router(h: sa.Helpers) -> APIRouter:
+def build_router(h: sa.Helpers, fetch: Callable[..., list[dict[str, Any]]] | None = None) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["admin-assist"])
     store = HelpStore(h.data_dir / "help")
     audit_path = h.data_dir / "assist" / "audit.jsonl"
@@ -528,7 +655,7 @@ def build_router(h: sa.Helpers) -> APIRouter:
 
     def new_session(request: Request, kind: str, keys: list[str]) -> tuple[str, dict[str, Any]]:
         sc, user = who(request)
-        rows, missing = load_items(h, request, kind, keys)
+        rows, missing = load_items(h, request, kind, keys, fetch)
         if not rows:
             raise HTTPException(404, {"error": "items_not_found", "detail": "those rows are not in your current data or scope; reload the table"})
         red = Redactor()
@@ -557,14 +684,21 @@ def build_router(h: sa.Helpers) -> APIRouter:
         warnings: list[str] = []
         red: Redactor = s["red"]
         convo = "\n".join(f"{t['role']}: {t['text']}" for t in s["history"][-MAX_TURNS:])
-        user_prompt = ("FACTS (JSON):\n" + json.dumps(s["facts"], ensure_ascii=False) + "\n\nCONVERSATION SO FAR:\n" + (convo or "(none)")
+        guides = ""
+        if admin_text or s["kind"] == "general":  # ground follow-up answers in the help library (pgvector lookup, no AI needed)
+            try:
+                hits, _m = lookup(red.scrub(admin_text or KIND_CONTEXT.get(s["kind"], "")), False, 3)
+                guides = "\n".join(f"[{i + 1}] {a['title']}: {str(a['body'])[:380]}" for i, a in enumerate(hits))
+            except Exception:  # noqa: BLE001
+                guides = ""
+        user_prompt = ("FACTS (JSON):\n" + json.dumps(s["facts"], ensure_ascii=False) + ("\n\nGUIDES:\n" + guides if guides else "") + "\n\nCONVERSATION SO FAR:\n" + (convo or "(none)")
                        + "\n\nADMIN: " + (red.scrub(admin_text) if admin_text else "Please explain these items and suggest what to do next.") + "\n\nReply with the JSON object only.")
-        ckey = hashlib.sha1((system_prompt(s["super"]) + user_prompt).encode()).hexdigest() if not admin_text and not s["history"] else None
+        ckey = hashlib.sha1((system_prompt(s["super"], s["kind"]) + user_prompt).encode()).hexdigest() if not admin_text and not s["history"] else None
         hit = _CACHE.get(ckey) if ckey else None
         if hit and time.time() - hit[0] < CACHE_TTL_S:
             raw = hit[1]
         else:
-            raw = call_model(s["engine"], system_prompt(s["super"]), user_prompt, warnings)
+            raw = call_model(s["engine"], system_prompt(s["super"], s["kind"]), user_prompt, warnings)
             if raw and ckey:
                 if len(_CACHE) > 300:
                     _CACHE.clear()
@@ -586,7 +720,7 @@ def build_router(h: sa.Helpers) -> APIRouter:
             # default options carry no target: bind them to the first matching item
             first = next(iter(s["refs"]), None)
             for o in opts:
-                if o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device", "plan_offboard_user", "draft_email") and not o["target"]:
+                if o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device", "plan_offboard_user", "draft_email") and not o["target"] and s["kind"] != "fleet":
                     o["target"] = first
             opts = [o for o in opts if o["action"] not in ("approve_app", "plan_revoke_token", "plan_wipe_device") or o["target"] in s["refs"]]
             if s["kind"] == "users" and s["super"]:
@@ -600,9 +734,11 @@ def build_router(h: sa.Helpers) -> APIRouter:
             out_opts.append({"id": oid, "label": red.detok(o["label"]), "action": o["action"], "danger": o["action"].startswith("plan_") or o["action"] == "approve_app"})
         msg_out = red.detok(msg)
         # grow the shared help database from the first answer of a session (generalised, no personal data)
-        if len(s["history"]) == 1 and not any("No AI model" in w for w in warnings):
-            sig = s["kind"] + ":" + ",".join(sorted({f for x in s["facts"] for f in (x.get("flags") or x.get("reasons", [])[:2])}))[:160]
-            title = {"oauth": "Reviewing a third-party app with access to Google accounts", "users": "Handling flagged user accounts", "devices": "Handling flagged devices"}[s["kind"]]
+        if len(s["history"]) == 1 and s["kind"] != "general" and not any("No AI model" in w for w in warnings):
+            sig = s["kind"] + ":" + ",".join(sorted({str(f) for x in s["facts"] for f in (x.get("flags") or x.get("reasons", [])[:2] or ([x.get("status")] if x.get("status") else []))}))[:160]
+            title = {"oauth": "Reviewing a third-party app with access to Google accounts", "users": "Handling flagged user accounts", "devices": "Handling flagged devices",
+                     "gam_runs": "Reading GAM report runs", "raw_exports": "Reading raw GAM export files", "jobs": "Reviewing school provisioning jobs", "events": "Reading publish events",
+                     "fleet": "Checking the tablet registry"}[s["kind"]]
             store.upsert(None, {"title": f"{title} ({sig.split(':', 1)[1][:60] or 'general'})", "body": red.generalise(msg), "tags": [s["kind"], "assist"],
                                 "category": "Q&A from admins"}, dedupe_key=hashlib.sha1(sig.encode()).hexdigest()[:12])
         return {"message": msg_out, "options": out_opts, "warnings": warnings,
@@ -615,7 +751,7 @@ def build_router(h: sa.Helpers) -> APIRouter:
         opts = validate_options(default_options(s["kind"]), s["refs"], red, s["super"], s["kind"])
         first = next(iter(s["refs"]), None)
         for o in opts:
-            if not o["target"] and o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device", "plan_offboard_user", "draft_email"):
+            if not o["target"] and o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device", "plan_offboard_user", "draft_email") and s["kind"] != "fleet":
                 o["target"] = first
         opts = [o for o in opts if not (o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device") and o["target"] not in s["refs"])]
         opts = [o for o in opts if not (o["action"] == "plan_offboard_user" and o["target"] not in red.rev)]
@@ -626,7 +762,7 @@ def build_router(h: sa.Helpers) -> APIRouter:
             oid = f"o{len(s['history'])}_{i}"
             s["pending"][oid] = o
             out.append({"id": oid, "label": red.detok(o["label"]), "action": o["action"], "danger": o["action"].startswith("plan_") or o["action"] == "approve_app"})
-        return {"message": red.detok(msg), "options": out, "warnings": [], "ai_pending": True,
+        return {"message": red.detok(msg), "options": out, "warnings": [], "ai_pending": s["kind"] != "general",
                 "engine": {"label": s["engine"]["label"], "cloud": s["engine"]["cloud"]}}
 
     # ------------------------------------------------------------ assist endpoints
@@ -675,7 +811,8 @@ def build_router(h: sa.Helpers) -> APIRouter:
             it = s["refs"][target]
             if it["kind"] == "oauth":
                 return list(it["row"].get("users", []))[:MAX_USERS_PER_APP]
-            return [it["row"]["email"]] if it["row"].get("email") else []
+            mail = it["row"].get("email") or it["row"].get("school_email")
+            return [mail] if mail else []
         if target in red.rev and target.startswith("U"):
             return [red.rev[target]]
         return []

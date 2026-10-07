@@ -2,6 +2,8 @@
 
 Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school-config publish, publish audit, and (later) read-only warehouse assistance.
 
+**0.4.24:** **AIdmin** button in every section (GAM reports, raw exports, jobs, publish events, fleet, security) plus a general one by the Domain filter; tick rows then press AIdmin. Explain-only, whitelisted facts. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
+
 **0.4.23:** Admin assist is faster (instant first answer), help is a 73-guide library looked up in pgvector, editable email drafts (optional SMTP send), sample prompts, green Admin assist button. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
 
 **0.4.22 (experimental):** **Admin assist** (tick rows in the Security audit, get plain-language help, guided next steps, dry-run plans and email drafts), a **known & approved apps** list, and a growing **Help & guides** database. No DB change; kill switch `ASSIST_ENABLED=0`. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).

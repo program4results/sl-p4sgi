@@ -502,3 +502,98 @@ def test_send_smtp_builds_safe_message(monkeypatch):
     aa.send_smtp("a@x.org", "Hi\r\nBcc: evil@x.org", "body text here", "geb@p4sgi.com")
     m = got["msg"]
     assert got["tls"] and got["login"] == "u" and m["To"] == "a@x.org" and "\n" not in m["Subject"] and m["Bcc"] is None and m["Reply-To"] == "geb@p4sgi.com"
+
+
+# ----------------------------------------------- AIdmin on every section (extra kinds) ---
+RUN = {"id": "20261007T080000Z_users", "report": "users", "status": "failed", "exit_code": 1, "size_bytes": 10, "created_at": "2026-10-07T08:00:00Z", "domains": ["sl.p4sgi.com"]}
+FILE = {"folder": "probe-1", "name": "users_a@sl.p4sgi.com.csv", "path": "probe-1/users_a@sl.p4sgi.com.csv", "size_bytes": 5, "rows": 3, "modified": "2026-10-07T08:00:00+00:00", "err": "bad row for b@sl.p4sgi.com"}
+JOB = {"id": "j-1111", "status": "pending", "emis": "110101", "school_name": "Test School", "source_format": "xlsx", "source_filename": "cfg_x@y.org.xlsx",
+       "created_at": "2026-10-01T00:00:00", "approved_by": "boss@p4sgi.com", "notes": "ask ht@sl.p4sgi.com", "payload_summary": {"row_count": 4, "fields": {"a": 1}}}
+EVENT = {"id": "e-2222", "kind": "radar_parents", "status": "ok", "emis": "110101", "created_at": "2026-10-02T00:00:00", "school_email": "ht@sl.p4sgi.com",
+         "payload_preview": "published for ht@sl.p4sgi.com", "site_attendance_url": "https://x"}
+TAB = {"id": "t-3333", "emis": "110101", "school_name": "Test School", "device_type": "tablet", "app_version": "1.2", "last_seen": None, "data_mb": 1.5,
+       "serial": "SERIAL999", "sim": "+23277000000", "whatsapp": "+23277000001", "tablet_android_id": "ANDROIDID123", "school_email": "ht@sl.p4sgi.com"}
+EXTRA_ROWS = {"gam_runs": [RUN], "raw_exports": [FILE], "jobs": [JOB], "events": [EVENT], "fleet": [TAB]}
+
+
+def test_extra_facts_are_whitelisted_and_scrubbed():
+    for kind, rows in EXTRA_ROWS.items():
+        r = aa.Redactor()
+        facts, refs = aa.build_facts(kind, rows, r)
+        blob = json.dumps(facts)
+        assert "@" not in blob and "SERIAL999" not in blob and "+2327700" not in blob and "ANDROIDID123" not in blob, (kind, blob)
+        assert list(refs) == [facts[0]["ref"]] and refs[facts[0]["ref"]]["kind"] == kind
+        assert aa.baseline_message(kind, facts) and aa.default_options(kind)
+    assert aa.Redactor().generalise("R1 and T2 and J3") == "the report run and the tablet and the job"
+
+
+def test_extra_kinds_are_explain_only():
+    for kind, rows in EXTRA_ROWS.items():
+        r = aa.Redactor()
+        _, refs = aa.build_facts(kind, rows, r)
+        ref = next(iter(refs))
+        raw = [{"action": "plan_wipe_device", "target": ref, "label": "wipe"}, {"action": "approve_app", "target": ref, "label": "approve"},
+               {"action": "plan_offboard_user", "target": "U1", "label": "suspend"}, {"action": "draft_email", "target": ref, "label": "email"},
+               {"action": "explain", "label": "why", "say": "why"}, {"action": "save_help", "label": "save"}]
+        acts = {o["action"] for o in aa.validate_options(raw, refs, r, True, kind)}
+        assert acts == ({"explain", "save_help", "draft_email"} if kind == "fleet" else {"explain", "save_help"}), (kind, acts)
+        assert "approve_app" not in aa.system_prompt(True, kind) and "plan_revoke_token" not in aa.system_prompt(True, kind)
+
+
+def test_general_session_and_guides_in_prompt(env):
+    r = env.post("/api/v1/assist/start", json={"kind": "general", "keys": ["*"]}, headers=SL).json()
+    assert r["ai_pending"] is False and "AIdmin" in r["message"] and r["samples"] and r["options"]
+    assert not env.sent  # instant, no model call
+    env.post("/api/v1/assist/reply", json={"session_id": r["session_id"], "text": "what does critical mean for an app?"}, headers=SL)
+    assert "GUIDES:" in env.sent[-1][1] and "CRITICAL" in env.sent[-1][1]
+
+
+@pytest.fixture()
+def extra_client(env, tmp_path):
+    from fastapi import FastAPI, HTTPException
+    from fastapi.testclient import TestClient
+
+    from app import main
+
+    state = {"deny": False}
+
+    def fetch(kind, request, allowed):
+        if state["deny"] and kind == "raw_exports":
+            raise HTTPException(403, {"error": "forbidden"})
+        return [dict(x) for x in EXTRA_ROWS[kind]]
+
+    h = sa.Helpers(insight_scope=main._insight_scope, load_sources=main._load_sources, build_device_rows=main._build_device_rows, row_email=main._row_email,
+                   in_scope=main._in_scope, request_scope=main._request_scope, is_superadmin=main.is_superadmin, data_dir=tmp_path, app_version="t")
+    app = FastAPI()
+    app.include_router(aa.build_router(h, fetch))
+    c = TestClient(app)
+    c.sent, c.state = env.sent, state  # type: ignore[attr-defined]
+    return c
+
+
+@pytest.mark.parametrize("kind,key", [("gam_runs", RUN["id"]), ("raw_exports", FILE["path"]), ("jobs", "j-1111"), ("events", "e-2222"), ("fleet", "t-3333")])
+def test_each_section_kind_end_to_end(extra_client, kind, key):
+    c = extra_client
+    j = c.post("/api/v1/assist/start", json={"kind": kind, "keys": [key]}).json()
+    assert j["ai_pending"] is True and j["samples"] and j["message"] and j["items"][0]["label"]
+    e = c.post("/api/v1/assist/enhance", json={"session_id": j["session_id"]}).json()
+    assert e["skipped"] is False
+    prompt = c.sent[-1][1]
+    assert "@" not in prompt and "SERIAL999" not in prompt and "+2327700" not in prompt and "ANDROIDID123" not in prompt
+    sys_prompt = c.sent[-1][0]
+    assert KIND_TEXT[kind] in sys_prompt
+    bad = c.post("/api/v1/assist/start", json={"kind": kind, "keys": ["nope"]})
+    assert bad.status_code == 404
+
+
+KIND_TEXT = {"gam_runs": "runs of GAM reports", "raw_exports": "raw CSV files", "jobs": "provisioning jobs", "events": "publish events", "fleet": "tablet registry"}
+
+
+def test_fleet_email_goes_to_school_and_forbidden_propagates(extra_client):
+    c = extra_client
+    j = c.post("/api/v1/assist/start", json={"kind": "fleet", "keys": ["t-3333"]}).json()
+    opt = next(o for o in j["options"] if o["action"] == "draft_email")
+    res = c.post("/api/v1/assist/reply", json={"session_id": j["session_id"], "option_id": opt["id"]}).json()["result"]
+    assert res["type"] == "email" and res["to"] == ["ht@sl.p4sgi.com"] and "tablet" in res["subject"].lower()
+    c.state["deny"] = True
+    assert c.post("/api/v1/assist/start", json={"kind": "raw_exports", "keys": [FILE["path"]]}).status_code == 403

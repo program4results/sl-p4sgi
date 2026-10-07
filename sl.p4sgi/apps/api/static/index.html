@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.23" />
+  <meta name="p4sgi-ui-version" content="0.4.24" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -338,6 +338,18 @@
     .aa-card input[type=text] { background: #020617; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.3rem 0.5rem; font: inherit; width: 100%; box-sizing: border-box; margin: 0.15rem 0 0.35rem; }
     .aa-card label.inl { display: flex; gap: 0.4rem; align-items: center; font-size: 0.78rem; color: var(--muted); margin: 0.2rem 0; }
     .aa-enh { color: var(--ok); font-size: 0.78rem; }
+    /* 0.4.24: AIdmin everywhere (AI in red bold) */
+    .ai-red { color: #ff4d5e; font-weight: 900; }
+    .btn-assist .ai-red, .sel-tbl button.assist.go .ai-red, td.ai-cell button .ai-red { color: #a0001a; }
+    .btn-assist { background: #4ade80; }
+    .btn-assist:disabled .ai-red { color: #fca5a5; }
+    .btn-assist.hdr { padding: 0.2rem 0.7rem; font-size: 0.8rem; margin-left: 0.35rem; }
+    .sel-tbl button.assist.go { background: #4ade80; }
+    td.ai-cell, th.ai-cell { white-space: nowrap; text-align: left; }
+    td.ai-cell input { width: 1.05rem; height: 1.05rem; vertical-align: middle; cursor: pointer; }
+    td.ai-cell button { margin-left: 0.4rem; padding: 0.15rem 0.5rem; font-size: 0.72rem; border-radius: 6px; border: 1px solid #22c55e; background: #4ade80; color: #052e16; font-weight: 700; cursor: pointer; }
+    tr.ai-picked td { background: rgba(74,222,128,0.10); }
+    #btnAiGlobal { margin-left: 0.6rem; }
   </style>
 </head>
 <body>
@@ -346,7 +358,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.23</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.24</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -369,6 +381,7 @@
           <span class="chevron" id="domainChevron" aria-hidden="true">▸</span> Domain filter
         </button>
         <span class="filter-summary" id="domainSummary">All domains</span>
+        <button type="button" class="btn-assist hdr" id="btnAiGlobal" title="Ask AIdmin anything about this dashboard"><b class="ai-red">AI</b>dmin</button>
       </h2>
       <div id="domainFilterBody" hidden>
         <p style="margin-top:0">Filters GAM runs, schools, jobs, publish events, devices, and telemetry. Persisted in <code>localStorage</code>.</p>
@@ -443,6 +456,7 @@
           <span class="chevron" aria-hidden="true">▾</span> GAM reports
         </button>
         <button type="button" class="secondary" id="btnReloadRuns">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="gam_runs" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <button type="button" class="secondary" id="btnReloadGamSummary">Summary</button>
         <span class="spin" id="runsSpin" hidden><span class="spinner"></span></span>
         <span class="spin" id="gamSumSpin" hidden><span class="spinner"></span></span>
@@ -595,6 +609,7 @@
         </button>
         <span class="badge kind" title="IMEIs / MAC addresses / serials — super-admin only">super-admin</span>
         <button type="button" class="secondary" id="btnRawReload" title="Re-list CSV files under gam-out (no GAM call)">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="raw_exports" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="rawSpin" hidden><span class="spinner"></span></span>
       
         <span class="export-btns" data-export="raw_exports">
@@ -624,6 +639,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Provisioning jobs
         </button>
         <button type="button" class="secondary" id="btnReloadJobs">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="jobs" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="jobsSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secJobsBody" hidden>
@@ -642,6 +658,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Recent publish events
         </button>
         <button type="button" class="secondary" id="btnReloadEvents">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="events" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="eventsSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secEventsBody" hidden>
@@ -694,6 +711,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Fleet / devices
         </button>
         <button type="button" class="secondary" id="btnReloadDevices">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="fleet" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="devicesSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="fleetDevicesBody" hidden>
@@ -711,6 +729,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Security audit
         </button>
         <button type="button" class="secondary" id="btnSecReload">Load / Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="oauth,users,devices" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="secSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secSecurityBody" hidden>
@@ -720,7 +739,7 @@
         </details>
         <p class="msg" id="secMsg"></p>
         <div class="cards" id="secCards"><p class="empty">Click <em>Load / Reload</em>.</p></div>
-        <p class="section-help" style="margin:0.5rem 0 0">New: tick rows (or use <em>Select all</em>) and press <strong>Admin assist</strong>, or press <strong>Assist</strong> at the end of a row. The assistant explains the issue in plain words and offers next steps. It never changes anything by itself.</p>
+        <p class="section-help" style="margin:0.5rem 0 0">New: tick rows (or use <em>Select all</em>) and press <strong><b class="ai-red">AI</b>dmin</strong>, or press the small <strong><b class="ai-red">AI</b>dmin</strong> button at the end of a row. The assistant explains the issue in plain words and offers next steps. It never changes anything by itself.</p>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Known &amp; approved apps</h3>
         <div id="secApproved"><p class="empty">Click <em>Load / Reload</em>.</p></div>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">OAuth apps (30 d)</h3>
@@ -887,7 +906,7 @@
   <div class="modal-backdrop" id="aaModal" role="dialog" aria-modal="true" aria-labelledby="aaTitle">
     <div class="modal">
       <header>
-        <h2 id="aaTitle" style="margin:0;font-size:1rem;">Admin assist</h2>
+        <h2 id="aaTitle" style="margin:0;font-size:1rem;"><b class="ai-red">AI</b>dmin</h2>
         <span class="chip" id="aaEngine" title="Which AI answers"><span class="chip-val">…</span></span>
         <button type="button" class="secondary" id="aaClose">Close</button>
       </header>
@@ -917,7 +936,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.23';
+    const UI_VERSION = '0.4.24';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -1694,7 +1713,7 @@
           $('runsTable').innerHTML = '<p class="empty">No runs match. Click a report button above (or clear domain filter).</p>';
           return;
         }
-        const rows = runs.map(r => `<tr>
+        const rows = runs.map(r => `<tr data-aikey="${esc(r.id)}">
           <td class="mono">${esc(r.id)}</td>
           <td>${kindBadge(r.report)}</td>
           <td>${badge(r.status || 'ok')}</td>
@@ -1900,7 +1919,7 @@
           const id = j.id;
           const open = expandedJobId === id;
           const summary = j.payload_summary || {};
-          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}">
+          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}" data-aikey="${esc(id)}">
             <td class="mono">${esc(id.slice(0, 8))}…</td>
             <td>${badge(j.status)}</td>
             <td>${esc(j.emis || '—')}</td>
@@ -2141,7 +2160,7 @@
           $('eventsTable').innerHTML = '<p class="empty">No publish events match. If you just republished the Google Site, that does not land here — see the note above.</p>';
           return;
         }
-        const rows = events.map(e => `<tr>
+        const rows = events.map(e => `<tr data-aikey="${esc(e.id)}">
           <td class="mono">${esc((e.id || '').slice(0, 8))}…</td>
           <td>${kindBadge(e.kind)}</td>
           <td>${badge(e.status || (e.config_path ? 'ok' : ''))}</td>
@@ -2219,7 +2238,7 @@
             </table>`;
           return;
         }
-        const rows = devices.map(d => `<tr>
+        const rows = devices.map(d => `<tr data-aikey="${esc(d.id)}">
           <td class="mono">${esc(d.emis || '—')}</td>
           <td>${esc(d.school_name || '—')}</td>
           <td class="mono">${esc(d.serial || (d.id || '').slice(0, 8) || '—')}</td>
@@ -2511,7 +2530,7 @@
         $('rawTable').innerHTML = '<p class="empty">No CSV files match.</p>';
         return;
       }
-      const rows = files.map(f => `<tr>
+      const rows = files.map(f => `<tr data-aikey="${esc(f.path)}">
           <td class="mono">${esc(f.folder)}</td>
           <td class="mono">${esc(f.name)}${f.err ? ` <span class="badge" title="${esc(f.err)}">.err</span>` : ''}</td>
           <td data-sort="${f.size_bytes}">${esc(fmtBytes(f.size_bytes))}</td>
@@ -3041,7 +3060,7 @@
     const whyList = (arr) => (arr && arr.length ? arr.map(x => `<span class="why-i">${esc(x)}</span>`).join('') : '—');
     const SEL = { oauth: new Set(), users: new Set(), devices: new Set() };
     const SEC_KEY = { oauth: r => r.client_id || r.app_name, users: r => r.email, devices: r => r.device_id };
-    const SEC_NOUN = { oauth: 'app', users: 'user', devices: 'device' };
+    const SEC_NOUN = { oauth: 'app', users: 'user', devices: 'device', gam_runs: 'report run', raw_exports: 'file', jobs: 'job', events: 'event', fleet: 'tablet', general: 'dashboard' };
     function secSelRender(kind, boxId, cols, rows, empty) {
       const box = $(boxId); SEL[kind].clear();
       if (!rows.length) { box.innerHTML = `<p class="empty">${esc(empty)}</p>`; return; }
@@ -3049,16 +3068,17 @@
       const head = `<th class="chk"><input type="checkbox" data-all aria-label="Select all rows"></th>` + cols.map(c => `<th>${esc(c.h)}</th>`).join('') + '<th></th>';
       const body = keyed.map(({ r, k }) => `<tr data-k="${esc(k)}"><td class="chk"><input type="checkbox" class="selrow" data-k="${esc(k)}" aria-label="Select this row"></td>`
         + cols.map(c => `<td${c.wrap ? ' class="wrap"' : ''}>${c.f(r)}</td>`).join('')
-        + `<td><button type="button" class="secondary assist go" data-assist-row="${esc(k)}" title="Get plain-language help with this row">Assist</button></td></tr>`).join('');
-      box.innerHTML = `<div class="sel-bar"><button type="button" class="btn-assist" data-assist-sel disabled title="Get plain-language help with the ticked rows">🤖 Admin assist (0)</button>
+        + `<td><button type="button" class="secondary assist go" data-assist-row="${esc(k)}" title="Get plain-language help with this row"><b class="ai-red">AI</b>dmin</button></td></tr>`).join('');
+      box.innerHTML = `<div class="sel-bar"><button type="button" class="btn-assist" data-assist-sel disabled title="Get plain-language help with the ticked rows"><b class="ai-red">AI</b>dmin (0)</button>
         <button type="button" class="secondary" data-selall>Select all</button><button type="button" class="secondary" data-selnone>Select none</button>
         <span data-selcount>0 selected</span></div>
         <div class="sel-tbl"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
       const refresh = () => {
         const n = SEL[kind].size, tot = keyed.length;
         box.querySelector('[data-selcount]').textContent = n + ' selected';
-        const b = box.querySelector('[data-assist-sel]'); b.disabled = !n; b.textContent = `🤖 Admin assist (${n})`;
+        const b = box.querySelector('[data-assist-sel]'); b.disabled = !n; b.innerHTML = `<b class="ai-red">AI</b>dmin (${n})`;
         const all = box.querySelector('input[data-all]'); all.checked = n > 0 && n === tot; all.indeterminate = n > 0 && n < tot;
+        if (typeof aiHdrRefresh === 'function') aiHdrRefresh();
         box.querySelectorAll('tr[data-k]').forEach(tr => tr.classList.toggle('picked', SEL[kind].has(tr.dataset.k)));
       };
       const setAll = (on) => { box.querySelectorAll('input.selrow').forEach(cb => { cb.checked = on; on ? SEL[kind].add(cb.dataset.k) : SEL[kind].delete(cb.dataset.k); }); refresh(); };
@@ -3225,6 +3245,73 @@
         card.remove(); aaPost({ option_id: oid, confirm: true, note }, 'Yes, approve it: ' + note);
       }
     });
+
+
+    /* ---- 0.4.24 AIdmin on every section: tick rows, press AIdmin ---- */
+    const AIREG = { gam_runs: { box: 'runsTable' }, raw_exports: { box: 'rawTable' }, jobs: { box: 'jobsTable' }, events: { box: 'eventsTable' }, fleet: { box: 'devicesTable' } };
+    const aiBtnHtml = (n) => `<b class="ai-red">AI</b>dmin${n ? ' (' + n + ')' : ''}`;
+    function aiHdrRefresh() {
+      document.querySelectorAll('button[data-ai-hdr]').forEach(b => {
+        const n = b.dataset.aiHdr.split(',').reduce((t, k) => t + (SEL[k] ? SEL[k].size : 0), 0);
+        b.querySelector('[data-ai-n]').textContent = n ? '(' + n + ')' : '';
+      });
+    }
+    function aiRefresh(kind) {
+      const c = AIREG[kind], box = $(c.box), n = SEL[kind].size;
+      const rows = [...box.querySelectorAll('tr[data-aikey]')];
+      rows.forEach(tr => { const on = SEL[kind].has(tr.dataset.aikey); tr.classList.toggle('ai-picked', on); const cb = tr.querySelector('input.ai-chk'); if (cb) cb.checked = on; });
+      const all = box.querySelector('input.ai-all'); if (all) { all.checked = n > 0 && n === rows.length; all.indeterminate = n > 0 && n < rows.length; }
+      c.bar.querySelector('[data-a=count]').textContent = n + ' selected';
+      const go = c.bar.querySelector('[data-a=go]'); go.disabled = !n; go.innerHTML = aiBtnHtml(n || 0);
+      aiHdrRefresh();
+    }
+    function aiDecorate(kind) {
+      const c = AIREG[kind], box = $(c.box), table = box.querySelector('table');
+      const rows = table ? [...table.querySelectorAll('tbody tr[data-aikey]')] : [];
+      SEL[kind].clear();
+      c.bar.hidden = !rows.length;
+      if (!rows.length) { aiHdrRefresh(); return; }
+      if (!table.dataset.aiDone) {
+        table.dataset.aiDone = '1';
+        const hr = table.tHead && table.tHead.rows[0];
+        if (hr) { const th = document.createElement('th'); th.className = 'ai-cell'; th.setAttribute('data-nosort', ''); th.innerHTML = '<input type="checkbox" class="ai-all" aria-label="Select all rows"> ' + aiBtnHtml(0).replace(/ \(0\)/, ''); hr.appendChild(th);
+          th.querySelector('input').addEventListener('change', (ev) => { rows.forEach(tr => ev.target.checked ? SEL[kind].add(tr.dataset.aikey) : SEL[kind].delete(tr.dataset.aikey)); aiRefresh(kind); }); }
+        rows.forEach(tr => {
+          const td = document.createElement('td'); td.className = 'ai-cell';
+          const key = tr.dataset.aikey;
+          td.innerHTML = '<input type="checkbox" class="ai-chk" aria-label="Select this row"><button type="button" title="Get plain-language help with this row">' + aiBtnHtml(0).replace(/ \(0\)/, '') + '</button>';
+          td.addEventListener('click', (ev) => ev.stopPropagation());  // rows may be clickable (jobs): do not toggle them
+          td.querySelector('input').addEventListener('change', (ev) => { ev.target.checked ? SEL[kind].add(key) : SEL[kind].delete(key); aiRefresh(kind); });
+          td.querySelector('button').addEventListener('click', () => aaOpen(kind, [key]));
+          tr.appendChild(td);
+        });
+      }
+      aiRefresh(kind);
+    }
+    Object.keys(AIREG).forEach(kind => {
+      const c = AIREG[kind], box = $(c.box); SEL[kind] = new Set();
+      const bar = document.createElement('div'); bar.className = 'sel-bar'; bar.hidden = true;
+      bar.innerHTML = `<button type="button" class="btn-assist" data-a="go" disabled>${aiBtnHtml(0)}</button><button type="button" class="secondary" data-a="all">Select all</button><button type="button" class="secondary" data-a="none">Select none</button><span data-a="count">0 selected</span>`;
+      box.parentNode.insertBefore(bar, box); c.bar = bar;
+      bar.addEventListener('click', (ev) => {
+        const b = ev.target.closest('button[data-a]'); if (!b) return;
+        const rows = [...box.querySelectorAll('tr[data-aikey]')];
+        if (b.dataset.a === 'all') rows.forEach(tr => SEL[kind].add(tr.dataset.aikey));
+        else if (b.dataset.a === 'none') SEL[kind].clear();
+        else if (b.dataset.a === 'go' && SEL[kind].size) { aaOpen(kind, [...SEL[kind]]); return; }
+        aiRefresh(kind);
+      });
+      new MutationObserver(() => aiDecorate(kind)).observe(box, { childList: true });
+      aiDecorate(kind);
+    });
+    // header buttons (next to Reload) and the one near the Domain filter
+    document.querySelectorAll('button[data-ai-hdr]').forEach(b => b.addEventListener('click', () => {
+      const withSel = b.dataset.aiHdr.split(',').filter(k => SEL[k] && SEL[k].size);
+      if (!withSel.length) { toast('Tick one or more rows in this section first (or use Select all), then press AIdmin.', 'err'); return; }
+      if (withSel.length > 1) { toast('Select rows in one table at a time, then press AIdmin.', 'err'); return; }
+      aaOpen(withSel[0], [...SEL[withSel[0]]]);
+    }));
+    $('btnAiGlobal').addEventListener('click', (ev) => { ev.stopPropagation(); aaOpen('general', ['*']); });
 
     /* Help & guides */
     const HELP = { loaded: false, admin: false };

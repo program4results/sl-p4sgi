@@ -59,7 +59,7 @@ HELP_SEED: list[dict[str, object]] = [
              "Lost or retired: block it and wipe the school account data from it (a wipe is irreversible, so confirm first). Admin assist prepares the GAM steps; you need the device's GAM resourceId."},
     {"id": "admin-assist", "category": "Admin assist", "title": "How Admin assist works and what it can and cannot do",
      "tags": ["admin assist", "ai", "gemini", "help"],
-     "body": "Tick one or more rows and press Admin assist, or press Assist at the end of a row. The assistant explains the issue in plain language and offers next steps as buttons: "
+     "body": "Tick one or more rows and press the green AIdmin button (it is in every section: GAM reports, Raw exports, Provisioning jobs, Publish events, Fleet / devices and Security audit), or press the small AIdmin button at the end of a row. The AIdmin button next to the Domain filter opens a general chat that is not tied to any rows. The assistant explains the issue in plain language and offers next steps as buttons: "
              "approve an app, prepare a revoke or offboarding plan, draft an email to the person, or ask a follow-up. "
              "It can only act on the rows you selected, can only offer a fixed list of steps, and never runs anything: plans are text for you to copy and emails open in your mail app as a draft. "
              "Privacy: the AI is not sent email addresses, names or serial numbers. People are replaced by labels like U1, and the real names are put back only on your screen."},

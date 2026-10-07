@@ -2,6 +2,8 @@
 
 Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school-config publish, publish audit, and (later) read-only warehouse assistance.
 
+**0.4.21 (experimental):** **Ask the data** chat (local Ollama, read-only curated views, pgvector knowledge base). The db image gains pgvector (same Alpine base). Kill switch `ASK_DATA_ENABLED=0`. See [docs/ASK_DATA.md](docs/ASK_DATA.md).
+
 **0.4.20 (experimental):** **Privacy compliance (PIA) monitor** with a required DPO email, evidence-based radar and go-live gate. Own JSON state, no DB change; kill switch `PRIVACY_MONITOR_ENABLED=0`. See [docs/PRIVACY_MONITOR.md](docs/PRIVACY_MONITOR.md).
 
 **0.4.19:** Read-only **Security audit** (OAuth app risk, user hygiene, device compliance) over cached GAM CSVs + dry-run fix plans. No DB change; kill switch `SECURITY_AUDIT_ENABLED=0`. See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
@@ -22,6 +24,7 @@ Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school
 | Phase 4 fleet ops | [docs/PHASE4-fleet-ops.md](docs/PHASE4-fleet-ops.md) |
 | **Security audit (0.4.19)** | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) |
 | **Privacy monitor (0.4.20, experimental)** | [docs/PRIVACY_MONITOR.md](docs/PRIVACY_MONITOR.md) |
+| **Ask the data chat (0.4.21, experimental)** | [docs/ASK_DATA.md](docs/ASK_DATA.md) |
 | Radar vs Site | [docs/RADAR_VS_SITE.md](docs/RADAR_VS_SITE.md) |
 | **Site attendance embed (HQ runbook)** | [docs/SITE_ATTENDANCE_EMBED.md](docs/SITE_ATTENDANCE_EMBED.md) |
 | **Site template + GAM provision (~100 schools)** | [docs/SCHOOL_SITE_TEMPLATE_PROVISION.md](docs/SCHOOL_SITE_TEMPLATE_PROVISION.md) |

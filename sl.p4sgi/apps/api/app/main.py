@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.20"
+APP_VERSION = "0.4.21"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -5945,3 +5945,18 @@ if os.getenv("PRIVACY_MONITOR_ENABLED", "1").strip().lower() not in ("0", "false
         )
     except Exception as _priv_exc:  # noqa: BLE001
         print(f"[privacy_monitor] disabled: {_priv_exc!r}", flush=True)
+
+
+# 0.4.21 ask-the-data chat (EXPERIMENTAL; local Ollama by default, read-only curated views, pgvector knowledge base).
+# Isolated module: any failure here must never stop the API. Disable with ASK_DATA_ENABLED=0.
+if os.getenv("ASK_DATA_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import ask_data as _askdata
+
+        app.include_router(
+            _askdata.build_router(
+                _askdata.Helpers(request_scope=_request_scope, data_dir=DATA_DIR, app_version=APP_VERSION)
+            )
+        )
+    except Exception as _chat_exc:  # noqa: BLE001
+        print(f"[ask_data] disabled: {_chat_exc!r}", flush=True)

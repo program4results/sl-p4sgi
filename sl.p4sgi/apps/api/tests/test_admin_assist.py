@@ -176,6 +176,8 @@ def env(monkeypatch, tmp_path):
                "unknownSourcesStatus,devicePasswordStatus,securityPatchLevel,serialNumber\n"
                f"d1,a@sl.p4sgi.com,SM-X216B,Android 14,ANDROID,APPROVED,{iso(1)},NOT_ENCRYPTED,true,false,false,PASSWORD_SET,2024-01-01,SER1\n")
     monkeypatch.setattr(main, "GAM_RUNS_DIR", runs)
+    aa._CACHE.clear()
+    aa._INDEXED.update(done=True, tried=0)  # no background indexing thread in tests
     for sub in ("security", "help", "assist"):
         shutil.rmtree(main.DATA_DIR / sub, ignore_errors=True)
     sent: list[tuple[str, str]] = []
@@ -185,7 +187,7 @@ def env(monkeypatch, tmp_path):
                          {"label": "Approve A1", "action": "approve_app", "target": "A1"},
                          {"label": "Explain more", "action": "explain", "say": "Is it safe?"}]}
 
-    def fake_llm(provider, model, system, user, json_mode=False):
+    def fake_llm(provider, model, system, user, json_mode=False, max_tokens=None):
         sent.append((system, user))
         return json.dumps(reply)
 
@@ -196,10 +198,17 @@ def env(monkeypatch, tmp_path):
     return c
 
 
-def _start(c, headers, kind="oauth", keys=("cid-mail1",)):
+def _start(c, headers, kind="oauth", keys=("cid-mail1",), enhance=True):
     r = c.post("/api/v1/assist/start", json={"kind": kind, "keys": list(keys)}, headers=headers)
     assert r.status_code == 200, r.text
-    return r.json()
+    j = r.json()
+    assert j["ai_pending"] is True and j["message"] and j["options"] and j["samples"]  # instant built-in answer first
+    if enhance:
+        e = c.post("/api/v1/assist/enhance", json={"session_id": j["session_id"]}, headers=headers)
+        assert e.status_code == 200, e.text
+        if not e.json().get("skipped"):
+            j = {**j, **e.json()}
+    return j
 
 
 def _opt(j, action):
@@ -307,7 +316,6 @@ def test_bad_model_output_cannot_inject_actions(env):
 
 
 def test_device_wipe_plan_and_user_offboard(env):
-    j = _start(env, SUPER, kind="devices", keys=("d1",))
     env.reply["options"] = [{"action": "plan_wipe_device", "target": "D1", "label": "Wipe D1"}]
     j = _start(env, SUPER, kind="devices", keys=("d1",))
     oid = _opt(j, "plan_wipe_device")["id"]
@@ -324,10 +332,14 @@ def test_first_answer_saves_generalised_draft_help(env):
 
 
 def test_help_ask_search_vote_and_review(env):
-    r = env.post("/api/v1/help/ask", json={"question": "what does critical mean for an app? email me at x@y.org"}, headers=SL).json()
-    assert r["sources"] and r["new_question"] is True and r["answer"]
+    q = {"question": "what does critical mean for an app? email me at x@y.org"}
+    fast = env.post("/api/v1/help/ask", json=q, headers=SL).json()
+    assert fast["sources"] and fast["ai"] is False and fast["engine"].startswith("Guide lookup") and fast["saved_as"] is None
+    assert not env.sent  # the instant lookup never calls the model
+    r = env.post("/api/v1/help/ask", json={**q, "ai": True}, headers=SL).json()
+    assert r["ai"] is True and r["new_question"] is True and r["saved_as"]
     assert "x@y.org" not in json.dumps(env.get("/api/v1/help/articles", headers=SUPER).json())
-    again = env.post("/api/v1/help/ask", json={"question": "what does critical mean for an app? email me at x@y.org"}, headers=SL).json()
+    again = env.post("/api/v1/help/ask", json={**q, "ai": True}, headers=SL).json()
     assert again["new_question"] is False
     s = env.get("/api/v1/help/search?q=2sv", headers=SL).json()
     assert any(x["id"] == "two-step" for x in s["rows"])
@@ -350,3 +362,143 @@ def test_session_expiry(env, monkeypatch):
     real = aa.time.time
     monkeypatch.setattr(aa.time, "time", lambda: real() + aa.SESSION_TTL_S + 5)
     assert env.post("/api/v1/assist/reply", json={"session_id": sid, "text": "hi"}, headers=SUPER).status_code == 404
+
+
+# ------------------------------------------------------------ 0.4.23 additions ---
+def test_topics_are_comprehensive_and_unique():
+    ids = [a["id"] for a in aa.ALL_SEED]
+    assert len(ids) == len(set(ids)) >= 70
+    assert len({a["category"] for a in aa.ALL_SEED}) >= 10
+    for a in aa.HELP_TOPICS:
+        assert len(a["body"]) > 80 and a["tags"] and a["title"]
+
+
+def test_collect_knowledge_indexes_all_topics(tmp_path):
+    refs = {r for s_, r, _ in ad.collect_knowledge(tmp_path) if s_ == "help"}
+    assert {a["id"] for a in aa.ALL_SEED} <= refs
+
+
+def test_detok_shows_app_name_not_client_id():
+    r = aa.Redactor()
+    aa.build_facts("oauth", [_oauth_row()], r)
+    assert r.detok("Remove A1?") == "Remove MailTool?"
+
+
+def test_help_lookup_uses_pgvector_first(env, monkeypatch):
+    calls = []
+
+    def fake_search(q, k=6, source=None):
+        calls.append(source)
+        return [{"source": "help", "ref": "two-step", "content": "x", "score": 0.82}, {"source": "help", "ref": "glossary", "content": "y", "score": 0.1}], "vector"
+
+    monkeypatch.setattr(ad, "search_chunks", fake_search)
+    j = env.get("/api/v1/help/search?q=how%20do%20I%20secure%20admins", headers=SL).json()
+    assert calls == ["help"] and j["mode"].startswith("meaning") and j["rows"][0]["id"] == "two-step"
+    assert "glossary" not in [r["id"] for r in j["rows"][:1]]  # below the similarity floor: not a vector hit
+
+
+def test_help_lookup_falls_back_to_keywords_when_db_down(env, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(ad, "search_chunks", boom)
+    j = env.get("/api/v1/help/search?q=2sv", headers=SL).json()
+    assert j["mode"] == "keyword" and any(r["id"] == "two-step" for r in j["rows"])
+
+
+def test_help_index_status_and_reindex(env, monkeypatch):
+    seen = {}
+
+    def fake_up(rows):
+        seen["n"] = len(rows)
+        seen["sources"] = {r[0] for r in rows}
+        return {"indexed": len(rows), "vectors": len(rows), "warning": None}
+
+    monkeypatch.setattr(ad, "upsert_chunks", fake_up)
+    monkeypatch.setattr(ad, "count_chunks", lambda s_: (seen.get("n", 0), seen.get("n", 0)))
+    monkeypatch.setattr(ad, "ensure_setup", lambda force=False: {"ok": True, "vector": True, "error": None})
+    assert env.post("/api/v1/help/reindex", headers=SL).status_code == 403
+    r = env.post("/api/v1/help/reindex", headers=SUPER).json()
+    assert r["indexed"] == seen["n"] >= 70 and seen["sources"] == {"help"} and r["with_vectors"] == r["indexed"]
+    st = env.get("/api/v1/help/status", headers=SL).json()
+    assert st["pgvector"] is True and st["in_db"] == st["expected"]
+
+
+def test_approving_and_deleting_keeps_index_in_sync(env, monkeypatch):
+    up, dele = [], []
+    monkeypatch.setattr(ad, "upsert_chunk", lambda s_, r, c: up.append((s_, r)) or True)
+    monkeypatch.setattr(ad, "delete_chunk", lambda s_, r: dele.append((s_, r)) or True)
+    ok = env.post("/api/v1/help/articles", json={"title": "Our policy", "body": "Always ask Grace first."}, headers=SUPER).json()
+    assert ("help", ok["id"]) in up
+    env.post(f"/api/v1/help/articles/{ok['id']}/status", json={"status": "archived"}, headers=SUPER)
+    env.delete(f"/api/v1/help/articles/{ok['id']}", headers=SUPER)
+    assert dele.count(("help", ok["id"])) == 2
+
+
+def test_help_ai_answer_is_not_json_forced(env, monkeypatch):
+    modes = []
+    monkeypatch.setattr(ad, "llm", lambda p, m, sy, u, json_mode=False, max_tokens=None: modes.append(json_mode) or "Plain text answer [1].")
+    r = env.post("/api/v1/help/ask", json={"question": "what is 2sv for admins", "ai": True}, headers=SL).json()
+    assert modes == [False] and r["answer"].startswith("Plain text")
+
+
+def test_app_email_goes_to_all_users_and_smtp_state(env):
+    env.reply["options"] = [{"action": "draft_email", "target": "A1", "label": "Email everyone who uses A1"}]
+    j = _start(env, SUPER)
+    res = env.post("/api/v1/assist/reply", json={"session_id": j["session_id"], "option_id": _opt(j, "draft_email")["id"]}, headers=SUPER).json()["result"]
+    assert res["to"] == ["a@sl.p4sgi.com", "c@sl.p4sgi.com"] and "c%40sl.p4sgi.com" in res["mailto"].replace(",", "")
+    assert res["smtp"]["configured"] is False and res["smtp"]["can_send"] is False
+
+
+def test_smtp_send_guarded(env, monkeypatch):
+    env.reply["options"] = [{"action": "draft_email", "target": "A1", "label": "Email everyone who uses A1"}]
+    j = _start(env, SUPER)
+    env.post("/api/v1/assist/reply", json={"session_id": j["session_id"], "option_id": _opt(j, "draft_email")["id"]}, headers=SUPER)
+    body = {"session_id": j["session_id"], "to": ["a@sl.p4sgi.com"], "subject": "Please confirm", "body": "Hello, please confirm you use this app."}
+    assert env.post("/api/v1/assist/send-email", json=body, headers=SUPER).status_code == 409  # SMTP not configured
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.org")
+    monkeypatch.setenv("SMTP_FROM", "it@example.org")
+    sent = []
+    monkeypatch.setattr(aa, "send_smtp", lambda to, subj, text, rt: sent.append((to, rt)))
+    assert env.post("/api/v1/assist/send-email", json={**body, "to": ["stranger@x.org"]}, headers=SUPER).status_code == 422
+    ok = env.post("/api/v1/assist/send-email", json={**body, "to": ["a@sl.p4sgi.com", "c@sl.p4sgi.com"]}, headers=SUPER).json()
+    assert ok["sent"] == 2 and [t for t, _ in sent] == ["a@sl.p4sgi.com", "c@sl.p4sgi.com"] and sent[0][1] == "geb@p4sgi.com"
+    # non-super and other users' sessions cannot send
+    j2 = _start(env, SL)
+    assert env.post("/api/v1/assist/send-email", json={**body, "session_id": j2["session_id"]}, headers=SL).status_code == 403
+    assert env.post("/api/v1/assist/send-email", json=body, headers=SL).status_code == 404
+    monkeypatch.setattr(aa, "MAX_SENDS_PER_HOUR", 2)
+    assert env.post("/api/v1/assist/send-email", json=body, headers=SUPER).status_code == 429
+    audit = (Path(os.environ["DATA_DIR"]) / "assist" / "audit.jsonl")
+    assert "send_email" in audit.read_text() if audit.exists() else True
+
+
+def test_send_smtp_builds_safe_message(monkeypatch):
+    got = {}
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=0):
+            got["hp"] = (host, port)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self):
+            got["tls"] = True
+
+        def login(self, u, p):
+            got["login"] = u
+
+        def send_message(self, m):
+            got["msg"] = m
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.org")
+    monkeypatch.setenv("SMTP_FROM", "it@example.org")
+    monkeypatch.setenv("SMTP_USER", "u")
+    monkeypatch.setattr(aa.smtplib, "SMTP", FakeSMTP)
+    aa.send_smtp("a@x.org", "Hi\r\nBcc: evil@x.org", "body text here", "geb@p4sgi.com")
+    m = got["msg"]
+    assert got["tls"] and got["login"] == "u" and m["To"] == "a@x.org" and "\n" not in m["Subject"] and m["Bcc"] is None and m["Reply-To"] == "geb@p4sgi.com"

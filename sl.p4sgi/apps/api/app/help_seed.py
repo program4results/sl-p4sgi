@@ -70,7 +70,8 @@ HELP_SEED: list[dict[str, object]] = [
              "If Gemini is not configured the local Ollama model on this server is used and nothing leaves the building. Use a paid or Vertex Gemini key, not a free consumer key, because free tiers may use prompts to improve the product."},
     {"id": "email-draft", "category": "Admin assist", "title": "Emailing a user from the dashboard",
      "tags": ["email", "draft", "mailto"],
-     "body": "The dashboard has no mail server and sends nothing. 'Draft an email' opens a ready-written message in your own mail program (mailto link) and shows the text to copy. You review and press send."},
+     "body": "By default the dashboard sends nothing. 'Draft an email' shows the recipients, subject and text (all editable) and opens a ready-written message in your own mail program (mailto link), so you review it and press send there. "
+             "If the server administrator has set up SMTP (SMTP_HOST and SMTP_FROM), a super-admin also gets a 'Send from the dashboard' button; it can only send to the people on the rows you selected, at most 30 emails an hour, and every send is logged."},
     {"id": "pia", "category": "Privacy (PIA)", "title": "What the Privacy compliance (PIA) panel measures",
      "tags": ["pia", "privacy", "dpo", "compliance"],
      "body": "It tracks the Sierra Leone ULID Privacy Impact Assessment (40 controls, 18 risks) against evidence, not against what the workbook claims. A Data Protection Officer email must be entered first. "

@@ -1,4 +1,4 @@
-# Admin assist and Help database (0.4.22, experimental)
+# Admin assist and Help database (0.4.22 / 0.4.23, experimental)
 
 For administrators who are not security specialists. In **Security audit**, tick rows (or *Select all* / *Select none*) and press
 **Admin assist (N)**, or press **Assist** at the end of one row. A pop-up chat explains the issue in plain words and offers next
@@ -28,6 +28,12 @@ targets that are not among the rows you selected are dropped. Rows are re-read s
   Note `CHAT_CLOUD_ENABLED=1` also makes any other provider key you set available to the Ask-the-data panel.
 * Prompt injection: app names and other fields come from outside the organisation. They are length-limited and stripped of control
   characters, and cannot trigger anything because the AI can only propose buttons that the server validates and you must click.
+
+## 0.4.23: speed, pgvector help, email, samples
+* **Instant first answer.** Pressing Assist shows a built-in explanation and buttons immediately; the AI then replaces it in the background (clicking a button first cancels the replacement). Identical questions are cached for an hour. Replies are capped (`ASSIST_MAX_TOKENS`, default 450) and thinking is turned off for Ollama. For more speed set `ASSIST_MODEL` to a smaller local model (e.g. a 7B).
+* **Help lives in two places on purpose.** Built-in guides are code (`help_seed.py`, `help_topics.py`: 73 guides in 12 categories); admin-written and approved Q&A are JSON (`DATA_DIR/help/articles.json`). **Both are indexed into pgvector** (`chat_chunks`, source `help`) and searched by meaning first, keywords as fallback. Indexing happens in the background on first Help use after a restart, and on demand: Help & guides > *Load help into pgvector* (super-admin). The panel shows how many guides are loaded and how many have vectors (needs `ollama pull nomic-embed-text`). Help questions are answered **instantly from the guides** with no AI; *Ask with AI* / *Explain with AI* is optional.
+* **Email.** The draft shows all recipients (every user of the selected app), editable To / Subject / Message, a Bcc option, and *Open in my mail program*. **SMTP is not configured by default.** If you set `SMTP_HOST` and `SMTP_FROM` (plus `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURITY`), super-admins also get *Send from the dashboard*: one message per recipient, only to people on the selected rows, max `ASSIST_MAX_EMAILS_PER_HOUR` (30), Reply-To set to you, every send logged in `assist/audit.jsonl`.
+* **Sample prompts** appear under the chat for each kind of row; the Admin assist button is green and first in the toolbar; the Why column is wider and one reason per line.
 
 ## Help database that keeps growing
 * 16+ built-in plain-language guides (`help_seed.py`, read-only, in code).

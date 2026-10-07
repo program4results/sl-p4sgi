@@ -26,11 +26,13 @@ import hashlib
 import json
 import os
 import re
+import smtplib
 import threading
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote
@@ -41,12 +43,23 @@ from pydantic import BaseModel, Field
 from . import ask_data as ad
 from . import security_audit as sa
 from .help_seed import HELP_SEED
+from .help_topics import HELP_TOPICS
+
+ALL_SEED: list[dict[str, Any]] = [*HELP_SEED, *HELP_TOPICS]  # type: ignore[list-item]
 
 MAX_ITEMS = 25
 MAX_USERS_PER_APP = 20
 MAX_TURNS = 12
 SESSION_TTL_S = 3600
 MAX_SESSIONS = 200
+MAX_SENDS_PER_HOUR = int(os.getenv("ASSIST_MAX_EMAILS_PER_HOUR", "30") or 30)
+_SENDS: dict[str, list[float]] = {}
+ASSIST_MODEL = os.getenv("ASSIST_MODEL", "").strip()  # optional smaller/faster local model for Admin assist
+MAX_TOKENS = int(os.getenv("ASSIST_MAX_TOKENS", "450") or 450)
+CACHE_TTL_S = 3600
+_CACHE: dict[str, tuple[float, str]] = {}  # facts signature -> raw model reply (first turn only)
+_INDEX_LOCK = threading.Lock()
+_INDEXED = {"done": False}
 
 ACTIONS = {"explain", "approve_app", "plan_revoke_token", "plan_offboard_user", "plan_wipe_device", "draft_email", "save_help", "close"}
 SUPER_ONLY = {"approve_app", "plan_revoke_token", "plan_offboard_user", "plan_wipe_device"}
@@ -68,6 +81,7 @@ class Redactor:
     """Two-way label map for one session. Real values never go to the model."""
 
     def __init__(self) -> None:
+        self.names: dict[str, str] = {}  # label -> friendly text shown to the admin (e.g. app name) instead of the raw key
         self.fwd: dict[str, str] = {}
         self.rev: dict[str, str] = {}
         self.n: dict[str, int] = {"U": 0, "A": 0, "D": 0}
@@ -90,7 +104,7 @@ class Redactor:
         return _EMAIL_ANY.sub(lambda m: self.tok(m.group(0), "U"), out)
 
     def detok(self, text: str) -> str:
-        return _TOKEN.sub(lambda m: self.rev.get(m.group(1), m.group(1)), text)
+        return _TOKEN.sub(lambda m: self.names.get(m.group(1)) or self.rev.get(m.group(1), m.group(1)), text)
 
     def generalise(self, text: str) -> str:
         """For the shared help database: labels become generic words, so no one is identifiable."""
@@ -136,6 +150,7 @@ def build_facts(kind: str, rows: list[dict[str, Any]], red: Redactor) -> tuple[l
     for r in rows:
         if kind == "oauth":
             ref = red.tok(_key(kind, r), "A")
+            red.names[ref] = clean(r.get("app_name"), 60) or red.rev[ref]
             users = [red.tok(u, "U") for u in r.get("users", [])[:MAX_USERS_PER_APP]]
             facts.append({"ref": ref, "type": "google_app", "name": clean(r["app_name"], 80), "client_id": clean(r["client_id"], 90),
                           "risk": r["risk_level_raw" if r.get("approved") else "risk_level"], "score": r["risk_score"], "reasons": [clean(x, 60) for x in r.get("reasons", [])][:8],
@@ -147,6 +162,7 @@ def build_facts(kind: str, rows: list[dict[str, Any]], red: Redactor) -> tuple[l
                           "two_step_enrolled": r.get("two_sv_enrolled"), "is_admin": r.get("is_admin"), "failed_logins_7d": r.get("failed_logins_7d")})
         else:
             ref = red.tok(r["device_id"], "D")
+            red.names[ref] = f"{clean(r.get('model'), 30) or 'device'} of {r.get('email') or 'unknown owner'}"
             owner = red.tok(r["email"], "U") if r.get("email") else None
             facts.append({"ref": ref, "type": "device", "owner": owner, "model": clean(r.get("model"), 40), "os": clean(r.get("os"), 40),
                           "flags": r["flags"], "compliance_score": r["compliance_score"], "status": r["compliance_status"],
@@ -258,7 +274,7 @@ def compose_email(kind: str, item: dict[str, Any], recipients: list[str]) -> tup
     if kind == "oauth":
         subj = f"Please confirm you use \"{clean(r['app_name'], 60)}\" with your school Google account"
         body = (f"Hello,\n\nOur security check shows that the app \"{clean(r['app_name'], 60)}\" has been given access to your school Google account "
-                f"(it can: {', '.join(x for x in r.get('reasons', [])[:4]) or 'see parts of your account'}).\n\n"
+                f"(it can: {', '.join(re.sub(r'\s*\(\+\d+\)', '', x) for x in r.get('reasons', [])[:4]) or 'see parts of your account'}).\n\n"
                 "If you installed it on purpose and still need it, just reply \"yes, I use it\". "
                 "If you do not recognise it or no longer need it, reply \"remove it\" and we will remove its access. No action is needed from you to remove it.\n\nThank you.")
     elif kind == "users":
@@ -311,7 +327,7 @@ class HelpStore:
         os.replace(tmp, self.base / "articles.json")
 
     def all(self, include_drafts: bool) -> list[dict[str, Any]]:
-        out = [{**a, "source": "seed", "status": "approved", "helpful": 0, "unhelpful": 0, "asked": 0} for a in HELP_SEED]
+        out = [{**a, "source": "seed", "status": "approved", "helpful": 0, "unhelpful": 0, "asked": 0} for a in ALL_SEED]
         for aid, a in self._read().items():
             if include_drafts or a.get("status") == "approved":
                 out.append({"id": aid, **a})
@@ -401,6 +417,14 @@ class ReplyIn(BaseModel):
 
 class AskHelpIn(BaseModel):
     question: str = Field(..., min_length=3, max_length=600)
+    ai: bool = False  # False = instant answer from the guides (pgvector lookup); True = also let the AI phrase it
+
+
+class SendEmailIn(BaseModel):
+    session_id: str = Field(..., min_length=8, max_length=64)
+    to: list[str] = Field(..., min_length=1, max_length=MAX_USERS_PER_APP)
+    subject: str = Field(..., min_length=3, max_length=200)
+    body: str = Field(..., min_length=10, max_length=4000)
 
 
 class ArticleIn(BaseModel):
@@ -417,6 +441,48 @@ class StatusIn(BaseModel):
 
 class VoteIn(BaseModel):
     helpful: bool
+
+
+# ------------------------------------------------------------ help lookup (pgvector) ---
+VECTOR_MIN_SCORE = 0.40
+
+
+def chunk_text(a: dict[str, Any]) -> str:
+    return f"Help: {a.get('title', '')}. {a.get('body', '')}"
+
+
+def smtp_state() -> dict[str, Any]:
+    host, frm = os.getenv("SMTP_HOST", "").strip(), os.getenv("SMTP_FROM", "").strip()
+    return {"configured": bool(host and frm), "from": frm if host and frm else None}
+
+
+def send_smtp(to: str, subject: str, body: str, reply_to: str | None) -> None:
+    """Send ONE message through the configured SMTP server. Raises RuntimeError with a short reason."""
+    host, port = os.getenv("SMTP_HOST", "").strip(), int(os.getenv("SMTP_PORT", "587") or 587)
+    user, pw, frm = os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASSWORD", ""), os.getenv("SMTP_FROM", "").strip()
+    mode = os.getenv("SMTP_SECURITY", "starttls").strip().lower()
+    msg = EmailMessage()
+    msg["From"], msg["To"], msg["Subject"] = frm, to, re.sub(r"[\r\n]+", " ", subject)[:200]
+    if reply_to and _EMAIL_ANY.fullmatch(reply_to):
+        msg["Reply-To"] = reply_to
+    msg.set_content(body)
+    try:
+        cls = smtplib.SMTP_SSL if mode == "ssl" else smtplib.SMTP
+        with cls(host, port, timeout=20) as c:
+            if mode == "starttls":
+                c.starttls()
+            if user:
+                c.login(user, pw)
+            c.send_message(msg)
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"{type(exc).__name__}: {exc}"[:160]) from exc
+
+
+SAMPLES = {
+    "oauth": ["Is this app safe for a school?", "Who uses it and do they still need it?", "What happens if I remove its access?", "Which of these should I look at first?"],
+    "users": ["Why is this account flagged?", "What is the safest next step?", "Should this account be suspended?", "Which of these should I look at first?"],
+    "devices": ["Is this device probably lost?", "What should the school do about it?", "Should we wipe it?", "Which of these should I look at first?"],
+}
 
 
 # -------------------------------------------------------------------- router ---
@@ -446,12 +512,12 @@ def build_router(h: sa.Helpers) -> APIRouter:
             cs = ad.cloud_state("gemini")
             if cs["available"]:
                 return {"provider": "gemini", "model": cs["model"], "label": "Gemini (anonymised facts only)", "cloud": True}
-        return {"provider": "ollama", "model": ad.CHAT_MODEL, "label": "Local model (nothing leaves this server)", "cloud": False}
+        return {"provider": "ollama", "model": ASSIST_MODEL or ad.CHAT_MODEL, "label": "Local model (nothing leaves this server)", "cloud": False}
 
-    def call_model(eng: dict[str, Any], system: str, user: str, warnings: list[str]) -> str | None:
-        for e in ([eng] + ([{"provider": "ollama", "model": ad.CHAT_MODEL, "label": "Local model", "cloud": False}] if eng["cloud"] else [])):
+    def call_model(eng: dict[str, Any], system: str, user: str, warnings: list[str], json_out: bool = True) -> str | None:
+        for e in ([eng] + ([{"provider": "ollama", "model": ASSIST_MODEL or ad.CHAT_MODEL, "label": "Local model", "cloud": False}] if eng["cloud"] else [])):
             try:
-                text = ad.llm(e["provider"], e["model"], system, user, json_mode=(e["provider"] == "ollama"))
+                text = ad.llm(e["provider"], e["model"], system, user, json_mode=(json_out and e["provider"] == "ollama"), max_tokens=MAX_TOKENS)
                 if e is not eng:
                     warnings.append("Gemini was unreachable; answered by the local model.")
                     eng.update(provider=e["provider"], model=e["model"], label=e["label"], cloud=False)
@@ -493,7 +559,16 @@ def build_router(h: sa.Helpers) -> APIRouter:
         convo = "\n".join(f"{t['role']}: {t['text']}" for t in s["history"][-MAX_TURNS:])
         user_prompt = ("FACTS (JSON):\n" + json.dumps(s["facts"], ensure_ascii=False) + "\n\nCONVERSATION SO FAR:\n" + (convo or "(none)")
                        + "\n\nADMIN: " + (red.scrub(admin_text) if admin_text else "Please explain these items and suggest what to do next.") + "\n\nReply with the JSON object only.")
-        raw = call_model(s["engine"], system_prompt(s["super"]), user_prompt, warnings)
+        ckey = hashlib.sha1((system_prompt(s["super"]) + user_prompt).encode()).hexdigest() if not admin_text and not s["history"] else None
+        hit = _CACHE.get(ckey) if ckey else None
+        if hit and time.time() - hit[0] < CACHE_TTL_S:
+            raw = hit[1]
+        else:
+            raw = call_model(s["engine"], system_prompt(s["super"]), user_prompt, warnings)
+            if raw and ckey:
+                if len(_CACHE) > 300:
+                    _CACHE.clear()
+                _CACHE[ckey] = (time.time(), raw)
         msg, opts = None, []
         if raw:
             try:
@@ -525,12 +600,33 @@ def build_router(h: sa.Helpers) -> APIRouter:
             out_opts.append({"id": oid, "label": red.detok(o["label"]), "action": o["action"], "danger": o["action"].startswith("plan_") or o["action"] == "approve_app"})
         msg_out = red.detok(msg)
         # grow the shared help database from the first answer of a session (generalised, no personal data)
-        if len(s["history"]) == 1:
+        if len(s["history"]) == 1 and not any("No AI model" in w for w in warnings):
             sig = s["kind"] + ":" + ",".join(sorted({f for x in s["facts"] for f in (x.get("flags") or x.get("reasons", [])[:2])}))[:160]
             title = {"oauth": "Reviewing a third-party app with access to Google accounts", "users": "Handling flagged user accounts", "devices": "Handling flagged devices"}[s["kind"]]
             store.upsert(None, {"title": f"{title} ({sig.split(':', 1)[1][:60] or 'general'})", "body": red.generalise(msg), "tags": [s["kind"], "assist"],
                                 "category": "Q&A from admins"}, dedupe_key=hashlib.sha1(sig.encode()).hexdigest()[:12])
         return {"message": msg_out, "options": out_opts, "warnings": warnings,
+                "engine": {"label": s["engine"]["label"], "cloud": s["engine"]["cloud"]}}
+
+    def baseline_turn(s: dict[str, Any]) -> dict[str, Any]:
+        """Instant first answer without the model (built-in explanation + default buttons); the UI then asks /assist/enhance."""
+        red: Redactor = s["red"]
+        msg = baseline_message(s["kind"], s["facts"])
+        opts = validate_options(default_options(s["kind"]), s["refs"], red, s["super"], s["kind"])
+        first = next(iter(s["refs"]), None)
+        for o in opts:
+            if not o["target"] and o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device", "plan_offboard_user", "draft_email"):
+                o["target"] = first
+        opts = [o for o in opts if not (o["action"] in ("approve_app", "plan_revoke_token", "plan_wipe_device") and o["target"] not in s["refs"])]
+        opts = [o for o in opts if not (o["action"] == "plan_offboard_user" and o["target"] not in red.rev)]
+        s["history"].append({"role": "assistant", "text": msg})
+        s["pending"] = {}
+        out = []
+        for i, o in enumerate(opts, 1):
+            oid = f"o{len(s['history'])}_{i}"
+            s["pending"][oid] = o
+            out.append({"id": oid, "label": red.detok(o["label"]), "action": o["action"], "danger": o["action"].startswith("plan_") or o["action"] == "approve_app"})
+        return {"message": red.detok(msg), "options": out, "warnings": [], "ai_pending": True,
                 "engine": {"label": s["engine"]["label"], "cloud": s["engine"]["cloud"]}}
 
     # ------------------------------------------------------------ assist endpoints
@@ -541,15 +637,31 @@ def build_router(h: sa.Helpers) -> APIRouter:
         return {"module": "admin_assist", "version": h.app_version, "experimental": True, "superadmin": bool(sc.get("superadmin")),
                 "engine": {"label": e["label"], "cloud": e["cloud"], "model": e["model"]}, "gemini": ad.cloud_state("gemini"),
                 "privacy": "The AI receives labels (U1, A1, D1), risk flags and counts only. No email addresses, names or serial numbers.",
-                "actions": sorted(ACTIONS), "max_items": MAX_ITEMS}
+                "actions": sorted(ACTIONS), "max_items": MAX_ITEMS, "smtp": smtp_state(), "samples": SAMPLES}
 
     @router.post("/assist/start")
     def assist_start(body: StartIn, request: Request) -> dict:
         sid, s = new_session(request, body.kind, [k.strip()[:256] for k in body.keys])
-        r = ask_model(s, None)
+        r = baseline_turn(s)
         audit({"by": s["by"], "event": "start", "kind": body.kind, "items": len(s["facts"]), "engine": s["engine"]["label"]})
         return {"session_id": sid, "kind": body.kind, "items": [{"ref": f["ref"], "label": _label(body.kind, s["refs"][f["ref"]]["row"])} for f in s["facts"]],
-                "skipped": s["missing"], **r}
+                "skipped": s["missing"], "samples": SAMPLES[body.kind], **r}
+
+    @router.post("/assist/enhance")
+    def assist_enhance(body: ReplyIn, request: Request) -> dict:
+        """Second step of a session start: let the AI replace the instant built-in explanation (only if nothing was chosen meanwhile)."""
+        s = get_session(body.session_id, request)
+        if len(s["history"]) != 1 or s.get("enhanced"):
+            return {"skipped": True}
+        s["enhanced"] = True
+        epoch = s.get("epoch", 0)
+        t = {**s, "history": [], "pending": {}}  # work on a copy: the admin may click a button while the AI is thinking
+        r = ask_model(t, None)
+        if s.get("epoch", 0) != epoch:
+            return {"skipped": True}
+        s["history"], s["pending"] = t["history"], t["pending"]
+        r["engine"] = {"label": s["engine"]["label"], "cloud": s["engine"]["cloud"]}
+        return {"skipped": False, **r}
 
     def _targets_for(s: dict[str, Any], target: str | None) -> dict[str, Any]:
         if target in s["refs"]:
@@ -590,8 +702,13 @@ def build_router(h: sa.Helpers) -> APIRouter:
                 return {"type": "info", "text": "I could not find an email address for that item."}
             item = s["refs"][target] if target in s["refs"] else next(iter(s["refs"].values()))
             subj, text = compose_email(item["kind"], item, emails)
+            s["email_allowed"] = set(emails)
+            sm = smtp_state()
             return {"type": "email", "to": emails, "subject": subj, "body": text, "mailto": mailto(emails, subj, text),
-                    "note": "Nothing was sent. The button opens a draft in your mail program."}
+                    "smtp": {"configured": sm["configured"], "from": sm["from"], "can_send": sm["configured"] and s["super"]},
+                    "note": "Nothing has been sent. Check the addresses and wording, then open it in your mail program"
+                            + (" or send it from here." if sm["configured"] and s["super"] else ".")}
+
         if act == "approve_app":
             it = _targets_for(s, target)
             if it["row"]["risk_level"] == "UNKNOWN":
@@ -639,9 +756,41 @@ def build_router(h: sa.Helpers) -> APIRouter:
             return {"type": "plan", "title": "Wipe school data from this device (irreversible: confirm it is lost or retired first)", "steps": steps, "skipped": [], "note": sa.PLAN_NOTE}
         raise HTTPException(422, {"error": "unknown_action"})
 
+    @router.post("/assist/send-email")
+    def assist_send_email(body: SendEmailIn, request: Request) -> dict:
+        s = get_session(body.session_id, request)
+        if not s["super"]:
+            raise HTTPException(403, {"error": "superadmin_required"})
+        if not smtp_state()["configured"]:
+            raise HTTPException(409, {"error": "smtp_not_configured", "detail": "Sending from the dashboard is not set up. Use 'Open in my mail program', or ask the server administrator to set SMTP_HOST and SMTP_FROM."})
+        allowed = s.get("email_allowed") or set()
+        to = list(dict.fromkeys(e.strip() for e in body.to))
+        bad = [e for e in to if e not in allowed]
+        if not allowed or bad:
+            raise HTTPException(422, {"error": "recipient_not_allowed", "detail": "You can only send to the people on the rows you selected."})
+        with lock:
+            now = time.time()
+            hist = [t for t in _SENDS.get(s["by"], []) if now - t < 3600]
+            if len(hist) + len(to) > MAX_SENDS_PER_HOUR:
+                raise HTTPException(429, {"error": "send_limit", "detail": f"At most {MAX_SENDS_PER_HOUR} emails per hour from the dashboard."})
+            _SENDS[s["by"]] = hist + [now] * len(to)
+        sc, _ = who(request)
+        reply_to = str(sc.get("real_email") or "") or None
+        footer = "\n\n--\nSent by the school IT administrator through the dashboard" + (f" (reply to {reply_to})." if reply_to else ".")
+        results = []
+        for e in to:
+            try:
+                send_smtp(e, body.subject, body.body.strip() + footer, reply_to)
+                results.append({"to": e, "ok": True})
+            except RuntimeError as exc:
+                results.append({"to": e, "ok": False, "error": str(exc)})
+        audit({"by": s["by"], "event": "send_email", "to": to, "ok": sum(1 for r in results if r["ok"]), "subject": body.subject[:80]})
+        return {"results": results, "sent": sum(1 for r in results if r["ok"]), "failed": sum(1 for r in results if not r["ok"])}
+
     @router.post("/assist/reply")
     def assist_reply(body: ReplyIn, request: Request) -> dict:
         s = get_session(body.session_id, request)
+        s["epoch"] = s.get("epoch", 0) + 1
         if len(s["history"]) > 2 * MAX_TURNS:
             raise HTTPException(429, {"error": "session_too_long", "detail": "this conversation is long: start a new one"})
         red: Redactor = s["red"]
@@ -675,9 +824,52 @@ def build_router(h: sa.Helpers) -> APIRouter:
         return {"result": None, **r}
 
     # --------------------------------------------------------------- help endpoints
+    def index_help(force: bool = False) -> dict[str, Any]:
+        """Load built-in + approved articles into pgvector (source 'help'). Best effort, never raises."""
+        rows = [("help", a["id"], chunk_text(a)) for a in store.all(False)]
+        res = ad.upsert_chunks(rows)
+        n, v = ad.count_chunks("help")
+        res.update(expected=len(rows), in_db=n, with_vectors=v, at=_now().isoformat(timespec="seconds"))
+        _INDEXED.update(done=res["indexed"] > 0, tried=time.time(), result=res)
+        return res
+
+    def maybe_index() -> None:
+        """First help use after a restart: index in the background so lookups are vector-based, without making the user wait."""
+        if _INDEXED.get("done") or time.time() - float(_INDEXED.get("tried", 0)) < 600:
+            return
+        with _INDEX_LOCK:
+            if _INDEXED.get("done") or time.time() - float(_INDEXED.get("tried", 0)) < 600:
+                return
+            _INDEXED["tried"] = time.time()
+        threading.Thread(target=index_help, name="help-index", daemon=True).start()
+
+    def lookup(q: str, include_drafts: bool, k: int = 6) -> tuple[list[dict[str, Any]], str]:
+        """Meaning search in pgvector first (fast, local), keyword fallback. Returns (articles, mode)."""
+        arts = {a["id"]: a for a in store.all(include_drafts)}
+        hits: list[dict[str, Any]] = []
+        mode = "keyword"
+        try:
+            chunks, m = ad.search_chunks(q, k * 2, source="help")
+            for c in chunks:
+                a = arts.get(c.get("ref"))
+                if not a or a in hits:
+                    continue
+                if m == "vector" and float(c.get("score") or 0) < VECTOR_MIN_SCORE:
+                    continue
+                hits.append(a)
+            if hits:
+                mode = "meaning (pgvector)" if m == "vector" else "full-text (database)"
+        except Exception:  # noqa: BLE001
+            hits = []
+        for a in search_articles(list(arts.values()), q, k):  # fill / fall back (also finds unreviewed drafts for super-admins)
+            if a not in hits:
+                hits.append(a)
+        return hits[:k], mode
+
     @router.get("/help/articles")
     def help_articles(request: Request, category: str | None = Query(None, max_length=60)) -> dict:
         sc, _ = who(request)
+        maybe_index()
         arts = store.all(bool(sc.get("superadmin")))
         if category:
             arts = [a for a in arts if a.get("category") == category]
@@ -685,33 +877,56 @@ def build_router(h: sa.Helpers) -> APIRouter:
         return {"can_edit": bool(sc.get("superadmin")), "categories": cats, "total": len(arts),
                 "rows": [{k: a.get(k) for k in ("id", "title", "body", "category", "tags", "source", "status", "asked", "helpful", "unhelpful", "updated_at")} for a in arts]}
 
+    @router.get("/help/status")
+    def help_index_status(request: Request) -> dict:
+        sc, _ = who(request)
+        n, v = ad.count_chunks("help")
+        expected = len(store.all(False))
+        return {"expected": expected, "in_db": n, "with_vectors": v, "pgvector": bool(ad.ensure_setup().get("vector")),
+                "last_index": _INDEXED.get("result"), "can_edit": bool(sc.get("superadmin"))}
+
+    @router.post("/help/reindex")
+    def help_reindex(request: Request) -> dict:
+        user = need_super(request)
+        res = index_help(force=True)
+        audit({"by": user, "event": "help_reindex", "indexed": res.get("indexed"), "vectors": res.get("vectors")})
+        return res
+
     @router.get("/help/search")
     def help_search(request: Request, q: str = Query(..., min_length=2, max_length=200)) -> dict:
         sc, _ = who(request)
-        hits = search_articles(store.all(bool(sc.get("superadmin"))), q)
-        return {"q": q, "rows": [{k: a.get(k) for k in ("id", "title", "body", "category", "source", "status")} for a in hits]}
+        maybe_index()
+        hits, mode = lookup(q, bool(sc.get("superadmin")))
+        return {"q": q, "mode": mode, "rows": [{k: a.get(k) for k in ("id", "title", "body", "category", "source", "status")} for a in hits]}
 
     @router.post("/help/ask")
     def help_ask(body: AskHelpIn, request: Request) -> dict:
         sc, user = who(request)
+        maybe_index()
         q = _EMAIL_ANY.sub("[email]", body.question.strip())
-        arts = search_articles(store.all(bool(sc.get("superadmin"))), q, 4)
-        ctx = "\n\n".join(f"[{i + 1}] {a['title']}: {a['body']}" for i, a in enumerate(arts))
+        arts, mode = lookup(q, bool(sc.get("superadmin")), 4)
         warnings: list[str] = []
         eng = engine()
+        used_ai = False
         ans = None
-        if ctx:
+        if arts and body.ai:
+            ctx = "\n\n".join(f"[{i + 1}] {a['title']}: {a['body']}" for i, a in enumerate(arts))
             ans = call_model(eng, "You are the help assistant of a school-system dashboard. Answer ONLY from the numbered help notes, in plain friendly language for a non-technical administrator, "
-                             "max 120 words, cite like [1]. If the notes do not answer it, say so and suggest asking a super-admin.", f"Notes:\n{ctx}\n\nQuestion: {q}", warnings)
+                             "max 120 words, cite like [1]. If the notes do not answer it, say so and suggest asking a super-admin.", f"Notes:\n{ctx}\n\nQuestion: {q}", warnings, json_out=False)
+            used_ai = bool(ans)
+            if not ans:
+                warnings.append("No AI model answered; showing the best matching guide.")
         if not ans:
-            ans = (arts[0]["body"] if arts else "I do not have a help article on that yet. Your question has been saved so an administrator can add one.")
-            if arts:
-                warnings.append("No AI model answered; showing the best matching help article.")
-        aid, created = store.upsert(None, {"title": clean(q, 140), "body": clean(ans, 1500), "tags": ["question"], "category": "Q&A from admins"},
-                                    dedupe_key=hashlib.sha1(re.sub(r"\W+", " ", q.lower()).strip().encode()).hexdigest()[:12])
-        audit({"by": user, "event": "help_ask", "chars": len(q), "engine": eng["label"], "hits": len(arts)})
+            ans = arts[0]["body"] if arts else "I do not have a guide on that yet. Your question has been saved so an administrator can write one."
+        created, aid = False, None
+        if used_ai or not arts:  # only save what adds knowledge: an AI-phrased answer, or a gap nobody has answered yet
+            aid, created = store.upsert(None, {"title": clean(q, 140), "body": clean(ans if used_ai else "(no guide yet: needs an answer)", 1500),
+                                               "tags": ["question"], "category": "Q&A from admins"},
+                                        dedupe_key=hashlib.sha1(re.sub(r"\W+", " ", q.lower()).strip().encode()).hexdigest()[:12])
+        audit({"by": user, "event": "help_ask", "chars": len(q), "engine": eng["label"] if used_ai else "lookup", "hits": len(arts), "mode": mode})
         return {"answer": ans.strip(), "sources": [{"n": i + 1, "id": a["id"], "title": a["title"]} for i, a in enumerate(arts)],
-                "saved_as": aid, "new_question": created, "engine": eng["label"], "warnings": warnings}
+                "saved_as": aid, "new_question": created, "mode": mode, "ai": used_ai, "engine": eng["label"] if used_ai else "Guide lookup (no AI needed)",
+                "warnings": warnings}
 
     def need_super(request: Request) -> str:
         sc, user = who(request)
@@ -722,10 +937,14 @@ def build_router(h: sa.Helpers) -> APIRouter:
     @router.post("/help/articles")
     def help_save(body: ArticleIn, request: Request) -> dict:
         user = need_super(request)
-        if body.id and body.id in {a["id"] for a in HELP_SEED}:
+        if body.id and body.id in {a["id"] for a in ALL_SEED}:
             raise HTTPException(422, {"error": "seed_readonly"})
         aid, created = store.upsert(body.id, {"title": body.title.strip(), "body": body.body.strip(), "category": body.category.strip(),
                                               "tags": [t.strip()[:30] for t in body.tags][:12], "source": "admin", "status": "approved", "reviewed_by": user})
+        try:
+            ad.upsert_chunk("help", aid, chunk_text(store.get(aid) or {}))
+        except Exception:  # noqa: BLE001
+            pass
         audit({"by": user, "event": "help_save", "id": aid})
         return {"ok": True, "id": aid, "created": created}
 
@@ -738,9 +957,11 @@ def build_router(h: sa.Helpers) -> APIRouter:
         if body.status == "approved":
             try:  # best effort: make it searchable by the Ask-the-data chat (pgvector) too
                 a = store.get(aid) or {}
-                ad.upsert_chunk("help", aid, f"{a.get('title', '')}\n{a.get('body', '')}")
+                ad.upsert_chunk("help", aid, chunk_text(a))
             except Exception:  # noqa: BLE001
                 pass
+        else:
+            ad.delete_chunk("help", aid)
         audit({"by": user, "event": "help_status", "id": aid, "status": body.status})
         return {"ok": True}
 
@@ -749,6 +970,7 @@ def build_router(h: sa.Helpers) -> APIRouter:
         user = need_super(request)
         if not store.delete(aid):
             raise HTTPException(404, {"error": "unknown_article"})
+        ad.delete_chunk("help", aid)
         audit({"by": user, "event": "help_delete", "id": aid})
         return {"ok": True}
 

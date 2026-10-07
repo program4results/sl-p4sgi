@@ -22,6 +22,12 @@ services:
       APP_ENV: ${APP_ENV:-development}
       PUBLISH_AUDIT_TOKEN: ${PUBLISH_AUDIT_TOKEN:-}
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      # 0.4.22: optional Gemini for Admin assist (all empty/off by default; see docs/ADMIN_ASSIST.md).
+      CHAT_CLOUD_ENABLED: ${CHAT_CLOUD_ENABLED:-0}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+      ASSIST_ENGINE: ${ASSIST_ENGINE:-}
+      ASSIST_ENABLED: ${ASSIST_ENABLED:-1}
       HOME: /home/george
       GAMCFGDIR: /home/george/.gam
       GAM_BIN: /home/george/bin/gam7/gam

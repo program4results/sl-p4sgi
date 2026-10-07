@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.18" />
+  <meta name="p4sgi-ui-version" content="0.4.19" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -266,7 +266,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.18</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.19</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -625,6 +625,30 @@
       </div>
     </section>
 
+    <section id="secSecurity">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secSecurity" aria-expanded="false" aria-controls="secSecurityBody">
+          <span class="chevron" aria-hidden="true">▸</span> Security audit
+        </button>
+        <button type="button" class="secondary" id="btnSecReload">Load / Reload</button>
+        <span class="spin" id="secSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secSecurityBody" hidden>
+        <details class="help-collapse" data-help="secSecurityHelp">
+          <summary>Show help</summary>
+          <p class="section-help"><strong>Read-only</strong> triage built from the GAM CSVs already cached on this box (token_activity, users_full, login_activity, devices_*). It never calls GAM and never changes Workspace. Loads only when you click <em>Load / Reload</em>, honours the Domain filter and your domain scope. Scores are heuristics, not a Google rating. Sections say plainly when a source report has not been run yet. <strong>Drive sharing exposure is not available</strong> (needs a new read-only GAM report, see docs/SECURITY_AUDIT.md). Fixes are a dry-run command plan from <code>POST /api/v1/security/actions/plan</code> (super-admin) for you to review and run yourself.</p>
+        </details>
+        <p class="msg" id="secMsg"></p>
+        <div class="cards" id="secCards"><p class="empty">Click <em>Load / Reload</em>.</p></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">OAuth apps (30 d)</h3>
+        <div id="secOauth"></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Users needing attention</h3>
+        <div id="secUsers"></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Device compliance (worst first)</h3>
+        <div id="secDevices"></div>
+      </div>
+    </section>
+
   </main>
 
   <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
@@ -644,7 +668,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.18';
+    const UI_VERSION = '0.4.19';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -676,6 +700,7 @@
       secEvents: false,
       secTelemetry: false,
       fleetDevices: false,
+      secSecurity: false,
     };
 
     const DEV_DEFAULT_COLS = [
@@ -2319,6 +2344,73 @@
     }
     Promise.all([loadWhoami(), loadHealth(), loadDomains(), reloadFiltered(), loadRawExports()]);
   
+
+    /* ---- 0.4.19 Security audit (read-only) ---- */
+    function secUrl(path, extra) {
+      const q = domainQuery();
+      const sep = q ? '&' : '?';
+      return path + q + (extra ? sep + extra : '');
+    }
+    function secLevelChip(level) {
+      const cls = (level === 'CRITICAL' || level === 'HIGH') ? 'chip warn' : 'chip';
+      return `<span class="${cls}"><span class="chip-val">${esc(level)}</span></span>`;
+    }
+    function secTable(cols, rows, empty) {
+      if (!rows.length) return `<p class="empty">${esc(empty)}</p>`;
+      const head = cols.map(c => `<th>${esc(c.h)}</th>`).join('');
+      const body = rows.map(r => `<tr>${cols.map(c => `<td${c.wrap ? ' class="wrap"' : ''}>${c.f(r)}</td>`).join('')}</tr>`).join('');
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    function secMissing(sources) {
+      const bad = Object.entries(sources || {}).filter(([, v]) => v.status !== 'ok');
+      return bad.length ? `Missing cached reports (run them under GAM reports): ${bad.map(([k]) => k).join(', ')}.` : '';
+    }
+    async function loadSecurity() {
+      const spin = $('secSpin'), msg = $('secMsg');
+      spin.hidden = false; msg.className = 'msg'; msg.textContent = '';
+      try {
+        const [sum, oa, us, dv] = await Promise.all([
+          api(secUrl('/api/v1/security/summary')),
+          api(secUrl('/api/v1/security/oauth', 'limit=25')),
+          api(secUrl('/api/v1/security/users', 'limit=50')),
+          api(secUrl('/api/v1/security/devices', 'limit=50')),
+        ]);
+        const card = (label, val) => `<div class="card"><div class="label">${esc(label)}</div><div class="value">${esc(String(val ?? 0))}</div></div>`;
+        const ol = sum.oauth.by_level || {}, uf = sum.users.by_flag || {}, ds = sum.devices.by_status || {};
+        $('secCards').innerHTML = [
+          card('OAuth apps', sum.oauth.apps), card('OAuth critical/high', (ol.CRITICAL || 0) + (ol.HIGH || 0)),
+          card('Users flagged', sum.users.flagged), card('No 2SV', (uf.NO_2SV || 0) + (uf.ADMIN_NO_2SV || 0)),
+          card('Never logged in', uf.NEVER_LOGGED_IN || 0), card('Devices', sum.devices.total),
+          card('Devices critical', ds.CRITICAL || 0), card('Devices warning', ds.WARNING || 0),
+        ].join('');
+        const notes = [secMissing(sum.sources)];
+        if (!sum.oauth.scope_data_present && sum.oauth.apps) notes.push('token_activity has no scope columns, so apps are UNKNOWN risk.');
+        notes.push('As of ' + sum.as_of + '. Data is only as fresh as the cached GAM runs.');
+        msg.textContent = notes.filter(Boolean).join(' ');
+        $('secOauth').innerHTML = secTable([
+          { h: 'App', f: r => esc(r.app_name) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) + ' ' + esc(r.risk_score ?? '—') },
+          { h: 'Users', f: r => esc(r.user_count) }, { h: 'Last seen', f: r => esc(r.last_seen || '—') },
+          { h: 'Why', wrap: true, f: r => esc((r.reasons || []).join('; ')) }, { h: 'Client ID', f: r => `<span class="mono">${esc(r.client_id || '—')}</span>` },
+        ], oa.rows, 'No OAuth apps in scope (or token_activity not cached).');
+        $('secUsers').innerHTML = secTable([
+          { h: 'User', f: r => esc(r.email) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) },
+          { h: 'Flags', f: r => esc(r.flags.join(', ')) }, { h: 'Days idle', f: r => esc(r.days_since_login ?? '—') },
+          { h: '2SV', f: r => r.two_sv_enrolled === null ? '—' : (r.two_sv_enrolled ? 'yes' : 'no') }, { h: 'Failed 7d', f: r => esc(r.failed_logins_7d) },
+        ], us.rows, 'No flagged users in scope (or users_full not cached).');
+        $('secDevices').innerHTML = secTable([
+          { h: 'User', f: r => esc(r.email) }, { h: 'Model', f: r => esc(r.model || '—') }, { h: 'OS', f: r => esc(r.os || '—') },
+          { h: 'Status', f: r => secLevelChip(r.compliance_status) + ' ' + esc(r.compliance_score) },
+          { h: 'Flags', wrap: true, f: r => esc(r.flags.join(', ') || '—') }, { h: 'Last sync', f: r => esc(r.last_sync || '—') },
+        ], dv.rows, 'No devices in scope (or device reports not cached).');
+      } catch (e) {
+        msg.className = 'msg err'; msg.textContent = e.message;
+        toast(e.message, 'err');
+      } finally {
+        spin.hidden = true;
+      }
+    }
+    $('btnSecReload').addEventListener('click', loadSecurity);
+
     /* ---- 0.4.18 Drive Doc / Sheet exports ---- */
     function domainQueryForExport() {
       // Reuse domainQuery() (?domain=a&domain=b); empty = all domains

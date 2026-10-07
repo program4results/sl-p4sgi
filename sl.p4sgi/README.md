@@ -2,6 +2,8 @@
 
 Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school-config publish, publish audit, and (later) read-only warehouse assistance.
 
+**0.4.19:** Read-only **Security audit** (OAuth app risk, user hygiene, device compliance) over cached GAM CSVs + dry-run fix plans. No DB change; kill switch `SECURITY_AUDIT_ENABLED=0`. See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
+
 **0.4.18:** Drive Doc/Sheet export (`POST /api/v1/export/{section}`) into folder `YYYYMMDD-sl.p4sgi-<section>` (Doc + Sheet `-data`) via GAM as geb@p4sgi.com. Local DOCX/XLSX under `docker-data/sl.p4sgi/exports/`.
 
 **0.4.17:** Attendance radar panel + `POST /api/v1/attendance/ingest` (edge-attendance/1 outbox) + developer_mode/adb/encryption device chips + `GET /api/v1/insights/summary`.
@@ -16,6 +18,7 @@ Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school
 | Phase 3 | [docs/PHASE3.md](docs/PHASE3.md) |
 | Phase 4a | [docs/PHASE4a.md](docs/PHASE4a.md) |
 | Phase 4 fleet ops | [docs/PHASE4-fleet-ops.md](docs/PHASE4-fleet-ops.md) |
+| **Security audit (0.4.19)** | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) |
 | Radar vs Site | [docs/RADAR_VS_SITE.md](docs/RADAR_VS_SITE.md) |
 | **Site attendance embed (HQ runbook)** | [docs/SITE_ATTENDANCE_EMBED.md](docs/SITE_ATTENDANCE_EMBED.md) |
 | **Site template + GAM provision (~100 schools)** | [docs/SCHOOL_SITE_TEMPLATE_PROVISION.md](docs/SCHOOL_SITE_TEMPLATE_PROVISION.md) |

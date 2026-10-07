@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar — p4sgi</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a222c;
+      --text: #e7eef6;
+      --muted: #93a4b5;
+      --line: #2c3a48;
+      --line-soft: #1e2832;
+      --a: #1E88E5;
+      --b: #FDD835;
+      --c: #43A047;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header, main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1rem 1.15rem;
+      width: 100%;
+    }
+    header { padding-bottom: 0; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
+    .sub, .note { color: var(--muted); font-size: 0.88rem; }
+    a { color: #8ec5ff; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.55rem;
+      margin: 0.55rem 0 0.35rem;
+    }
+    .metric {
+      background: #121920;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      padding: 0.5rem 0.6rem;
+    }
+    .metric .lbl {
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .metric .val {
+      font-size: 1.05rem;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      margin-top: 0.08rem;
+    }
+    .metric .val.a { color: #8ec5ff; }
+    .metric .val.b { color: #ffe082; }
+    .metric .val.c { color: #81c784; }
+    .metric .val.gap { color: #ffb4a8; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.65rem 0 0.85rem;
+    }
+    button.chip {
+      background: #121920;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.84rem;
+      min-width: 4.2rem;
+      text-align: center;
+    }
+    button.chip[aria-pressed="true"] {
+      background: #243140;
+      border-color: #8ec5ff;
+      color: #e7eef6;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0.85rem 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    #chart {
+      width: 100%;
+      margin: 0.2rem 0 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    svg.spider {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .legend {
+      display: flex;
+      gap: 0.65rem 1rem;
+      flex-wrap: wrap;
+      font-size: 0.82rem;
+      margin: 0.65rem 0 0.2rem;
+      justify-content: center;
+    }
+    .sw {
+      display: inline-block;
+      width: 0.7rem;
+      height: 0.7rem;
+      border-radius: 2px;
+      margin-right: 0.28rem;
+      vertical-align: -1px;
+    }
+    #mode { margin: 0.2rem 0 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.1rem;
+      font-size: 0.86rem;
+      border: none;
+    }
+    thead th {
+      text-align: left;
+      padding: 0.5rem 0.4rem 0.35rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: none;
+      background: transparent;
+    }
+    tbody td {
+      text-align: left;
+      padding: 0.4rem 0.4rem;
+      border: none;
+      border-bottom: 1px solid rgba(30, 40, 50, 0.9);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    .err { color: #ffb4a8; }
+    .nums { font-variant-numeric: tabular-nums; }
+
+    /* —— Embed: dense single viewport (~650–720px) for Google Sites —— */
+    body.embed {
+      font-size: 13px;
+      line-height: 1.3;
+      overflow: hidden;
+    }
+    body.embed header,
+    body.embed main {
+      max-width: none;
+      width: 100%;
+      padding: 0.28rem 0.4rem;
+    }
+    body.embed header { padding-bottom: 0; padding-top: 0.28rem; }
+    body.embed header h1 { font-size: 0.95rem; margin: 0; }
+    body.embed .sub { font-size: 0.72rem; margin: 0.08rem 0 0; }
+    body.embed .metrics {
+      gap: 0.3rem;
+      margin: 0.3rem 0 0.15rem;
+      grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+    }
+    body.embed .metric {
+      padding: 0.22rem 0.35rem;
+      border-radius: 6px;
+    }
+    body.embed .metric .lbl { font-size: 0.55rem; letter-spacing: 0.03em; }
+    body.embed .metric .val { font-size: 0.88rem; margin-top: 0; }
+    body.embed .chips {
+      gap: 0.22rem;
+      margin: 0.22rem 0 0.3rem;
+    }
+    body.embed button.chip {
+      padding: 0.18rem 0.42rem;
+      font-size: 0.7rem;
+      min-width: 3rem;
+      border-radius: 5px;
+    }
+    body.embed main { padding-top: 0.1rem; padding-bottom: 0.25rem; }
+    body.embed .card {
+      background: #151c24;
+      border-color: #243140;
+      padding: 0.35rem 0.4rem 0.4rem;
+      border-radius: 8px;
+    }
+    body.embed #chart { margin: 0; }
+    body.embed svg.spider { max-width: min(300px, 94%); }
+    body.embed .legend {
+      margin: 0.28rem 0 0;
+      gap: 0.35rem 0.65rem;
+      font-size: 0.68rem;
+      justify-content: center;
+    }
+    body.embed .sw { width: 0.5rem; height: 0.5rem; margin-right: 0.2rem; }
+    body.embed #mode,
+    body.embed #foot,
+    body.embed #tbl { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">Progressive radar</h1>
+    <p class="sub" id="sub">Loading…</p>
+    <div class="metrics" id="metrics" hidden></div>
+  </header>
+  <main>
+    <div class="chips" id="chips" role="tablist" aria-label="Period"></div>
+    <div class="card">
+      <div id="chart"></div>
+      <div class="legend" id="legend"></div>
+      <p class="note" id="mode"></p>
+      <table id="tbl" hidden>
+        <thead><tr><th>Axis</th><th>A snap</th><th>B confirmed</th><th>C SEMIS</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note" id="foot"></p>
+  </main>
+  <script>
+    const PERIODS = ["Daily", "Weekly", "Monthly", "Termly", "Annual"];
+    const COLORS = { A: "#1E88E5", B: "#FDD835", C: "#43A047" };
+    const params = new URLSearchParams(location.search);
+    const emis = (params.get("emis") || "110101").trim();
+    const isEmbed = params.get("embed") === "1";
+    if (isEmbed) document.body.classList.add("embed");
+    const src = params.get("src");
+    let doc = null;
+    let period = params.get("period") || "Weekly";
+    if (!PERIODS.includes(period)) period = "Weekly";
+
+    function jsonUrl() {
+      if (src) return src;
+      return "/api/v1/radar/" + encodeURIComponent(emis) + ".json";
+    }
+
+    function fmt(n) {
+      if (n == null || n === "") return "—";
+      const x = Number(n);
+      if (!Number.isFinite(x)) return String(n);
+      return Number.isInteger(x) ? String(x) : String(x);
+    }
+
+    async function load() {
+      const res = await fetch(jsonUrl(), { headers: { Accept: "application/json" } });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(res.status + " " + t.slice(0, 240));
+      }
+      doc = await res.json();
+      document.getElementById("title").textContent =
+        (doc.schoolName || "School") + " · radar";
+      const h = doc.headline || {};
+      const cls = doc.classLabel || "";
+      document.getElementById("sub").textContent =
+        "EMIS " + (doc.emis || emis) +
+        (cls ? " · " + cls : "") +
+        (doc.asOf ? " · as of " + doc.asOf : "") +
+        (h.A != null ? " · snap " + h.A + " / confirmed " + h.B + " / SEMIS " + h.C : "");
+      document.getElementById("foot").textContent = doc.valuesNote || h.note || "";
+      renderMetrics(h, cls, doc.asOf);
+      renderChips();
+      render();
+    }
+
+    function renderMetrics(h, cls, date) {
+      const box = document.getElementById("metrics");
+      const cells = [];
+      if (cls) cells.push('<div class="metric"><div class="lbl">Class</div><div class="val">' + esc(cls) + '</div></div>');
+      if (date) cells.push('<div class="metric"><div class="lbl">Date</div><div class="val">' + esc(date) + '</div></div>');
+      if (h.A != null) cells.push('<div class="metric"><div class="lbl">A · Snap</div><div class="val a">' + fmt(h.A) + '</div></div>');
+      if (h.B != null) cells.push('<div class="metric"><div class="lbl">B · Confirmed</div><div class="val b">' + fmt(h.B) + '</div></div>');
+      if (h.C != null) cells.push('<div class="metric"><div class="lbl">C · SEMIS</div><div class="val c">' + fmt(h.C) + '</div></div>');
+      box.innerHTML = cells.join("");
+      box.hidden = cells.length === 0;
+    }
+
+    function renderChips() {
+      const box = document.getElementById("chips");
+      box.innerHTML = "";
+      PERIODS.forEach(p => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = p;
+        b.setAttribute("aria-pressed", p === period ? "true" : "false");
+        b.onclick = () => { period = p; renderChips(); render(); };
+        box.appendChild(b);
+      });
+    }
+
+    function seriesMeta() {
+      const byId = {};
+      (doc.series || []).forEach(s => { byId[s.id] = s; });
+      return ["A", "B", "C"].map(id => ({
+        id,
+        label: (byId[id] && byId[id].label) || id,
+        color: (byId[id] && byId[id].color) || COLORS[id]
+      }));
+    }
+
+    function render() {
+      const block = (doc.periods || {})[period] || { axes: [] };
+      const axes = block.axes || [];
+      const meta = seriesMeta();
+      const legend = document.getElementById("legend");
+      legend.innerHTML = meta.map(s =>
+        '<span><i class="sw" style="background:' + s.color + '"></i>' + s.id + " " + s.label + "</span>"
+      ).join("");
+      const mode = document.getElementById("mode");
+      const chart = document.getElementById("chart");
+      if (axes.length >= 3) {
+        mode.textContent = period + " · spider (" + axes.length + " axes). Fewer than 3 axes would fall back to grouped bars, same as the tablet.";
+        chart.innerHTML = spiderSvg(axes, meta);
+      } else if (axes.length) {
+        mode.textContent = period + " · grouped bars (" + axes.length + " axis bucket" + (axes.length === 1 ? "" : "s") + "). Spider needs at least 3 axes.";
+        chart.innerHTML = barsSvg(axes, meta);
+      } else {
+        mode.textContent = "No axes for " + period + ".";
+        chart.innerHTML = "";
+      }
+      const tb = document.querySelector("#tbl tbody");
+      const table = document.getElementById("tbl");
+      tb.innerHTML = "";
+      const rows = isEmbed ? axes.slice(0, 3) : axes;
+      rows.forEach(ax => {
+        const tr = document.createElement("tr");
+        tr.className = "nums";
+        tr.innerHTML = "<td>" + esc(ax.label) + "</td><td>" + ax.A + "</td><td>" + ax.B + "</td><td>" + ax.C + "</td>";
+        tb.appendChild(tr);
+      });
+      table.hidden = isEmbed || axes.length === 0;
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    function maxOf(axes) {
+      let m = 1;
+      axes.forEach(ax => { m = Math.max(m, Number(ax.A) || 0, Number(ax.B) || 0, Number(ax.C) || 0); });
+      return m;
+    }
+
+    function spiderSvg(axes, meta) {
+      const n = axes.length;
+      const max = maxOf(axes);
+      const compact = isEmbed;
+      const cx = compact ? 160 : 220;
+      const cy = compact ? 145 : 200;
+      const r = compact ? 112 : 158;
+      const labelR = compact ? r + 16 : r + 22;
+      const fontSize = compact ? 10 : 12;
+      const strokeW = compact ? 2 : 2.5;
+      const vbW = compact ? 320 : 440;
+      const vbH = compact ? 290 : 400;
+      const rings = 4;
+      let g = "";
+      for (let k = 1; k <= rings; k++) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const ang = -Math.PI / 2 + (i * 2 * Math.PI / n);
+          const rr = r * k / rings;
+          pts.push((cx + Math.cos(ang) * rr).toFixed(1) + "," + (cy + Math.sin(ang) * rr).toFixed(1));
+        }
+        g += '<polygon points="' + pts.join(" ") + '" fill="none" stroke="#2c3a48" stroke-width="1"/>';
+      }
+      axes.forEach((ax, i) => {
+        const ang = -Math.PI / 2 + (i * 2 * Math.PI / n);
+        const x = cx + Math.cos(ang) * r;
+        const y = cy + Math.sin(ang) * r;
+        g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#2c3a48"/>';
+        const lx = cx + Math.cos(ang) * labelR;
+        const ly = cy + Math.sin(ang) * labelR;
+        g += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" fill="#93a4b5" font-size="' + fontSize + '" text-anchor="middle">' + esc(ax.label) + "</text>";
+      });
+      meta.forEach(s => {
+        const pts = axes.map((ax, i) => {
+          const ang = -Math.PI / 2 + (i * 2 * Math.PI / n);
+          const rr = r * (Number(ax[s.id]) || 0) / max;
+          return (cx + Math.cos(ang) * rr).toFixed(1) + "," + (cy + Math.sin(ang) * rr).toFixed(1);
+        }).join(" ");
+        g += '<polygon points="' + pts + '" fill="' + s.color + '" fill-opacity="0.22" stroke="' + s.color + '" stroke-width="' + strokeW + '"/>';
+      });
+      return '<svg class="spider" viewBox="0 0 ' + vbW + ' ' + vbH + '" role="img" aria-label="' + period + ' spider chart">' + g + "</svg>";
+    }
+
+    function barsSvg(axes, meta) {
+      const max = maxOf(axes);
+      const compact = isEmbed;
+      const w = compact ? 320 : 440;
+      const h = compact ? 180 : 260;
+      const padL = 22, padB = 28, padT = 12;
+      const groupW = (w - padL - 12) / axes.length;
+      const barW = Math.min(compact ? 18 : 28, (groupW - 10) / 3);
+      let g = '<line x1="' + padL + '" y1="' + (h - padB) + '" x2="' + (w - 6) + '" y2="' + (h - padB) + '" stroke="#2c3a48"/>';
+      axes.forEach((ax, i) => {
+        const gx = padL + i * groupW + 6;
+        meta.forEach((s, si) => {
+          const val = Number(ax[s.id]) || 0;
+          const bh = (h - padB - padT) * val / max;
+          const x = gx + si * (barW + 2);
+          const y = h - padB - bh;
+          g += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="' + s.color + '" rx="2"/>';
+        });
+        g += '<text x="' + (gx + barW).toFixed(1) + '" y="' + (h - 10) + '" fill="#93a4b5" font-size="' + (compact ? 10 : 12) + '" text-anchor="middle">' + esc(ax.label) + "</text>";
+      });
+      return '<svg class="spider" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + period + ' grouped bars">' + g + "</svg>";
+    }
+
+    load().catch(err => {
+      document.getElementById("sub").innerHTML = '<span class="err">' + esc(err.message) + "</span>";
+    });
+  </script>
+</body>
+</html>

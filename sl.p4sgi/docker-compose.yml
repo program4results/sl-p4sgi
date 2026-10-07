@@ -1,0 +1,79 @@
+# SL-P4SGI Admin Dashboard — Phase 4a (0.4.18 Drive Doc/Sheet export; 0.4.17 attendance radar; 0.4.15 raw GAM; 0.4.14 Devices/Active users)
+# Volumes: ../../docker-data/sl.p4sgi (sibling of stacks/)
+# GAM: host binary + ~/.gam mounted; reports via allowlisted runner (no CSV-drop primary path).
+# Redis: deferred. Android / snapait: untouched.
+
+services:
+  web:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: sl-p4sgi-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-slp4sgi}
+      POSTGRES_USER: ${POSTGRES_USER:-slp4sgi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      DATA_DIR: /data
+      APP_ENV: ${APP_ENV:-development}
+      PUBLISH_AUDIT_TOKEN: ${PUBLISH_AUDIT_TOKEN:-}
+      HOME: /home/george
+      GAMCFGDIR: /home/george/.gam
+      GAM_BIN: /home/george/bin/gam7/gam
+      GAM_RUNNER: /scripts/run_gam_report.sh
+      GAM_TIMEOUT_SEC: ${GAM_TIMEOUT_SEC:-600}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://127.0.0.1:8088}
+      SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-geb@p4sgi.com}
+      DRIVE_EXPORT_FOLDER_ID: ${DRIVE_EXPORT_FOLDER_ID:-1r2lyU95j4BpdaLxLL-ayhl2Vsz7LnTYZ}
+      GAM_EXPORT_USER: ${GAM_EXPORT_USER:-geb@p4sgi.com}
+      # Optional dedicated GAM config (uncomment after George signs in as geb in gam-geb):
+      # GAMCFGDIR: ${GAMCFGDIR:-/mnt/drive_14tb/stacks/sl.p4sgi/gam-geb}
+      PATH: /home/george/bin/gam7:/usr/local/bin:/usr/bin:/bin
+    ports:
+      - "${APP_PORT:-8088}:8000"
+    volumes:
+      - ../../docker-data/sl.p4sgi/gam-out:/data/gam-out
+      - ../../docker-data/sl.p4sgi/school-configs:/data/school-configs
+      - ../../docker-data/sl.p4sgi/radar:/data/radar
+      - ../../docker-data/sl.p4sgi/attendance:/data/attendance
+      - ../../docker-data/sl.p4sgi/exports:/data/exports
+      - ./scripts:/scripts:ro
+      - /home/george/bin/gam7:/home/george/bin/gam7:ro
+      # Default: host ~/.gam (already oauth as geb@p4sgi.com / primary p4sgi.com).
+      - /home/george/.gam:/home/george/.gam
+      # Optional dedicated GAMCFGDIR for geb (prepare under ./gam-geb; leave commented until oauth exists):
+      # - ${GAM_HOST_CFGDIR:-./gam-geb}:/gam-geb
+      # and set GAMCFGDIR=/gam-geb in environment above.
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  db:
+    image: postgres:16-alpine
+    container_name: sl-p4sgi-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-slp4sgi}
+      POSTGRES_USER: ${POSTGRES_USER:-slp4sgi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ../../docker-data/sl.p4sgi/postgres:/var/lib/postgresql/data
+      - ./apps/api/sql/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      - "127.0.0.1:5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

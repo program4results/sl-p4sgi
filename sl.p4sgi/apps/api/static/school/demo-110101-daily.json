@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1",
+  "kind": "daily_attendance_parents",
+  "emis": "110101",
+  "schoolName": "Test Primary School",
+  "schoolEmail": "sl-test@sl.p4sgi.com",
+  "classLabel": "Nursery 3",
+  "attendanceDate": "2026-09-28",
+  "asOf": "2026-09-28",
+  "source": "demo",
+  "demo": true,
+  "snap": 4,
+  "confirmed": 4,
+  "semis": 6,
+  "gapPct": 33.3,
+  "siteRef": "5103-1-08837",
+  "siteRefNote": "Optional Site/legacy ref — not warehouse EMIS (110101)",
+  "headline": "Nursery 3 — 2026-09-28",
+  "reportMarkdown": "# Daily attendance — Nursery 3\n\n- **Date:** 2026-09-28\n- **Class:** Nursery 3\n- **Present (snap):** 4\n- **Confirmed:** 4\n- **SEMIS enrollment:** 6\n- **Gap vs SEMIS:** 33.3%\n- **Site/legacy ref:** 5103-1-08837 (not EMIS; warehouse EMIS is 110101)\n\nParents: charts (spider) are on the same page below. Full history stays in the Attendance Doc when embedded on the Site.",
+  "bullets": [
+    "Date: 2026-09-28",
+    "Class: Nursery 3",
+    "Present (snap): 4",
+    "Confirmed: 4",
+    "SEMIS enrollment: 6",
+    "Gap vs SEMIS: 33.3%",
+    "Site/legacy ref: 5103-1-08837 (not EMIS; warehouse EMIS is 110101)"
+  ]
+}

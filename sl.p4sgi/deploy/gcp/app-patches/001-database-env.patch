@@ -1,0 +1,36 @@
+*** Begin Patch
+*** Update File: apps/api/app/db.py
+@@
+ def database_url() -> str:
++    """Build a psycopg URL.
++
++    Cloud (Cloud Run + Cloud SQL connector):
++      POSTGRES_HOST=/cloudsql/PROJECT:REGION:INSTANCE
++      POSTGRES_PASSWORD from Secret Manager (injected as env)
++    Or set DATABASE_URL outright to override.
++    """
++    explicit = os.getenv("DATABASE_URL", "").strip()
++    if explicit:
++        return explicit
+     host = os.getenv("POSTGRES_HOST", "db")
+     port = os.getenv("POSTGRES_PORT", "5432")
+     db = os.getenv("POSTGRES_DB", "slp4sgi")
+     user = os.getenv("POSTGRES_USER", "slp4sgi")
+     password = os.getenv("POSTGRES_PASSWORD", "change-me-in-production")
++    # Unix socket (Cloud SQL Auth Proxy / Cloud Run connector): host is a path.
++    if host.startswith("/"):
++        # psycopg3: postgresql://user:pass@/db?host=/cloudsql/...
++        from urllib.parse import quote_plus
++
++        return (
++            f"postgresql://{quote_plus(user)}:{quote_plus(password)}"
++            f"@/{db}?host={quote_plus(host)}"
++        )
+     return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+*** End Patch
+
+NOTES (do not apply blindly while another worker edits the app):
+- Local docker-compose keeps POSTGRES_HOST=db (TCP) and needs no change.
+- Cloud Run deploy.sh sets POSTGRES_HOST=/cloudsql/${PROJECT}:${REGION}:${INSTANCE}
+  and POSTGRES_PASSWORD from Secret Manager.
+- Optional: set DATABASE_URL to override everything.

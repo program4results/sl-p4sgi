@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta name="p4sgi-ui-version" content="0.4.18" />
+  <link rel="icon" href="data:," />
+  <title>p4sgi</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --border: #334155;
+      font-family: system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.02em; }
+    header .meta { color: var(--muted); font-size: 0.85rem; }
+    header .meta a { color: var(--accent); text-decoration: none; }
+    header .meta a:hover { text-decoration: underline; }
+    main { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+    section {
+      background: var(--panel); border-radius: 10px; padding: 0.65rem 1rem;
+      margin-bottom: 0.75rem; border: 1px solid var(--border);
+    }
+    h2 { margin: 0 0 0.4rem; font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+    h2 .spin { margin-left: auto; }
+    p { color: var(--muted); line-height: 1.45; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+    a { color: var(--accent); }
+    button {
+      background: var(--accent); color: #0f172a; border: 0; border-radius: 6px;
+      padding: 0.4rem 0.75rem; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #475569; color: var(--text); }
+    button.danger { background: #7f1d1d; color: #fecaca; }
+    button.linkish { background: transparent; color: var(--accent); padding: 0.2rem 0.35rem; font-weight: 500; }
+    .row { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.4rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { text-align: left; padding: 0.2rem 0.35rem; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+    td.wrap { white-space: normal; max-width: 16rem; }
+    th { color: var(--muted); font-weight: 600; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: #243247; }
+    tr.expanded { background: #1a2740; }
+    .badge {
+      display: inline-block; padding: 0.1rem 0.45rem; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge.pending { background: #422006; color: var(--warn); }
+    .badge.approved, .badge.ok { background: #064e3b; color: var(--ok); }
+    .badge.rejected, .badge.failed, .badge.error, .badge.timeout { background: #450a0a; color: var(--bad); }
+    .badge.kind { background: #1e3a5f; color: var(--accent); text-transform: none; font-weight: 500; }
+    .msg { margin-top: 0.5rem; font-size: 0.85rem; }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--bad); }
+    .empty { color: var(--muted); font-style: italic; padding: 0.3rem 0; }
+    select, input[type="text"] {
+      background: #0f172a; color: var(--text); border: 1px solid #475569;
+      border-radius: 6px; padding: 0.35rem 0.5rem;
+    }
+    .preview { max-width: 320px; color: var(--muted); font-size: 0.8rem; }
+    pre.view {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.75rem; max-height: 280px; overflow: auto; white-space: pre-wrap;
+      font-size: 0.75rem; color: var(--muted); margin: 0.5rem 0;
+    }
+    /* Domain filter — first control */
+    #domainFilter {
+      background: #162032; border: 1px solid #3b82f6;
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.15);
+    }
+    .section-toggle {
+      background: transparent; color: var(--text); padding: 0; font-size: inherit;
+      font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .section-toggle:hover { color: var(--accent); }
+    .section-toggle .chevron { color: var(--accent); width: 1rem; display: inline-block; text-align: center; }
+    .filter-summary {
+      margin-left: auto; color: var(--muted); font-size: 0.8rem; font-weight: 500;
+      text-align: right; max-width: 72%; overflow-wrap: anywhere;
+    }
+    .section-body { margin-top: 0.1rem; }
+    details.help-collapse > summary {
+      cursor: pointer; list-style: none; color: var(--accent); font-size: 0.8rem;
+      user-select: none; margin: 0.1rem 0 0.3rem;
+    }
+    details.help-collapse > summary::-webkit-details-marker { display: none; }
+    details.help-collapse > summary::before { content: "▸ "; color: var(--muted); }
+    details.help-collapse[open] > summary::before { content: "▾ "; }
+    .section-help { margin: 0.1rem 0 0.35rem; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+    .col-picker {
+      display: flex; flex-wrap: wrap; gap: 0.2rem 0.55rem; align-items: center;
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.35rem 0.5rem; margin: 0.2rem 0 0.4rem; font-size: 0.76rem;
+    }
+    .col-picker label { display: inline-flex; align-items: center; gap: 0.22rem; cursor: pointer; color: var(--text); }
+    .col-picker input { accent-color: var(--accent); }
+    .col-picker .col-picker-title { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 0.25rem; }
+    .col-picker details { display: inline-block; }
+    .col-picker details > summary { cursor: pointer; list-style: none; color: var(--accent); }
+    .col-picker details > summary::-webkit-details-marker { display: none; }
+    #domainFilter .checks { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
+    #domainFilter label { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; color: var(--text); }
+    #domainFilter input { accent-color: var(--accent); width: 1rem; height: 1rem; }
+    details.dom-collapse { display: inline-block; max-width: 16rem; vertical-align: top; }
+    details.dom-collapse > summary {
+      cursor: pointer; list-style: none; color: var(--accent); font-size: 0.85rem;
+      user-select: none;
+    }
+    details.dom-collapse > summary::-webkit-details-marker { display: none; }
+    details.dom-collapse > summary::before { content: "▸ "; color: var(--muted); }
+    details.dom-collapse[open] > summary::before { content: "▾ "; }
+    /* Author display:flex must not override the closed-<details> UA hide. */
+    details.dom-collapse:not([open]) > .dom-list { display: none !important; }
+    details.dom-collapse[open] > .dom-list {
+      margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 28rem;
+    }
+    details.dom-collapse > summary .badge { cursor: pointer; }
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { color: var(--accent); }
+    th.sortable .sort-ind { color: var(--muted); font-size: 0.75em; margin-left: 0.2rem; }
+
+    .detail {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.85rem; margin: 0.35rem 0 0.5rem;
+    }
+    .detail h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+    .detail dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.25rem 0.75rem; margin: 0 0 0.75rem; font-size: 0.85rem; }
+    .detail dt { color: var(--muted); }
+    .detail dd { margin: 0; word-break: break-word; }
+    .diff table { font-size: 0.8rem; }
+    .diff .from { color: var(--bad); }
+    .diff .to { color: var(--ok); }
+    .spinner {
+      display: inline-block; width: 0.9rem; height: 0.9rem;
+      border: 2px solid #475569; border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(2,6,23,0.72);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      width: min(1100px, 100%); max-height: 90vh; display: flex; flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+    .modal header {
+      border-bottom: 1px solid var(--border); padding: 0.85rem 1rem;
+    }
+    .modal .body { padding: 1rem; overflow: auto; flex: 1; }
+    .modal .foot {
+      border-top: 1px solid var(--border); padding: 0.75rem 1rem;
+      display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;
+    }
+    .csv-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--border); border-radius: 8px; }
+    .csv-wrap table { font-size: 0.78rem; white-space: nowrap; }
+    .csv-wrap th { position: sticky; top: 0; background: #1e293b; }
+    /* Toasts */
+    #toasts {
+      position: fixed; top: 1rem; right: 1rem; z-index: 200;
+      display: flex; flex-direction: column; gap: 0.5rem; max-width: min(360px, 92vw);
+    }
+    .toast {
+      background: #1e293b; border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.85rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      animation: slidein 0.2s ease-out;
+    }
+    .toast.err { border-left-color: var(--bad); }
+    .toast.ok { border-left-color: var(--ok); }
+    @keyframes slidein { from { opacity: 0; transform: translateY(-6px); } }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem; margin: 0.75rem 0 1rem;
+    }
+    .card {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+    }
+    .card .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card .value { font-size: 1.35rem; font-weight: 700; margin-top: 0.25rem; color: var(--accent); }
+
+
+    .section-chips {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.75rem;
+    }
+    .chip {
+      display: inline-flex; align-items: baseline; gap: 0.35rem;
+      background: #0f172a; border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.25rem 0.65rem; font-size: 0.78rem;
+    }
+    .chip .chip-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.68rem; }
+    .chip .chip-val { color: var(--accent); font-weight: 700; }
+    .chip.warn .chip-val { color: var(--warn); }
+    .chip.ok .chip-val { color: var(--ok); }
+    .emis-multi {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; align-items: center;
+      max-height: 7.5rem; overflow: auto; background: #0f172a; border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.45rem 0.65rem; min-width: 14rem; max-width: 42rem;
+    }
+    .emis-multi label { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.85rem; }
+    .emis-multi input { accent-color: var(--accent); }
+    .emis-multi .emis-empty { color: var(--muted); font-style: italic; font-size: 0.8rem; }
+
+    .preview-totals {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; align-items: baseline;
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.55rem 0.75rem; margin: 0 0 0.65rem; font-size: 0.85rem;
+    }
+    .preview-totals .tot-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 0.25rem; }
+    .preview-totals strong { color: var(--text); font-weight: 600; }
+    .fleet-hint { color: var(--muted); font-size: 0.8rem; margin: 0.35rem 0 0.75rem; }
+    .fleet-empty-row td { color: var(--muted); font-style: italic; }
+
+    /* 0.4.18 Drive export buttons */
+    .export-btns { display: inline-flex; gap: 0.25rem; align-items: center; margin-left: 0.35rem; }
+    button.export-btn {
+      background: #0f172a; color: var(--accent); border: 1px solid #334155;
+      padding: 0.15rem 0.45rem; font-size: 0.72rem; font-weight: 600;
+      border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    button.export-btn:hover { border-color: var(--accent); background: #1e293b; }
+    button.export-btn:disabled { opacity: 0.45; }
+    button.export-btn.all {
+      background: #1e3a5f; color: #e0f2fe; border-color: #3b82f6;
+    }
+    .export-status {
+      font-size: 0.75rem; color: var(--muted); margin-left: 0.35rem;
+      max-width: 28rem; overflow-wrap: anywhere;
+    }
+    .export-status a { color: var(--accent); }
+    .export-status.err { color: var(--bad); }
+    .export-status.ok { color: var(--ok); }
+    #exportAllBar {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+      background: #162032; border: 1px solid #334155; border-radius: 8px;
+      padding: 0.45rem 0.75rem; margin: 0 0 0.75rem;
+    }
+    #exportAllBar .label { color: var(--muted); font-size: 0.8rem; margin-right: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div id="toasts" aria-live="polite"></div>
+
+  <header>
+    <h1>p4sgi</h1>
+    <div class="meta">
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.18</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
+      &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
+      &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
+    </div>
+  </header>
+
+  <main>
+
+    <div id="exportAllBar" title="Creates dated Drive folder YYYYMMDD-sl.p4sgi-all with Doc+Sheet per section">
+      <span class="label">Drive exports</span>
+      <button type="button" class="export-btn all" id="btnExportAll" title="Export every section that has data into YYYYMMDD-sl.p4sgi-all">Export all</button>
+      <span class="export-status" id="exportAllStatus" hidden></span>
+      <span class="empty" style="font-size:0.72rem;margin:0">
+        Convention: folder <code>YYYYMMDD-sl.p4sgi-&lt;section&gt;</code> → Doc + Sheet (<code>-data</code>). Date = Africa/Johannesburg.
+      </span>
+    </div>
+    <section id="domainFilter">
+      <h2>
+        <button type="button" class="section-toggle" id="domainToggle" data-section="domainFilter" aria-expanded="false" aria-controls="domainFilterBody">
+          <span class="chevron" id="domainChevron" aria-hidden="true">▸</span> Domain filter
+        </button>
+        <span class="filter-summary" id="domainSummary">All domains</span>
+      </h2>
+      <div id="domainFilterBody" hidden>
+        <p style="margin-top:0">Filters GAM runs, schools, jobs, publish events, devices, and telemetry. Persisted in <code>localStorage</code>.</p>
+        <div class="checks" id="domainChecks">
+          <label><input type="checkbox" id="domAll" checked /> All</label>
+          <span class="spinner" id="domSpin" hidden></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="uiSettings">
+      <h2>
+        <button type="button" class="section-toggle" data-section="uiSettings" aria-expanded="true" aria-controls="uiSettingsBody">
+          <span class="chevron" aria-hidden="true">▾</span> Settings
+        </button>
+      </h2>
+      <div class="section-body" id="uiSettingsBody">
+        <div class="checks" style="display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;align-items:center">
+          <label style="display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer">
+            <input type="checkbox" id="prefCompactDomains" checked /> Compact domains
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer">
+            <input type="checkbox" id="prefSortable" checked /> Sortable columns
+          </label>
+        </div>
+        <details class="help-collapse" data-help="uiSettingsHelp">
+          <summary>Show help</summary>
+          <p class="section-help" style="margin-bottom:0">Compact domains is <strong>on by default</strong>: a row shows one chip (<em>N domains</em>, or the only domain) and the full list stays behind expand. Uncheck it only when you want every pill in the row. Sortable columns (on by default) makes each header on schools, GAM runs, approvals, publish events, and report previews click to sort ascending then descending. Saved in <code>localStorage</code>. <strong>Drive exports (0.4.18):</strong> each section header has <em>Doc</em> / <em>Sheet</em>; top bar <em>Export all</em> builds <code>YYYYMMDD-sl.p4sgi-all</code> with one subfolder per section (Doc + Sheet <code>-data</code>). Uploads as geb@p4sgi.com via GAM into the configured Drive folder.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="secHealth">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secHealth" aria-expanded="false" aria-controls="secHealthBody">
+          <span class="chevron" aria-hidden="true">▸</span> Health
+        </button>
+        <button type="button" class="secondary" id="btnRefresh">Refresh all</button>
+      </h2>
+      <div class="section-body" id="secHealthBody" hidden>
+        <details class="help-collapse" data-help="secHealthHelp">
+          <summary>Show help</summary>
+          <p class="section-help">API probe: <a href="/api/v1/health"><code>/api/v1/health</code></a>.
+             RBAC/OAuth/WhatsApp/Play not enforced yet. Tablet apps stay in snapait.
+             Primary GAM path is <strong>Run report</strong> below.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="secSchools">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secSchools" aria-expanded="true" aria-controls="secSchoolsBody">
+          <span class="chevron" aria-hidden="true">▾</span> Schools
+        </button>
+        <button type="button" class="secondary" id="btnReloadSchools">Reload</button>
+        <span class="spin" id="schoolsSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="schools">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="secSchoolsBody">
+        <div id="schoolsTable"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="secGamReports">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secGamReports" aria-expanded="true" aria-controls="secGamReportsBody">
+          <span class="chevron" aria-hidden="true">▾</span> GAM reports
+        </button>
+        <button type="button" class="secondary" id="btnReloadRuns">Reload</button>
+        <button type="button" class="secondary" id="btnReloadGamSummary">Summary</button>
+        <span class="spin" id="runsSpin" hidden><span class="spinner"></span></span>
+        <span class="spin" id="gamSumSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="gam_reports">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="secGamReportsBody">
+        <div class="section-chips" id="gamSummaryChips" aria-live="polite"></div>
+        <p class="empty" id="gamSummaryNote" style="margin-top:-0.15rem;margin-bottom:0.4rem"></p>
+        <details class="help-collapse" data-help="secGamReportsHelp">
+          <summary>Show help</summary>
+          <p class="section-help">Runs allowlisted <code>gam</code> on the gbu host. Report buttons open the <strong>latest cached CSV</strong> immediately (never spin forever). Use <strong>Refresh from GAM</strong> in the modal to re-run; progress polls with a timeout and shows errors. Download is secondary. User reports include <code>recoveryEmail</code> when GAM returns it. <strong>Wrong password</strong> = <code>changePasswordAtNextLogin=true</code>.</p>
+        </details>
+        <div class="row" id="gamButtons">
+          <button type="button" data-report="users">Users</button>
+          <button type="button" data-report="enrolled">Users enrolled</button>
+          <button type="button" data-report="never_logged_in">Never logged in</button>
+          <button type="button" data-report="wrong_password">Wrong password</button>
+          <button type="button" data-report="data_storage">Data / storage</button>
+          <button type="button" data-report="ous">OUs</button>
+          <button type="button" data-report="admins">Admins</button>
+          <button type="button" data-report="groups">Groups</button>
+          <button type="button" data-report="suspended">Suspended</button>
+          <button type="button" data-report="security_2sv">2SV / security</button>
+          <button type="button" data-report="last_login">Last login</button>
+        </div>
+        <p class="msg" id="gamMsg" aria-live="polite"></p>
+        <p id="gamAvail" class="mono" style="font-size:0.8rem;"></p>
+        <div id="runsTable"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+
+    <section id="attendanceRadar">
+      <h2>
+        <button type="button" class="section-toggle" data-section="attendanceRadar" aria-expanded="false" aria-controls="attendanceRadarBody">
+          <span class="chevron" aria-hidden="true">▸</span> Attendance radar
+        </button>
+        <button type="button" class="secondary" id="btnRadarReload">Reload</button>
+        <span class="spin" id="radarSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="attendance">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="attendanceRadarBody" hidden>
+        <details class="help-collapse" data-help="attendanceRadarHelp">
+          <summary>Show help</summary>
+          <p class="section-help"><strong>EMM / Workspace</strong> manages tablets (policy, apps, wipe) — that is not attendance telemetry.
+            <strong>SnapAit / Edge Attendance</strong> keeps photos + Room SQLite on-device and POSTs ~1–2&nbsp;KB JSON (snap / confirmed) to an HTTPS endpoint.
+            <strong>Admin Console ~53&nbsp;MB</strong> you see is usually user <em>storage</em> (Drive/Gmail quota), not mobile network traffic — GAM Reports API has no network-byte counter.
+            Radar here aggregates tablet outbox ingest: snap vs confirmed vs SEMIS (when present).</p>
+        </details>
+        <div class="row" style="gap:0.75rem;flex-wrap:wrap;align-items:center">
+          <label>Grain
+            <select id="radarGrain">
+              <option value="province">province</option>
+              <option value="school">school (EMIS)</option>
+              <option value="country">country</option>
+            </select>
+          </label>
+          <label>Period
+            <select id="radarPeriod">
+              <option value="week">week</option>
+              <option value="day">day</option>
+              <option value="month">month</option>
+              <option value="term">term</option>
+              <option value="year">year</option>
+            </select>
+          </label>
+          <span class="msg" id="radarMsg"></span>
+        </div>
+        <div class="section-chips" id="radarChips" aria-live="polite"></div>
+        <div id="radarEmpty" class="empty" hidden></div>
+        <div id="radarTable" style="overflow-x:auto"></div>
+        <details id="radarLandingWrap"><summary>Where syncs should land</summary>
+          <pre id="radarLanding" class="mono" style="font-size:0.78rem;white-space:pre-wrap"></pre>
+        </details>
+      </div>
+    </section>
+
+    <section id="insightDevices">
+      <h2>
+        <button type="button" class="section-toggle" data-section="insightDevices" aria-expanded="false" aria-controls="insightDevicesBody">
+          <span class="chevron" aria-hidden="true">▸</span> Devices
+        </button>
+        <button type="button" class="secondary" id="btnDevReload" title="Load latest cached GAM data (no GAM call)">Reload</button>
+        <button type="button" class="secondary" id="btnDevRefresh" title="Re-run read-only GAM sources (async)">Refresh from GAM</button>
+        <a class="mono" id="devCsv" href="/api/v1/reports/devices?format=csv" style="font-size:0.8rem;margin-left:0.35rem">CSV</a>
+        <span class="spin" id="devSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="devices">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="insightDevicesBody" hidden>
+        <div class="section-chips" id="devChips" aria-live="polite"></div>
+        <details class="help-collapse" data-help="insightDevicesHelp">
+          <summary>Show help</summary>
+          <p class="section-help">Hardware comes from what each phone/tablet already reported to Google Workspace (model, OS, serial, IMEI). <strong>developer_mode</strong> = <code>gam print mobile</code> <code>developerOptionsStatus</code> (or CI <code>enabledDeveloperOptions</code>); <strong>adb</strong> = <code>adbStatus</code> / <code>enabledUsbDebugging</code>; <strong>compromised</strong> / <strong>encryption</strong> from the same APIs. Google cannot invent more detail. ChromeOS shows 0 devices in this tenant. EMM policy must be applied for Advanced mobile management fields to stay current.</p>
+        </details>
+        <div class="row"><input type="search" id="devSearch" placeholder="Search devices (email, EMIS, model, OS, serial…)" style="min-width:22rem" /> <span class="msg" id="devMsg"></span></div>
+        <div id="devColPicker" class="col-picker" aria-label="Devices columns"></div>
+        <details id="devSourcesWrap"><summary>Google sources (what returned data / errors)</summary><div id="devSources" class="mono" style="font-size:0.78rem"></div></details>
+        <div id="devTable" style="overflow-x:auto"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="insightActive">
+      <h2>
+        <button type="button" class="section-toggle" data-section="insightActive" aria-expanded="false" aria-controls="insightActiveBody">
+          <span class="chevron" aria-hidden="true">▸</span> Active users
+        </button>
+        <button type="button" class="secondary" id="btnActReload" title="Load latest cached GAM data (no GAM call)">Reload</button>
+        <button type="button" class="secondary" id="btnActRefresh" title="Re-run read-only GAM sources (async, a few minutes)">Refresh from GAM</button>
+        <a class="mono" id="actCsv" href="/api/v1/reports/active-users?format=csv" style="font-size:0.8rem;margin-left:0.35rem">CSV</a>
+        <span class="spin" id="actSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="active_users">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="insightActiveBody" hidden>
+        <div class="section-chips" id="actChips" aria-live="polite"></div>
+        <details class="help-collapse" data-help="insightActiveHelp">
+          <summary>Show help</summary>
+          <p class="section-help" id="actNote"></p>
+        </details>
+        <div class="row"><input type="search" id="actSearch" placeholder="Search active users (email, EMIS, model…)" style="min-width:22rem" /> <span class="msg" id="actMsg"></span></div>
+        <div id="actColPicker" class="col-picker" aria-label="Active users columns"></div>
+        <details id="actSourcesWrap"><summary>Google sources (what returned data / errors)</summary><div id="actSources" class="mono" style="font-size:0.78rem"></div></details>
+        <div id="actTable" style="overflow-x:auto"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="rawExports" style="display:none">
+      <h2>
+        <button type="button" class="section-toggle" data-section="rawExports" aria-expanded="false" aria-controls="rawExportsBody">
+          <span class="chevron" aria-hidden="true">▸</span> Raw GAM exports
+        </button>
+        <span class="badge kind" title="IMEIs / MAC addresses / serials — super-admin only">super-admin</span>
+        <button type="button" class="secondary" id="btnRawReload" title="Re-list CSV files under gam-out (no GAM call)">Reload</button>
+        <span class="spin" id="rawSpin" hidden><span class="spinner"></span></span>
+      
+        <span class="export-btns" data-export="raw_exports">
+          <button type="button" class="export-btn" data-export-fmt="doc" title="Export Google Doc (A4) to Drive">Doc</button>
+          <button type="button" class="export-btn" data-export-fmt="sheet" title="Export Google Sheet to Drive">Sheet</button>
+          
+          <span class="export-status" hidden></span>
+        </span></h2>
+      <div class="section-body" id="rawExportsBody" hidden>
+        <details class="help-collapse" data-help="rawExportsHelp">
+          <summary>Show help</summary>
+          <p class="section-help">CSV files in <code>docker-data/sl.p4sgi/gam-out/</code> run folders (probe-*/, runs/, …) as written by GAM. Contains IMEIs / MAC addresses — visible to super-admins only (others get 403). Preview opens a sortable table; Download gets the original file.</p>
+        </details>
+        <div class="section-chips" id="rawChips" aria-live="polite"></div>
+        <div class="row">
+          <label>Folder <select id="rawFolder"><option value="">all folders</option></select></label>
+          <input type="search" id="rawSearch" placeholder="Filter file names…" style="min-width:16rem" />
+          <span class="msg" id="rawMsg"></span>
+        </div>
+        <div id="rawTable" style="overflow-x:auto"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="secJobs">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secJobs" aria-expanded="false" aria-controls="secJobsBody">
+          <span class="chevron" aria-hidden="true">▸</span> Provisioning jobs
+        </button>
+        <button type="button" class="secondary" id="btnReloadJobs">Reload</button>
+        <span class="spin" id="jobsSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secJobsBody" hidden>
+        <details class="help-collapse" data-help="secJobsHelp">
+          <summary>Show help</summary>
+          <p class="section-help">School provision: Approve writes <code>school-config.json</code> for EMIS (Attendance Doc, publish URL, Site link) into docker-data <code>school-configs</code>. <strong>Does NOT</strong> create a Google Site or change SEMIS. Expand a job to review payload / diff first — no blind approve.</p>
+        </details>
+        <div class="row"><span class="msg" id="jobsMsg"></span></div>
+        <div id="jobsTable"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="secEvents">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secEvents" aria-expanded="false" aria-controls="secEventsBody">
+          <span class="chevron" aria-hidden="true">▸</span> Recent publish events
+        </button>
+        <button type="button" class="secondary" id="btnReloadEvents">Reload</button>
+        <span class="spin" id="eventsSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secEventsBody" hidden>
+        <div class="row">
+          <label style="display:flex;flex-direction:column;gap:0.25rem;align-items:flex-start">
+            EMIS
+            <div class="emis-multi" id="filterEmisMulti" title="From schools / school-configs / GAM OU paths (no invented SEMIS)"></div>
+            <span class="empty" style="font-size:0.75rem">Multi-select · warehouse / GAM Directory only</span>
+          </label>
+          <label>Kind
+            <select id="filterKind">
+              <option value="">all</option>
+              <option value="daily_attendance_parents">daily_attendance_parents</option>
+              <option value="radar_parents">radar_parents</option>
+              <option value="sqao_*">sqao_*</option>
+              <option value="school_config_publish">school_config_publish</option>
+            </select>
+          </label>
+          <span class="msg" id="eventsMsg"></span>
+        </div>
+        <details class="help-collapse" data-help="secEventsHelp">
+          <summary>Show help</summary>
+          <p class="section-help" id="eventsIngestNote">Google Site <strong>Republish</strong> and an Apps Script redeploy do <strong>not</strong> write this table — Google cannot reach <code>127.0.0.1</code> on this HQ box. A row appears only when this API is posted: <code>/api/v1/attendance/{emis}</code>, <code>/api/v1/radar/{emis}</code>, <code>/api/v1/publish-events</code>, or when a provisioning job is Approved. Apps Script mirrors here only if its <code>ATTENDANCE_INGEST_BASE</code> / <code>RADAR_INGEST_BASE</code> property is a URL Google's servers can reach. <strong>Reload</strong> re-reads the warehouse; it does not ask Google.</p>
+        </details>
+        <p id="eventsLastSeen" class="fleet-hint">Last seen: loading…</p>
+        <div id="eventsTable"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="secTelemetry">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secTelemetry" aria-expanded="false" aria-controls="secTelemetryBody">
+          <span class="chevron" aria-hidden="true">▸</span> Telemetry summary
+        </button>
+        <button type="button" class="secondary" id="btnReloadTelemetrySummary">Reload</button>
+        <span class="spin" id="telemSumSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secTelemetryBody" hidden>
+        <details class="help-collapse" data-help="secTelemetryHelp">
+          <summary>Show help</summary>
+          <p class="section-help">Fleet dash cards from tablet outbox telemetry (Phase 4a stubs). Android/snapait sync lands later.</p>
+        </details>
+        <div class="cards" id="telemCards"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+    <section id="fleetDevices">
+      <h2>
+        <button type="button" class="section-toggle" data-section="fleetDevices" aria-expanded="false" aria-controls="fleetDevicesBody">
+          <span class="chevron" aria-hidden="true">▸</span> Fleet / devices
+        </button>
+        <button type="button" class="secondary" id="btnReloadDevices">Reload</button>
+        <span class="spin" id="devicesSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="fleetDevicesBody" hidden>
+        <details class="help-collapse" data-help="fleetDevicesHelp">
+          <summary>Show help</summary>
+          <p class="section-help">Identity registry: EMIS · school · device serial / Android ID · SIM / WhatsApp · device type · data used (telemetry). Demo Test Primary rows today; empty-pattern shows ~100-school scale. Prefer school-configs + device registry — no invented SEMIS schools.</p>
+        </details>
+        <div id="devicesTable"><p class="empty">Loading…</p></div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
+    <div class="modal">
+      <header>
+        <h2 id="gamModalTitle" style="margin:0;font-size:1rem;">GAM preview</h2>
+        <button type="button" class="secondary" id="gamModalClose">Close</button>
+      </header>
+      <div class="body" id="gamModalBody"><p class="empty">…</p></div>
+      <div class="foot">
+        <a class="mono" id="gamModalDownload" href="#" target="_blank" rel="noopener">Download</a>
+        <button type="button" class="secondary" id="gamModalRefresh" title="Re-run allowlisted GAM for this report">Refresh from GAM</button>
+        <button type="button" class="secondary" id="gamModalClose2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const UI_VERSION = '0.4.18';
+    // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
+    // leaving "Loading…" and the spinner forever. Never let that be silent again.
+    const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
+    function gamMsgEl() { return document.getElementById('gamMsg') || _NULL_EL; }
+    window.addEventListener('error', (ev) => {
+      try { toast('UI error: ' + (ev.message || ev.error), 'err'); } catch (_) {}
+    });
+    window.addEventListener('unhandledrejection', (ev) => {
+      try { toast('UI error: ' + ((ev.reason && ev.reason.message) || ev.reason), 'err'); } catch (_) {}
+    });
+    const LS_DOMAINS = 'slp4sgi.domainFilters';
+    const LS_EVENTS = 'slp4sgi.eventFilters';
+    const LS_SECTIONS = 'slp4sgi.sectionOpen.v0417';
+    const LS_HELP = 'slp4sgi.helpOpen.v0417';
+    const LS_COLS = 'slp4sgi.insightCols.v0417';
+
+    /* Defaults: Schools + GAM expanded; Devices/Active/Raw/others collapsed; help collapsed */
+    const SECTION_DEFAULTS = {
+      domainFilter: false,
+      uiSettings: true,
+      secHealth: false,
+      secSchools: true,
+      secGamReports: true,
+      insightDevices: false,
+      insightActive: false,
+      attendanceRadar: false,
+      rawExports: false,
+      secJobs: false,
+      secEvents: false,
+      secTelemetry: false,
+      fleetDevices: false,
+    };
+
+    const DEV_DEFAULT_COLS = [
+      'email', 'user_name', 'emis', 'school_name', 'region',
+      'device_type', 'model', 'manufacturer', 'os', 'serial', 'imei',
+      'last_sync', 'management_state', 'ownership',
+      'developer_mode', 'compromised', 'encryption'
+    ];
+    const ACT_DEFAULT_COLS = [
+      'email', 'name', 'emis',
+      'latest_device_model', 'latest_device_os', 'latest_device_type',
+      'last_login', 'storage_used_mb', 'device_count'
+    ];
+    const COL_LABELS = {
+      user_name: 'name', management_state: 'management', mobile_status: 'status',
+      latest_device_model: 'device_model', latest_device_os: 'device_os',
+      latest_device_type: 'device_type', latest_device_sync: 'device_sync',
+      storage_used_mb: 'storage_mb',
+      developer_mode: 'developer_mode', unknown_sources: 'unknown_sources',
+    };
+    const HARDWARE_EMPTY_COLS = new Set([
+      'model', 'os', 'manufacturer', 'serial', 'imei', 'hostname', 'device_type',
+      'ownership', 'management_state', 'mobile_status', 'last_sync', 'first_sync',
+      'latest_device_model', 'latest_device_os', 'latest_device_type', 'latest_device_sync',
+      'build', 'browser', 'wifi_mac', 'network_operator', 'security_patch', 'user_agent',
+      'encryption', 'compromised', 'developer_mode', 'adb', 'unknown_sources', 'password_state', 'device_id', 'source',
+    ]);
+    const UNKNOWN_OK_COLS = new Set(['school_name', 'region', 'district', 'region_source']);
+
+    let sectionOpen = { ...SECTION_DEFAULTS };
+    let helpOpen = {};
+    let insightCols = { devices: null, 'active-users': null };
+
+    function loadSectionPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_SECTIONS);
+        if (raw) {
+          const o = JSON.parse(raw);
+          if (o && typeof o === 'object') {
+            for (const [k, v] of Object.entries(o)) {
+              if (typeof v === 'boolean') sectionOpen[k] = v;
+            }
+          }
+        }
+      } catch { /* defaults */ }
+      try {
+        const raw = localStorage.getItem(LS_HELP);
+        if (raw) {
+          const o = JSON.parse(raw);
+          if (o && typeof o === 'object') helpOpen = o;
+        }
+      } catch { /* */ }
+      try {
+        const raw = localStorage.getItem(LS_COLS);
+        if (raw) {
+          const o = JSON.parse(raw);
+          if (o && typeof o === 'object') {
+            if (Array.isArray(o.devices)) insightCols.devices = o.devices;
+            if (Array.isArray(o['active-users'])) insightCols['active-users'] = o['active-users'];
+          }
+        }
+      } catch { /* */ }
+    }
+    function saveSectionPrefs() {
+      localStorage.setItem(LS_SECTIONS, JSON.stringify(sectionOpen));
+    }
+    function saveHelpPrefs() {
+      localStorage.setItem(LS_HELP, JSON.stringify(helpOpen));
+    }
+    function saveColPrefs() {
+      localStorage.setItem(LS_COLS, JSON.stringify(insightCols));
+    }
+    function setSectionOpen(id, open) {
+      sectionOpen[id] = !!open;
+      const body = $(id === 'domainFilter' ? 'domainFilterBody' : id + 'Body') || document.getElementById(id + 'Body');
+      const btn = document.querySelector(`.section-toggle[data-section="${id}"]`);
+      if (body) body.hidden = !open;
+      if (btn) {
+        btn.setAttribute('aria-expanded', String(!!open));
+        const ch = btn.querySelector('.chevron');
+        if (ch) ch.textContent = open ? '▾' : '▸';
+      }
+      // domain filter uses domainChevron id too
+      if (id === 'domainFilter' && $('domainChevron')) $('domainChevron').textContent = open ? '▾' : '▸';
+      saveSectionPrefs();
+    }
+    function initCollapsibleSections() {
+      loadSectionPrefs();
+      document.querySelectorAll('.section-toggle[data-section]').forEach(btn => {
+        const id = btn.getAttribute('data-section');
+        const open = sectionOpen[id] !== undefined ? sectionOpen[id] : !!SECTION_DEFAULTS[id];
+        setSectionOpen(id, open);
+        btn.addEventListener('click', (ev) => {
+          // don't toggle when clicking nested action buttons (they are siblings, not inside)
+          ev.preventDefault();
+          const cur = sectionOpen[id] !== undefined ? sectionOpen[id] : false;
+          setSectionOpen(id, !cur);
+        });
+      });
+      document.querySelectorAll('details.help-collapse[data-help]').forEach(det => {
+        const key = det.getAttribute('data-help');
+        if (helpOpen[key]) det.open = true;
+        det.addEventListener('toggle', () => {
+          helpOpen[key] = det.open;
+          saveHelpPrefs();
+        });
+      });
+    }
+    function colLabel(c) { return COL_LABELS[c] || c; }
+    function formatCell(col, v) {
+      const s = (v == null || v === '') ? '' : String(v);
+      if (!s) {
+        if (HARDWARE_EMPTY_COLS.has(col) || !UNKNOWN_OK_COLS.has(col)) return '—';
+        return '—';
+      }
+      // Keep literal "unknown" only for school/region/district fields
+      if (s === 'unknown' && !UNKNOWN_OK_COLS.has(col)) return '—';
+      return s;
+    }
+    function visibleColsFor(kind, allCols) {
+      const defaults = kind === 'devices' ? DEV_DEFAULT_COLS : ACT_DEFAULT_COLS;
+      let chosen = insightCols[kind];
+      if (!chosen || !chosen.length) {
+        chosen = defaults.filter(c => allCols.includes(c));
+        // If defaults miss (schema drift), fall back to first N of all
+        if (!chosen.length) chosen = allCols.slice(0, Math.min(14, allCols.length));
+        insightCols[kind] = chosen;
+      }
+      // Keep only columns that exist; preserve user order
+      const have = new Set(allCols);
+      let vis = chosen.filter(c => have.has(c));
+      if (!vis.length) vis = defaults.filter(c => have.has(c));
+      return vis;
+    }
+    function renderColPicker(kind, allCols) {
+      const hostId = kind === 'devices' ? 'devColPicker' : 'actColPicker';
+      const host = $(hostId);
+      if (!host) return;
+      const vis = new Set(visibleColsFor(kind, allCols));
+      const defaults = kind === 'devices' ? DEV_DEFAULT_COLS : ACT_DEFAULT_COLS;
+      // Show default cols as quick toggles; rest behind "more"
+      const primary = defaults.filter(c => allCols.includes(c));
+      const rest = allCols.filter(c => !primary.includes(c));
+      let html = `<span class="col-picker-title">Columns</span>`;
+      for (const c of primary) {
+        html += `<label><input type="checkbox" data-col="${esc(c)}" ${vis.has(c) ? 'checked' : ''}/> ${esc(colLabel(c))}</label>`;
+      }
+      if (rest.length) {
+        html += `<details><summary>+${rest.length} more</summary><div style="display:flex;flex-wrap:wrap;gap:0.2rem 0.55rem;margin-top:0.35rem">`;
+        for (const c of rest) {
+          html += `<label><input type="checkbox" data-col="${esc(c)}" ${vis.has(c) ? 'checked' : ''}/> ${esc(colLabel(c))}</label>`;
+        }
+        html += `</div></details>`;
+      }
+      html += `<button type="button" class="linkish" data-reset-cols="${kind === 'devices' ? 'devices' : 'active-users'}">Reset</button>`;
+      host.innerHTML = html;
+      host.querySelectorAll('input[data-col]').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const selected = [...host.querySelectorAll('input[data-col]:checked')].map(i => i.getAttribute('data-col'));
+          insightCols[kind] = selected.length ? selected : [...defaults];
+          saveColPrefs();
+          renderInsightTable(kind);
+        });
+      });
+      host.querySelector('[data-reset-cols]')?.addEventListener('click', () => {
+        insightCols[kind] = [...defaults];
+        saveColPrefs();
+        renderColPicker(kind, allCols);
+        renderInsightTable(kind);
+      });
+    }
+
+
+    const DOMAIN_CATALOG = ['ao.p4sgi.com', 'auiped.p4sgi.com', 'bw.p4sgi.com', 'cg.p4sgi.com', 'chikoro.p4sgi.com', 'esccom.p4sgi.com', 'gesci.p4sgi.com', 'gm.p4sgi.com', 'idrc.p4sgi.com', 'ls.p4sgi.com', 'mg.p4sgi.com', 'mu.p4sgi.com', 'mw.p4sgi.com', 'mz.p4sgi.com', 'na.p4sgi.com', 'p4rtracker.com', 'p4sgi.com', 'sadc.p4sgi.com', 'sl.p4sgi.com', 'swazi.school', 'sz.p4sgi.com', 'tl.p4sgi.com', 'tz.p4sgi.com', 'ug.p4sgi.com', 'uio.p4sgi.com', 'uis.p4sgi.com', 'za.p4sgi.com', 'zm.p4sgi.com', 'zw.p4sgi.com'];
+    let availableDomains = [...DOMAIN_CATALOG];
+    let selectedDomains = new Set(); // empty = All
+    let expandedJobId = null;
+    let jobCache = {};
+
+    function toast(msg, kind) {
+      const el = document.createElement('div');
+      el.className = 'toast' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
+      el.textContent = msg;
+      $('toasts').appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+    }
+
+    function setSpin(id, on) {
+      const el = $(id);
+      if (el) el.hidden = !on;
+    }
+
+    
+    function domainsCell(domains) {
+      const list = Array.isArray(domains) ? domains.filter(Boolean) : [];
+      if (!list.length) return '—';
+      if (list.length === 1) {
+        return `<span class="badge kind">${esc(list[0])}</span>`;
+      }
+      const badges = list.map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ');
+      // Default ON: one summary chip. Full alphabetical cloud only if Compact domains is off,
+      // or after the user expands the chip.
+      if (!uiPrefs.compactDomains) return badges;
+      const summary = `<span class="badge kind">${list.length} domains</span>`;
+      return `<details class="dom-collapse"><summary title="${esc(list.join(', '))}">${summary}</summary><div class="dom-list">${badges}</div></details>`;
+    }
+
+    function domainsHeaderLine(domains) {
+      const list = Array.isArray(domains) ? domains.filter(Boolean) : [];
+      if (!list.length) return '';
+      if (list.length === 1) return ` · <span class="badge kind">${esc(list[0])}</span>`;
+      const badges = list.map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ');
+      if (!uiPrefs.compactDomains) return ' · ' + badges;
+      return ` · <details class="dom-collapse" style="display:inline-block"><summary title="${esc(list.join(', '))}"><span class="badge kind">${list.length} domains</span></summary><div class="dom-list">${badges}</div></details>`;
+    }
+
+    function isQuotaHeader(h) {
+      const s = String(h || '').toLowerCase();
+      return s.includes('quota') || s.includes('used_') || s.endsWith('_in_mb') || s.includes('storage');
+    }
+
+    function findCol(headers, ...cands) {
+      const lower = headers.map(h => String(h || '').toLowerCase());
+      for (const c of cands) {
+        const needle = c.toLowerCase();
+        let i = lower.indexOf(needle);
+        if (i >= 0) return i;
+        i = lower.findIndex(h => h.includes(needle));
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+
+    function filterCsvRowsByDomain(headers, rows) {
+      if (!selectedDomains.size) return rows.slice();
+      const idxs = [];
+      headers.forEach((h, i) => {
+        const s = String(h || '').toLowerCase();
+        if (s.includes('email') || s === 'user' || s.endsWith(':user') || s === 'primaryemail') idxs.push(i);
+      });
+      if (!idxs.length) return rows.slice();
+      return rows.filter(r => {
+        for (const i of idxs) {
+          const cell = String(r[i] || '');
+          const at = cell.lastIndexOf('@');
+          if (at >= 0) {
+            const d = cell.slice(at + 1).trim().toLowerCase();
+            if (selectedDomains.has(d)) return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    function isNeverLogin(v) {
+      const s = String(v ?? '').trim();
+      return s === '' || /^never$/i.test(s);
+    }
+
+    function formatBytesMb(mb) {
+      const n = Number(mb);
+      if (!Number.isFinite(n)) return '—';
+      if (Math.abs(n) >= 1024) return (n / 1024).toFixed(2) + ' GB';
+      return n.toFixed(1) + ' MB';
+    }
+
+    function computePreviewTotals(headers, rows, report) {
+      const n = rows.length;
+      const bits = [];
+      const noun = (report === 'ous' || report === 'groups' || report === 'admins')
+        ? (report === 'ous' ? 'OUs' : report)
+        : 'rows';
+      if (report === 'enrolled' || report === 'users' || report === 'last_login' || report === 'suspended' || report === 'never_logged_in') {
+        bits.push(`${n} users`);
+      } else {
+        bits.push(`${n} ${noun}`);
+      }
+      const lli = findCol(headers, 'lastlogintime', 'last_login', 'last login');
+      if (lli >= 0) {
+        let never = 0;
+        for (const r of rows) if (isNeverLogin(r[lli])) never += 1;
+        bits.push(`${never} never logged in`);
+        bits.push(`${n - never} ever logged in`);
+      }
+      const sus = findCol(headers, 'suspended');
+      if (sus >= 0) {
+        let t = 0, f = 0;
+        for (const r of rows) {
+          const v = String(r[sus] || '').trim().toLowerCase();
+          if (v === 'true' || v === '1' || v === 'yes') t += 1;
+          else if (v === 'false' || v === '0' || v === 'no') f += 1;
+        }
+        bits.push(`${t} suspended`);
+        if (f) bits.push(`${f} not suspended`);
+      }
+      const rec = findCol(headers, 'recoveryemail', 'recovery_email', 'recovery email');
+      if (rec >= 0) {
+        let withRec = 0;
+        for (const r of rows) if (String(r[rec] || '').trim()) withRec += 1;
+        bits.push(`${withRec} with recovery email`);
+      }
+      // data_storage / quota sums
+      const quotaIdxs = headers.map((h, i) => isQuotaHeader(h) ? i : -1).filter(i => i >= 0);
+      for (const i of quotaIdxs) {
+        let sum = 0, ok = 0;
+        for (const r of rows) {
+          const v = String(r[i] || '').trim().replace(/,/g, '');
+          if (v === '' || Number.isNaN(Number(v))) continue;
+          sum += Number(v);
+          ok += 1;
+        }
+        if (ok) bits.push(`Σ ${headers[i]}=${formatBytesMb(sum)}`);
+      }
+      return bits.join(' · ');
+    }
+
+    function parseSortKey(raw, header) {
+      const v = String(raw ?? '').trim();
+      const h = String(header || '').toLowerCase();
+      const dateish = /time|date|login|created|seen/.test(h)
+        || /^\d{4}-\d{2}-\d{2}/.test(v)
+        || /^never$/i.test(v);
+      if (dateish && (v === '' || /^never$/i.test(v))) {
+        // Never / empty = oldest
+        return { k: 'n', n: Number.NEGATIVE_INFINITY };
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
+        const t = Date.parse(v);
+        if (!Number.isNaN(t)) return { k: 'n', n: t };
+      }
+      const cleaned = v.replace(/,/g, '');
+      if (cleaned !== '' && /^-?\d+(\.\d+)?$/.test(cleaned)) {
+        return { k: 'n', n: Number(cleaned) };
+      }
+      // column looks numeric (quota) — coerce empties to 0
+      if (isQuotaHeader(h) || /count|size|mb|quota|used/.test(h)) {
+        if (cleaned === '' || Number.isNaN(Number(cleaned))) return { k: 'n', n: 0 };
+        return { k: 'n', n: Number(cleaned) };
+      }
+      return { k: 's', s: v.toLowerCase() };
+    }
+
+    function renderSortableCsvTable(headers, rows, report) {
+      // Persist sort for this modal session via returned object + outer totalsEl
+      const state = {
+        col: null,
+        dir: 1,
+        headers: headers.slice(),
+        rows: (rows || []).map(r => r.slice()),
+        report: report || '',
+      };
+      const root = document.createElement('div');
+      const totalsEl = document.createElement('div');
+      totalsEl.className = 'preview-totals';
+      const wrap = document.createElement('div');
+      wrap.className = 'csv-wrap';
+      root.appendChild(totalsEl);
+      root.appendChild(wrap);
+
+      function paint() {
+        totalsEl.innerHTML = `<span class="tot-label">Totals</span><strong>${esc(computePreviewTotals(state.headers, state.rows, state.report))}</strong>`;
+        const head = state.headers.map((h, i) => {
+          const ind = state.col === i ? (state.dir > 0 ? ' ▲' : ' ▼') : '';
+          return `<th class="sortable" data-col="${i}" title="Sort">${esc(h)}<span class="sort-ind">${ind}</span></th>`;
+        }).join('');
+        const body = state.rows.map(r =>
+          `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`
+        ).join('');
+        wrap.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+        if (!state.rows.length) {
+          const empty = document.createElement('p');
+          empty.className = 'empty';
+          empty.textContent = 'Header only — no data rows in preview window (after domain filter).';
+          wrap.appendChild(empty);
+        }
+        if (!uiPrefs.sortableColumns) return;
+        wrap.querySelectorAll('th.sortable').forEach(th => {
+          th.addEventListener('click', () => {
+            const i = Number(th.getAttribute('data-col'));
+            if (state.col === i) state.dir = -state.dir;
+            else { state.col = i; state.dir = 1; }
+            const header = state.headers[i];
+            state.rows.sort((a, b) => {
+              const av = parseSortKey(a[i], header);
+              const bv = parseSortKey(b[i], header);
+              let cmp = 0;
+              if (av.k === 'n' && bv.k === 'n') cmp = av.n - bv.n;
+              else if (av.k === 'n') cmp = -1;
+              else if (bv.k === 'n') cmp = 1;
+              else cmp = av.s.localeCompare(bv.s, undefined, { sensitivity: 'base' });
+              return cmp * state.dir;
+            });
+            paint();
+          });
+        });
+      }
+      paint();
+      return root;
+    }
+
+
+    const LS_UI = 'slp4sgi.uiPrefs';
+    let uiPrefs = { compactDomains: true, sortableColumns: true };
+    const tableSortState = {};
+
+    function loadUiPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_UI);
+        if (raw) {
+          const o = JSON.parse(raw);
+          if (typeof o.compactDomains === 'boolean') uiPrefs.compactDomains = o.compactDomains;
+          if (typeof o.sortableColumns === 'boolean') uiPrefs.sortableColumns = o.sortableColumns;
+        }
+      } catch { /* keep defaults: compact + sortable ON */ }
+      if ($('prefCompactDomains')) $('prefCompactDomains').checked = uiPrefs.compactDomains;
+      if ($('prefSortable')) $('prefSortable').checked = uiPrefs.sortableColumns;
+    }
+    function saveUiPrefs() {
+      uiPrefs.compactDomains = !!$('prefCompactDomains').checked;
+      uiPrefs.sortableColumns = !!$('prefSortable').checked;
+      localStorage.setItem(LS_UI, JSON.stringify(uiPrefs));
+    }
+
+    function applyTableSort(table, col, dir) {
+      const tbody = table.tBodies && table.tBodies[0];
+      if (!tbody) return;
+      const rows = [...tbody.rows];
+      const groups = [];
+      const leftovers = [];
+      for (let i = 0; i < rows.length; i++) {
+        const tr = rows[i];
+        if (tr.classList.contains('fleet-empty-row')) { leftovers.push(tr); continue; }
+        const next = rows[i + 1];
+        if (next && next.classList.contains('job-detail-row')) {
+          groups.push([tr, next]);
+          i++;
+        } else if (!tr.classList.contains('job-detail-row')) {
+          groups.push([tr]);
+        }
+      }
+      const label = (table.tHead && table.tHead.rows[0].cells[col].dataset.label) || '';
+      groups.sort((A, B) => {
+        const aCell = A[0].cells[col];
+        const bCell = B[0].cells[col];
+        const av = parseSortKey(aCell ? (aCell.getAttribute('data-sort') || aCell.innerText) : '', label);
+        const bv = parseSortKey(bCell ? (bCell.getAttribute('data-sort') || bCell.innerText) : '', label);
+        let cmp = 0;
+        if (av.k === 'n' && bv.k === 'n') cmp = av.n < bv.n ? -1 : av.n > bv.n ? 1 : 0;
+        else if (av.k === 'n') cmp = -1;
+        else if (bv.k === 'n') cmp = 1;
+        else cmp = av.s.localeCompare(bv.s, undefined, { numeric: true, sensitivity: 'base' });
+        return cmp * dir;
+      });
+      const frag = document.createDocumentFragment();
+      for (const g of groups) for (const tr of g) frag.appendChild(tr);
+      for (const tr of leftovers) frag.appendChild(tr);
+      tbody.appendChild(frag);
+      [...table.tHead.rows[0].cells].forEach((th, i) => {
+        const ind = th.querySelector('.sort-ind');
+        if (ind) ind.textContent = i === col ? (dir > 0 ? ' ▲' : ' ▼') : '';
+      });
+    }
+
+    function enableColumnSort(container, key) {
+      if (!uiPrefs.sortableColumns || !container) return;
+      const table = container.querySelector('table');
+      if (!table || !table.tHead || !table.tHead.rows[0]) return;
+      [...table.tHead.rows[0].cells].forEach((th, i) => {
+        if (th.hasAttribute('data-nosort') || !th.textContent.trim()) return;
+        th.classList.add('sortable');
+        th.title = th.title || 'Sort';
+        th.dataset.label = th.textContent.trim();
+        if (!th.querySelector('.sort-ind')) {
+          const s = document.createElement('span');
+          s.className = 'sort-ind';
+          th.appendChild(s);
+        }
+        th.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const prev = tableSortState[key] || { col: null, dir: 1 };
+          const dir = prev.col === i ? -prev.dir : 1;
+          tableSortState[key] = { col: i, dir };
+          applyTableSort(table, i, dir);
+        });
+      });
+      const saved = tableSortState[key];
+      if (saved && saved.col != null) applyTableSort(table, saved.col, saved.dir);
+    }
+
+    function paintEventsLastSeen(data, events) {
+      const el = $('eventsLastSeen');
+      if (!el) return;
+      const seen = (data && data.last_seen) || (events[0] && events[0].created_at) || null;
+      if (!seen) {
+        el.textContent = 'Last seen in this warehouse: none for the current filter.';
+        return;
+      }
+      const pretty = String(seen).replace('T', ' ').replace('+00:00', ' UTC').slice(0, 22);
+      el.textContent = 'Last seen in this warehouse' + (data && data.count != null ? ' (' + data.count + ' shown)' : '') + ': ' + pretty + '. That clock moves only when an API publish is stored, not when the Google Site is republished.';
+    }
+
+    function domainQuery() {
+      if (!selectedDomains.size) return '';
+      const params = new URLSearchParams();
+      [...selectedDomains].forEach(d => params.append('domain', d));
+      return '?' + params.toString();
+    }
+
+    const API_DEFAULT_TIMEOUT_MS = 30000;
+    const GAM_POLL_TIMEOUT_MS = 180000;
+    const GAM_POLL_INTERVAL_MS = 1500;
+
+    const PAGE_AS = new URLSearchParams(location.search).get('as') || '';
+    function withAs(path) {
+      if (!PAGE_AS || /[?&]as=/.test(path)) return path;
+      return path + (path.includes('?') ? '&' : '?') + 'as=' + encodeURIComponent(PAGE_AS);
+    }
+
+    async function api(path, opts) {
+      const options = opts ? { ...opts } : {};
+      const timeoutMs = options.timeoutMs != null ? options.timeoutMs : API_DEFAULT_TIMEOUT_MS;
+      delete options.timeoutMs;
+      const ctrl = new AbortController();
+      const prior = options.signal;
+      if (prior) {
+        if (prior.aborted) ctrl.abort(prior.reason);
+        else prior.addEventListener('abort', () => ctrl.abort(prior.reason), { once: true });
+      }
+      options.signal = ctrl.signal;
+      const timer = setTimeout(() => ctrl.abort(new DOMException('Request timed out', 'AbortError')), timeoutMs);
+      try {
+        const res = await fetch(withAs(path), options);
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (!res.ok) {
+          const detail = data && data.detail !== undefined ? data.detail : text;
+          const err = new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      } catch (e) {
+        if (e && (e.name === 'AbortError' || /timed out/i.test(String(e.message || '')))) {
+          throw new Error('Request timed out after ' + Math.round(timeoutMs / 1000) + 's');
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function pollGamRun(runId, onTick) {
+      const deadline = Date.now() + GAM_POLL_TIMEOUT_MS;
+      let last = null;
+      while (Date.now() < deadline) {
+        last = await api('/api/v1/gam/reports/' + encodeURIComponent(runId), { timeoutMs: 15000 });
+        const st = String(last.status || '').toLowerCase();
+        if (typeof onTick === 'function') onTick(last);
+        if (st === 'ok') return last;
+        if (st === 'error' || st === 'timeout') {
+          const err = last.error || last.stderr || ('GAM run ' + st);
+          throw new Error(typeof err === 'string' ? err : JSON.stringify(err));
+        }
+        // running / unknown — wait and poll again
+        await sleep(GAM_POLL_INTERVAL_MS);
+      }
+      throw new Error('GAM run still loading after ' + Math.round(GAM_POLL_TIMEOUT_MS / 1000) + 's — try Refresh or check gam on the host.');
+    }
+
+    function badge(status) {
+      const s = (status || '').toLowerCase();
+      return `<span class="badge ${s}">${status || '?'}</span>`;
+    }
+    function kindBadge(kind) {
+      if (!kind) return '—';
+      return `<span class="badge kind">${kind}</span>`;
+    }
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[c]);
+    }
+    function siteLink(url) {
+      if (!url) return '<span class="empty">—</span>';
+      const short = url.replace(/^https?:\/\//, '').slice(0, 48) + (url.length > 56 ? '…' : '');
+      return `<a href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">Site ↗</a>
+              <div class="mono" style="font-size:0.7rem;color:var(--muted)">${esc(short)}</div>`;
+    }
+
+    /* ---- Domain filter ---- */
+    function loadDomainPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_DOMAINS);
+        if (!raw) { selectedDomains = new Set(); return; }
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) selectedDomains = new Set(arr);
+        else selectedDomains = new Set();
+      } catch { selectedDomains = new Set(); }
+    }
+    function saveDomainPrefs() {
+      localStorage.setItem(LS_DOMAINS, JSON.stringify([...selectedDomains]));
+    }
+    function renderDomainSummary() {
+      const names = availableDomains.filter(d => selectedDomains.has(d));
+      $('domainSummary').textContent = selectedDomains.size
+        ? `${names.length} selected: ${names.join(', ')}`
+        : `All domains (${availableDomains.length})`;
+    }
+
+    function setDomainPanel(open) {
+      setSectionOpen('domainFilter', open);
+    }
+
+    function renderDomainChecks() {
+      renderDomainSummary();
+      const host = $('domainChecks');
+      const allChecked = selectedDomains.size === 0;
+      let html = `<label><input type="checkbox" id="domAll" ${allChecked ? 'checked' : ''}/> All</label>`;
+      for (const d of availableDomains) {
+        const checked = !allChecked && selectedDomains.has(d);
+        html += `<label><input type="checkbox" class="domOne" data-domain="${esc(d)}" ${checked ? 'checked' : ''}/> ${esc(d)}</label>`;
+      }
+      host.innerHTML = html;
+      $('domAll').addEventListener('change', () => {
+        if ($('domAll').checked) {
+          selectedDomains = new Set();
+          saveDomainPrefs();
+          renderDomainChecks();
+          reloadFiltered();
+        } else if (!selectedDomains.size) {
+          // unchecking All with nothing else → keep All
+          $('domAll').checked = true;
+        }
+      });
+      host.querySelectorAll('.domOne').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const d = cb.getAttribute('data-domain');
+          if (cb.checked) selectedDomains.add(d);
+          else selectedDomains.delete(d);
+          if (selectedDomains.size === availableDomains.length) selectedDomains = new Set();
+          saveDomainPrefs();
+          renderDomainChecks();
+          reloadFiltered();
+        });
+      });
+    }
+    async function loadDomains() {
+      setSpin('domSpin', true);
+      try {
+        const data = await api('/api/v1/domains');
+        availableDomains = data.domains && data.domains.length
+          ? [...new Set(data.domains)].sort((a, b) => a.localeCompare(b))
+          : [...DOMAIN_CATALOG];
+        // drop selected that vanished
+        selectedDomains = new Set([...selectedDomains].filter(d => availableDomains.includes(d)));
+        renderDomainChecks();
+      } catch (e) {
+        toast('Domains: ' + e.message, 'err');
+        renderDomainChecks();
+      } finally {
+        setSpin('domSpin', false);
+      }
+    }
+
+    function reloadFiltered() {
+      loadEmisOptions();
+      loadGamSummary();
+      return Promise.all([loadSchools(), loadRuns(), loadJobs(), loadEvents(), loadDevices(), loadTelemetrySummary(), loadInsight('devices'), loadInsight('active-users'), loadAttendanceRadar()]);
+    }
+
+    /* ---- Health ---- */
+    async function loadHealth() {
+      try {
+        const h = await api('/api/v1/health');
+        const pl = h.phase_label ? ` (${h.phase_label})` : '';
+        $('health').textContent = `phase=${h.phase}${pl} status=${h.status} db=${h.db} v${h.version}`;
+        $('health').style.color = h.status === 'ok' ? 'var(--ok)' : 'var(--warn)';
+        if (h.version && h.version !== UI_VERSION) {
+          $('health').textContent += ` — page is v${UI_VERSION}, API is v${h.version}: hard-reload (Ctrl+Shift+R)`;
+          $('health').style.color = 'var(--warn)';
+          toast(`Stale page: UI v${UI_VERSION} vs API v${h.version} — hard-reload`, 'err');
+        }
+      } catch (e) {
+        $('health').textContent = 'unreachable: ' + e.message;
+        $('health').style.color = 'var(--bad)';
+        toast('Health check failed', 'err');
+      }
+    }
+
+    /* ---- Schools ---- */
+    async function loadSchools() {
+      setSpin('schoolsSpin', true);
+      try {
+        const data = await api('/api/v1/schools' + domainQuery());
+        const schools = data.schools || [];
+        if (!schools.length) {
+          $('schoolsTable').innerHTML = '<p class="empty">No schools match the domain filter.</p>';
+          return;
+        }
+        const rows = schools.map(s => `<tr>
+          <td class="mono">${esc(s.emis)}</td>
+          <td>${esc(s.name)}</td>
+          <td class="mono">${esc(s.email || '—')}</td>
+          <td>${domainsCell(s.domains)}</td>
+          <td>v${s.config_version ?? '—'}</td>
+          <td>${siteLink(s.site_attendance_url)}</td>
+        </tr>`).join('');
+        $('schoolsTable').innerHTML = `<table>
+          <thead><tr><th>EMIS</th><th>Name</th><th>Email</th><th>Domains</th><th>Config</th><th>Site</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        enableColumnSort($('schoolsTable'), 'schools');
+      } catch (e) {
+        $('schoolsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('schoolsSpin', false);
+      }
+    }
+
+    /* ---- GAM ---- */
+    async function loadRuns() {
+      setSpin('runsSpin', true);
+      try {
+        gamMsgEl().textContent = '';
+        const data = await api('/api/v1/gam/reports' + domainQuery());
+        const avail = data.gam_available
+          ? `gam: available (${data.gam_detail})`
+          : `gam: NOT available — ${data.gam_detail}`;
+        $('gamAvail').textContent = avail;
+        $('gamAvail').style.color = data.gam_available ? 'var(--ok)' : 'var(--bad)';
+        const runs = data.runs || [];
+        if (!runs.length) {
+          $('runsTable').innerHTML = '<p class="empty">No runs match. Click a report button above (or clear domain filter).</p>';
+          return;
+        }
+        const rows = runs.map(r => `<tr>
+          <td class="mono">${esc(r.id)}</td>
+          <td>${kindBadge(r.report)}</td>
+          <td>${badge(r.status || 'ok')}</td>
+          <td>${r.size_bytes ?? '—'}</td>
+          <td>${domainsCell(r.domains)}</td>
+          <td class="mono">${esc((r.created_at || '').replace('T', ' ').slice(0, 19))}</td>
+          <td>
+            <button type="button" data-view="${esc(r.id)}">Preview</button>
+            <a class="mono" style="font-size:0.8rem;margin-left:0.35rem"
+               href="/api/v1/gam/reports/${encodeURIComponent(r.id)}/download">Download</a>
+          </td>
+        </tr>`).join('');
+        $('runsTable').innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Report</th><th>Status</th><th>Bytes</th><th>Domains</th><th>When (UTC)</th><th data-nosort></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        $('runsTable').querySelectorAll('[data-view]').forEach(btn => {
+          btn.addEventListener('click', () => openGamPreview(btn.getAttribute('data-view')));
+        });
+        enableColumnSort($('runsTable'), 'runs');
+      } catch (e) {
+        $('runsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('runsSpin', false);
+      }
+    }
+
+    let gamModalReport = null;
+    let gamModalRunId = null;
+
+    async function refreshGamReport(report, btn) {
+      setModalMode('gam');
+      if (btn) btn.disabled = true;
+      gamMsgEl().textContent = `Starting ${report}…`;
+      gamMsgEl().className = 'msg';
+      const modal = $('gamModal');
+      const body = $('gamModalBody');
+      const showModalProgress = modal.classList.contains('open');
+      if (showModalProgress) {
+        body.innerHTML = '<p class="empty"><span class="spinner"></span> Refreshing from GAM…</p>';
+      }
+      try {
+        const payload = { report, refresh: true };
+        if (selectedDomains.size) payload.domains = [...selectedDomains];
+        const started = await api('/api/v1/gam/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          timeoutMs: 20000,
+        });
+        gamModalReport = report;
+        gamModalRunId = started.id;
+        $('gamModalTitle').textContent = 'GAM preview — ' + started.id;
+        $('gamModalDownload').href = '/api/v1/gam/reports/' + encodeURIComponent(started.id) + '/download';
+        if (showModalProgress || true) {
+          modal.classList.add('open');
+          body.innerHTML = '<p class="empty"><span class="spinner"></span> Running GAM… polling for results (will not wait forever)</p>';
+        }
+        gamMsgEl().textContent = `Running ${report} (${started.id})…`;
+        const data = await pollGamRun(started.id, (tick) => {
+          const st = tick && tick.status ? tick.status : 'running';
+          body.innerHTML = `<p class="empty"><span class="spinner"></span> GAM status: ${esc(st)}…</p>`;
+          gamMsgEl().textContent = `Running ${report}: ${st}`;
+        });
+        gamMsgEl().textContent = `OK ${data.id || started.id} (${data.size_bytes ?? 0} bytes)`;
+        gamMsgEl().className = 'msg ok';
+        toast(`GAM ${report} ready`, 'ok');
+        await loadRuns();
+        await loadGamSummary();
+        await renderGamPreviewData(data);
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        gamMsgEl().textContent = msg;
+        gamMsgEl().className = 'msg err';
+        if (modal.classList.contains('open')) {
+          body.innerHTML = `<p class="msg err">${esc(msg)}</p>
+            <p class="empty">Cached data (if any) is still available via the report button without Refresh.</p>`;
+        }
+        toast(msg, 'err');
+      } finally {
+        if (btn) btn.disabled = false;
+        const rb = $('gamModalRefresh');
+        if (rb) rb.disabled = false;
+      }
+    }
+
+    async function runReport(report, btn) {
+      if (btn) btn.disabled = true;
+      gamMsgEl().textContent = `Loading cached ${report}…`;
+      gamMsgEl().className = 'msg';
+      gamModalReport = report;
+      try {
+        // Cache-first: show latest CSV immediately (no GAM wait).
+        const cached = await api('/api/v1/gam/reports/latest/' + encodeURIComponent(report), { timeoutMs: 15000 });
+        gamModalRunId = cached.id;
+        gamMsgEl().textContent = `Cached ${cached.id} (${cached.size_bytes ?? 0} bytes) — use Refresh from GAM to re-run`;
+        gamMsgEl().className = 'msg ok';
+        toast(`Showing cached ${report}`, 'ok');
+        await openGamPreview(cached.id, cached);
+      } catch (e) {
+        // No cache yet — start async GAM run and poll (with hard timeout).
+        gamMsgEl().textContent = `No cache for ${report}; starting GAM…`;
+        try {
+          await refreshGamReport(report, null);
+        } catch (e2) {
+          const msg = e2 && e2.message ? e2.message : String(e2);
+          gamMsgEl().textContent = msg;
+          gamMsgEl().className = 'msg err';
+          toast(msg, 'err');
+          const modal = $('gamModal');
+          modal.classList.add('open');
+          $('gamModalBody').innerHTML = `<p class="msg err">${esc(msg)}</p>`;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function renderGamPreviewData(data) {
+      const body = $('gamModalBody');
+      const id = data.id || gamModalRunId || '';
+      gamModalReport = data.report || gamModalReport;
+      gamModalRunId = id;
+      $('gamModalTitle').textContent = 'GAM preview — ' + id;
+      $('gamModalDownload').href = '/api/v1/gam/reports/' + encodeURIComponent(id) + '/download';
+      const st = String(data.status || '').toLowerCase();
+      if (st === 'running') {
+        body.innerHTML = '<p class="empty"><span class="spinner"></span> GAM still running…</p>';
+        return;
+      }
+      if (st === 'error' || st === 'timeout') {
+        const err = data.error || data.stderr || ('status=' + st);
+        body.innerHTML = `<p class="msg err">${esc(err)}</p>`;
+        return;
+      }
+      let html = `<p class="mono" style="font-size:0.8rem;margin:0 0 0.75rem">
+        ${esc(data.filename)} · ${badge(data.status)} · ${data.size_bytes ?? 0} bytes
+        · format=${esc(data.format || 'text')}
+        · report=${esc(data.report || '')}
+        ${domainsHeaderLine(data.domains)}
+      </p>
+      <p class="empty" style="margin:0 0 0.5rem">Showing cached/completed run. Use <strong>Refresh from GAM</strong> to re-run on the host.</p>`;
+      body.innerHTML = html;
+      if (data.format === 'csv' && data.headers && data.headers.length) {
+        body.insertAdjacentHTML('beforeend',
+          '<p class="empty" style="margin:0 0 0.5rem">Click any column header to sort (numeric / dates / Never). Totals use loaded rows after domain filter. lastLoginTime Never = never signed into Workspace (GAM).</p>');
+        const filtered = filterCsvRowsByDomain(data.headers, data.rows || []);
+        body.appendChild(renderSortableCsvTable(data.headers, filtered, data.report));
+      } else {
+        body.insertAdjacentHTML('beforeend', `<pre class="view">${esc(data.preview || '(empty)')}</pre>`);
+      }
+    }
+
+    function setModalMode(mode) {
+      const rb = $('gamModalRefresh');
+      if (rb) rb.hidden = mode === 'raw';
+    }
+
+    async function openGamPreview(id, preloaded) {
+      setModalMode('gam');
+      const modal = $('gamModal');
+      const body = $('gamModalBody');
+      body.innerHTML = '<p class="empty"><span class="spinner"></span> Loading preview…</p>';
+      $('gamModalTitle').textContent = 'GAM preview — ' + id;
+      $('gamModalDownload').href = '/api/v1/gam/reports/' + encodeURIComponent(id) + '/download';
+      gamModalRunId = id;
+      modal.classList.add('open');
+      try {
+        const data = preloaded || await api('/api/v1/gam/reports/' + encodeURIComponent(id), { timeoutMs: 20000 });
+        if (data.report) gamModalReport = data.report;
+        const st = String(data.status || '').toLowerCase();
+        if (st === 'running') {
+          body.innerHTML = '<p class="empty"><span class="spinner"></span> GAM running… waiting for result</p>';
+          const finished = await pollGamRun(id, (tick) => {
+            body.innerHTML = `<p class="empty"><span class="spinner"></span> GAM status: ${esc(tick.status || 'running')}…</p>`;
+          });
+          await renderGamPreviewData(finished);
+          await loadRuns();
+          await loadGamSummary();
+          return;
+        }
+        await renderGamPreviewData(data);
+      } catch (e) {
+        body.innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      }
+    }
+    function closeGamModal() { $('gamModal').classList.remove('open'); }
+
+    /* ---- Jobs ---- */
+    async function loadJobs() {
+      setSpin('jobsSpin', true);
+      $('jobsMsg').textContent = '';
+      try {
+        const data = await api('/api/v1/provisioning/jobs' + domainQuery());
+        const jobs = data.jobs || [];
+        if (!jobs.length) {
+          $('jobsTable').innerHTML = '<p class="empty">No provisioning jobs match.</p>';
+          return;
+        }
+        const rows = jobs.map(j => {
+          const id = j.id;
+          const open = expandedJobId === id;
+          const summary = j.payload_summary || {};
+          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}">
+            <td class="mono">${esc(id.slice(0, 8))}…</td>
+            <td>${badge(j.status)}</td>
+            <td>${esc(j.emis || '—')}</td>
+            <td>${esc(j.school_name || '—')}</td>
+            <td class="mono">${esc(j.source_filename || '')}</td>
+            <td>${domainsCell(j.domains)}</td>
+            <td>${open ? '▼ detail' : '▶ expand'}</td>
+          </tr>
+          <tr class="job-detail-row" data-detail-for="${esc(id)}" style="display:${open ? 'table-row' : 'none'}">
+            <td colspan="7"><div class="detail" id="jobDetail-${esc(id)}">${open ? '<span class="spinner"></span> Loading…' : ''}</div></td>
+          </tr>`;
+        }).join('');
+        $('jobsTable').innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Status</th><th>EMIS</th><th>School</th><th>Source</th><th>Domains</th><th data-nosort></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        $('jobsTable').querySelectorAll('tr.clickable').forEach(tr => {
+          tr.addEventListener('click', () => toggleJob(tr.getAttribute('data-job')));
+        });
+        if (expandedJobId) fillJobDetail(expandedJobId);
+        enableColumnSort($('jobsTable'), 'jobs');
+      } catch (e) {
+        $('jobsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('jobsSpin', false);
+      }
+    }
+
+    async function toggleJob(id) {
+      if (expandedJobId === id) {
+        expandedJobId = null;
+        await loadJobs();
+        return;
+      }
+      expandedJobId = id;
+      await loadJobs();
+    }
+
+    async function fillJobDetail(id) {
+      const box = document.getElementById('jobDetail-' + id);
+      if (!box) return;
+      box.innerHTML = '<span class="spinner"></span> Loading job preview…';
+      try {
+        const j = await api('/api/v1/provisioning/jobs/' + encodeURIComponent(id));
+        jobCache[id] = j;
+        const p = j.preview || {};
+        const schools = (p.schools_affected || []).map(s =>
+          `${esc(s.name || s.emis)} (${esc(s.emis)})${s.new ? ' <em>new</em>' : ''}`
+        ).join(', ') || '—';
+        const diffRows = (p.config_diff || []).map(d => `<tr>
+          <td class="mono">${esc(d.key)}</td>
+          <td class="from mono">${esc(d.from === null || d.from === undefined ? '∅' : d.from)}</td>
+          <td class="to mono">${esc(d.to === null || d.to === undefined ? '∅' : d.to)}</td>
+        </tr>`).join('');
+        const canApprove = j.status === 'pending' || j.status === 'failed';
+        const approveBtn = canApprove
+          ? `<button type="button" id="btnApprove-${esc(id)}" ${p.can_approve === false ? 'disabled title="Cannot approve — see errors"' : ''}>Approve (after review)</button>`
+          : `<span class="empty">Already ${esc(j.status)}</span>`;
+        box.innerHTML = `
+          <h3>Job ${esc(id.slice(0, 8))}… — review before approve</h3>
+          <dl>
+            <dt>Status</dt><dd>${badge(j.status)}</dd>
+            <dt>Source</dt><dd class="mono">${esc(j.source_filename)} (${esc(j.source_format)})</dd>
+            <dt>Schools affected</dt><dd>${schools}</dd>
+            <dt>Will write</dt><dd class="mono">${esc(p.will_write || '—')}</dd>
+            <dt>Payload rows</dt><dd>${p.payload_row_count ?? 0}</dd>
+            <dt>Action</dt><dd>${esc(p.action || '')}</dd>
+          </dl>
+          ${p.propose_error ? `<p class="msg err">${esc(p.propose_error)}</p>` : ''}
+          <h3>Payload fields</h3>
+          <pre class="view">${esc(JSON.stringify(p.payload_fields || {}, null, 2))}</pre>
+          <h3>Sample rows</h3>
+          <pre class="view">${esc(JSON.stringify(p.payload_sample_rows || [], null, 2))}</pre>
+          <h3>Proposed config</h3>
+          <pre class="view">${esc(JSON.stringify(p.proposed_config || {}, null, 2))}</pre>
+          <h3>Config diff vs current</h3>
+          <div class="diff">${diffRows
+            ? `<table><thead><tr><th>Key</th><th>From</th><th>To</th></tr></thead><tbody>${diffRows}</tbody></table>`
+            : '<p class="empty">No differences (or no proposed config).</p>'}</div>
+          <div class="row" style="margin-top:0.75rem">
+            ${approveBtn}
+            <button type="button" class="secondary" data-collapse="${esc(id)}">Collapse</button>
+          </div>`;
+        const ab = document.getElementById('btnApprove-' + id);
+        if (ab) ab.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          approve(id, ab);
+        });
+        box.querySelector('[data-collapse]')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          expandedJobId = null;
+          loadJobs();
+        });
+      } catch (e) {
+        box.innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      }
+    }
+
+    async function approve(id, btn) {
+      if (!confirm('Approve this school provision job? Writes school-config.json for EMIS into docker-data school-configs (Attendance Doc / publish URL / Site link). Does NOT create a Google Site or change SEMIS.')) return;
+      if (btn) btn.disabled = true;
+      $('jobsMsg').textContent = 'Approving…';
+      $('jobsMsg').className = 'msg';
+      try {
+        const data = await api(`/api/v1/provisioning/jobs/${id}/approve`, { method: 'POST' });
+        $('jobsMsg').textContent = `Approved → ${data.config_path} (v${data.config_version})`;
+        $('jobsMsg').className = 'msg ok';
+        toast(`Approved ${data.config_path}`, 'ok');
+        expandedJobId = null;
+        await Promise.all([loadJobs(), loadEvents(), loadSchools()]);
+      } catch (e) {
+        $('jobsMsg').textContent = e.message;
+        $('jobsMsg').className = 'msg err';
+        toast(e.message, 'err');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+
+    /* ---- EMIS multi-select (warehouse / GAM) + GAM summary chips ---- */
+    let selectedEmis = new Set();
+    let availableEmis = [];
+
+    function selectedEmisList() {
+      return [...selectedEmis].sort();
+    }
+
+    function renderEmisMulti() {
+      const box = $('filterEmisMulti');
+      if (!box) return;
+      if (!availableEmis.length) {
+        box.innerHTML = '<span class="emis-empty">No EMIS in warehouse yet (schools / school-configs / GAM OU paths)</span>';
+        return;
+      }
+      box.innerHTML = availableEmis.map(e => {
+        const id = 'emis_' + String(e.emis).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const checked = selectedEmis.has(String(e.emis)) ? 'checked' : '';
+        const label = e.name ? `${esc(e.emis)} · ${esc(e.name)}` : esc(e.emis);
+        return `<label for="${id}"><input type="checkbox" id="${id}" data-emis="${esc(e.emis)}" ${checked} /> ${label}</label>`;
+      }).join('');
+      box.querySelectorAll('input[data-emis]').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const code = inp.getAttribute('data-emis');
+          if (inp.checked) selectedEmis.add(code);
+          else selectedEmis.delete(code);
+          saveEventPrefs();
+          loadEvents();
+        });
+      });
+    }
+
+    async function loadEmisOptions() {
+      try {
+        const data = await api('/api/v1/emis' + domainQuery());
+        availableEmis = data.emis || [];
+        selectedEmis = new Set([...selectedEmis].filter(c => availableEmis.some(e => String(e.emis) === c)));
+        renderEmisMulti();
+      } catch (e) {
+        const box = $('filterEmisMulti');
+        if (box) box.innerHTML = `<span class="emis-empty">${esc(e.message)}</span>`;
+      }
+    }
+
+    function chipHtml(label, val, cls) {
+      return `<span class="chip ${cls || ''}"><span class="chip-label">${esc(label)}</span><span class="chip-val">${esc(String(val ?? '—'))}</span></span>`;
+    }
+
+    async function loadGamSummary() {
+      setSpin('gamSumSpin', true);
+      try {
+        const data = await api('/api/v1/gam/summary' + domainQuery());
+        const pct = data.pct_never_of_enrolled;
+        const pctTxt = (pct === null || pct === undefined) ? '—' : `${pct}%`;
+        const wp = data.wrong_password;
+        const wpTxt = (wp === null || wp === undefined) ? '—' : wp;
+        $('gamSummaryChips').innerHTML = [
+          chipHtml('Enrolled', data.enrolled, 'ok'),
+          chipHtml('Never logged in', data.never_logged_in, 'warn'),
+          chipHtml('% never of enrolled', pctTxt, 'warn'),
+          chipHtml('Ever logged in', data.ever_logged_in),
+          chipHtml('Wrong password', wpTxt, 'warn'),
+          chipHtml('Suspended', data.suspended),
+          chipHtml('Recovery email set', data.with_recovery_email),
+        ].join('');
+        const src = data.sources || {};
+        const parts = [];
+        if (src.enrolled) parts.push('enrolled=' + src.enrolled);
+        if (src.never_logged_in) parts.push('never=' + src.never_logged_in);
+        if (src.wrong_password) parts.push('wrong_password=' + src.wrong_password);
+        if (src.suspended) parts.push('suspended=' + src.suspended);
+        $('gamSummaryNote').textContent = (data.note || '')
+          + (parts.length ? ' Sources: ' + parts.join(', ') : ' (run Users enrolled / Never logged in / Wrong password / Suspended to populate)');
+      } catch (e) {
+        $('gamSummaryChips').innerHTML = '';
+        $('gamSummaryNote').textContent = e.message;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('gamSumSpin', false);
+      }
+    }
+
+    /* ---- Events ---- */
+    function loadEventPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_EVENTS);
+        if (!raw) return;
+        const o = JSON.parse(raw);
+        if (Array.isArray(o.emisList)) selectedEmis = new Set(o.emisList.map(String));
+        else if (typeof o.emis === 'string' && o.emis.trim()) {
+          selectedEmis = new Set(o.emis.split(',').map(s => s.trim()).filter(Boolean));
+        }
+        if (o.kind) $('filterKind').value = o.kind;
+      } catch { /* ignore */ }
+    }
+    function saveEventPrefs() {
+      localStorage.setItem(LS_EVENTS, JSON.stringify({
+        emisList: selectedEmisList(),
+        kind: $('filterKind').value,
+      }));
+    }
+
+    async function loadEvents() {
+      setSpin('eventsSpin', true);
+      $('eventsMsg').textContent = '';
+      try {
+        const params = new URLSearchParams();
+        const kind = $('filterKind').value;
+        selectedEmisList().forEach(e => params.append('emis', e));
+        if (kind) params.set('kind', kind);
+        selectedDomains.forEach(d => params.append('domain', d));
+        const qs = params.toString() ? '?' + params.toString() : '';
+        const data = await api('/api/v1/publish-events' + qs);
+        const events = data.events || [];
+        paintEventsLastSeen(data, events);
+        if (!events.length) {
+          $('eventsTable').innerHTML = '<p class="empty">No publish events match. If you just republished the Google Site, that does not land here — see the note above.</p>';
+          return;
+        }
+        const rows = events.map(e => `<tr>
+          <td class="mono">${esc((e.id || '').slice(0, 8))}…</td>
+          <td>${kindBadge(e.kind)}</td>
+          <td>${badge(e.status || (e.config_path ? 'ok' : ''))}</td>
+          <td>${esc(e.emis || '—')}</td>
+          <td class="mono">${esc(e.school_email || '—')}</td>
+          <td>${siteLink(e.site_attendance_url)}</td>
+          <td class="preview">${esc(e.payload_preview || e.config_path || '—')}</td>
+          <td class="mono">${esc((e.created_at || '').replace('T', ' ').slice(0, 19))}</td>
+        </tr>`).join('');
+        $('eventsTable').innerHTML = `<table>
+          <thead><tr>
+            <th>ID</th><th>Kind</th><th>Status</th><th>EMIS</th><th>Email</th><th>Site</th><th>Preview</th><th>When</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        enableColumnSort($('eventsTable'), 'events');
+      } catch (e) {
+        $('eventsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('eventsSpin', false);
+      }
+    }
+
+
+    /* ---- Devices / Telemetry (Phase 4a) ---- */
+    async function loadTelemetrySummary() {
+      setSpin('telemSumSpin', true);
+      try {
+        const data = await api('/api/v1/telemetry/summary' + domainQuery());
+        const cards = [
+          ['Devices', data.devices],
+          ['Seen 7d', data.devices_seen_7d],
+          ['Skills', data.skills_run],
+          ['Prompts', data.prompts],
+          ['Publishes', data.publishes],
+          ['LLM local', data.llm_local],
+          ['LLM online', data.llm_online],
+          ['Radar', data.radar_points],
+          ['Data MB', data.data_mb_total],
+        ];
+        $('telemCards').innerHTML = cards.map(([label, val]) =>
+          `<div class="card"><div class="label">${esc(label)}</div><div class="value">${esc(String(val ?? 0))}</div></div>`
+        ).join('');
+      } catch (e) {
+        $('telemCards').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('telemSumSpin', false);
+      }
+    }
+
+    function formatDataUsed(mb) {
+      if (mb === null || mb === undefined || mb === '') return '<span class="empty">no telemetry yet</span>';
+      return esc(formatBytesMb(mb));
+    }
+
+    async function loadDevices() {
+      setSpin('devicesSpin', true);
+      try {
+        const data = await api('/api/v1/devices' + domainQuery());
+        const devices = data.devices || [];
+        const hint = data.scale_hint || '~100 schools (registry grows as tablets enrol)';
+        if (!devices.length) {
+          $('devicesTable').innerHTML = `<p class="empty">No devices match the domain filter.</p>
+            <p class="fleet-hint">${esc(hint)}. Empty registry — enrol tablets via API /api/v1/devices when ready.</p>
+            <table>
+              <thead><tr>
+                <th>EMIS</th><th>School</th><th>Serial / device id</th><th>Android id</th>
+                <th>SIM / phone</th><th>WhatsApp</th><th>Device type</th><th>Data used</th><th>Last seen</th>
+              </tr></thead>
+              <tbody>
+                <tr class="fleet-empty-row"><td colspan="9">— placeholder row (no SEMIS invented) —</td></tr>
+              </tbody>
+            </table>`;
+          return;
+        }
+        const rows = devices.map(d => `<tr>
+          <td class="mono">${esc(d.emis || '—')}</td>
+          <td>${esc(d.school_name || '—')}</td>
+          <td class="mono">${esc(d.serial || (d.id || '').slice(0, 8) || '—')}</td>
+          <td class="mono">${esc(d.tablet_android_id || '—')}</td>
+          <td class="mono">${esc(d.sim || '—')}</td>
+          <td class="mono">${esc(d.whatsapp || '—')}</td>
+          <td class="mono">${esc(d.device_type || '—')}</td>
+          <td>${formatDataUsed(d.data_mb)}</td>
+          <td class="mono">${esc((d.last_seen || '').replace('T', ' ').slice(0, 19) || '—')}</td>
+        </tr>`).join('');
+        // Visual empty-pattern: a few muted placeholder rows so ~100-school scale is obvious
+        const placeholders = Array.from({ length: 3 }, (_, i) =>
+          `<tr class="fleet-empty-row"><td colspan="9">… slot ${devices.length + i + 1} (awaiting school tablet enrol) …</td></tr>`
+        ).join('');
+        $('devicesTable').innerHTML = `
+          <p class="fleet-hint">Showing <strong>${devices.length}</strong> registry row(s). ${esc(hint)}. Sources: Postgres devices + school-configs / schools (not SEMIS invent).</p>
+          <table>
+          <thead><tr>
+            <th>EMIS</th><th>School</th><th>Serial / device id</th><th>Android id</th>
+            <th>SIM / phone</th><th>WhatsApp</th><th>Device type</th><th>Data used</th><th>Last seen</th>
+          </tr></thead>
+          <tbody>${rows}${placeholders}</tbody>
+        </table>`;
+      } catch (e) {
+        $('devicesTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('devicesSpin', false);
+      }
+    }
+
+    /* ---- Wire ---- */
+    document.querySelectorAll('#gamButtons [data-report]').forEach(btn => {
+      btn.addEventListener('click', () => runReport(btn.getAttribute('data-report'), btn));
+    });
+    /* domainToggle wired via initCollapsibleSections */
+    $('btnRefresh').addEventListener('click', () =>
+      Promise.all([loadWhoami(), loadHealth(), loadDomains(), reloadFiltered(), loadRawExports()]).then(() => toast('Refreshed', 'ok'))
+    );
+    $('btnReloadSchools').addEventListener('click', loadSchools);
+    $('btnReloadRuns').addEventListener('click', loadRuns);
+    $('btnReloadJobs').addEventListener('click', loadJobs);
+    $('btnReloadEvents').addEventListener('click', () => { saveEventPrefs(); loadEvents(); });
+    $('btnReloadDevices').addEventListener('click', loadDevices);
+    $('btnReloadTelemetrySummary').addEventListener('click', loadTelemetrySummary);
+    if ($('btnReloadGamSummary')) $('btnReloadGamSummary').addEventListener('click', loadGamSummary);
+    $('filterKind').addEventListener('change', () => { saveEventPrefs(); loadEvents(); });
+    $('gamModalClose').addEventListener('click', closeGamModal);
+    $('gamModalClose2').addEventListener('click', closeGamModal);
+    if ($('gamModalRefresh')) {
+      $('gamModalRefresh').addEventListener('click', () => {
+        const report = gamModalReport
+          || (gamModalRunId && String(gamModalRunId).includes('_')
+              ? String(gamModalRunId).split('_').slice(1).join('_')
+              : null);
+        if (!report) {
+          toast('Open a report first', 'err');
+          return;
+        }
+        refreshGamReport(report, $('gamModalRefresh'));
+      });
+    }
+    $('gamModal').addEventListener('click', (e) => { if (e.target === $('gamModal')) closeGamModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGamModal(); });
+
+    /* ---- 0.4.14+ Devices + Active users (cache-first; Refresh = async 202 bundle + poll) ---- */
+    const insightState = { devices: null, 'active-users': null };
+    const INSIGHT_POLL_TIMEOUT_MS = 900000;
+    function insightQuery(extra) {
+      const params = new URLSearchParams(domainQuery().replace(/^\?/, ''));
+      if (extra) Object.entries(extra).forEach(([k, v]) => params.set(k, v));
+      if (PAGE_AS) params.set('as', PAGE_AS);
+      const q = params.toString();
+      return q ? '?' + q : '';
+    }
+    function renderInsightSources(elId, sources) {
+      const rows = Object.entries(sources || {}).map(([k, s]) => `<tr>
+        <td>${esc(k)}</td><td>${esc(s.command || '')}</td><td>${badge(s.status || '?')}</td>
+        <td>${esc(s.rows_raw ?? '')}</td><td>${esc((s.cached_at || '').replace('T', ' ').slice(0, 19))}</td>
+        <td>${esc(s.window && (s.window.date || (s.window.start ? s.window.start + '→' + s.window.end : '')) || '')}</td>
+        <td style="white-space:pre-wrap;max-width:28rem">${esc(s.last_attempt_error || '')}</td></tr>`).join('');
+      $(elId).innerHTML = `<table><thead><tr><th>Source</th><th>GAM command</th><th>Status</th><th>Rows (raw)</th><th>Cached (UTC)</th><th>Window</th><th>Last error</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    function renderInsightTable(kind) {
+      const st = insightState[kind];
+      const tableId = kind === 'devices' ? 'devTable' : 'actTable';
+      const searchId = kind === 'devices' ? 'devSearch' : 'actSearch';
+      const msgId = kind === 'devices' ? 'devMsg' : 'actMsg';
+      if (!st) return;
+      const allCols = st.columns && st.columns.length ? st.columns : (st.rows[0] ? Object.keys(st.rows[0]) : []);
+      renderColPicker(kind, allCols);
+      const cols = visibleColsFor(kind, allCols);
+      const q = ($(searchId).value || '').trim().toLowerCase();
+      const rows = q ? st.rows.filter(r => allCols.some(c => String(r[c] ?? '').toLowerCase().includes(q))) : st.rows;
+      $(msgId).textContent = `${rows.length} of ${st.rows.length} rows · ${cols.length}/${allCols.length} cols`;
+      if (!rows.length) {
+        $(tableId).innerHTML = '<p class="empty">No rows (check sources below, or Refresh from GAM).</p>';
+        return;
+      }
+      const body = rows.map(r => '<tr>' + cols.map(c => {
+        const raw = r[c] ?? '';
+        const shown = formatCell(c, raw);
+        const wrap = (c === 'ou' || c === 'oauth_apps_30d' || c === 'oauth_apps_authorized') ? ' wrap' : '';
+        return `<td class="${/email|ip|serial|imei|device_id|mac/.test(c) ? 'mono' : ''}${wrap}" data-sort="${esc(String(raw))}">${esc(shown)}</td>`;
+      }).join('') + '</tr>').join('');
+      $(tableId).innerHTML = `<table><thead><tr>${cols.map(c => `<th title="${esc(c)}">${esc(colLabel(c))}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+      enableColumnSort($(tableId), 'insight-' + kind);
+    }
+    async function loadInsight(kind) {
+      const isDev = kind === 'devices';
+      setSpin(isDev ? 'devSpin' : 'actSpin', true);
+      $(isDev ? 'devCsv' : 'actCsv').href = '/api/v1/reports/' + kind + insightQuery({ format: 'csv' });
+      try {
+        const data = await api('/api/v1/reports/' + kind + insightQuery(), { timeoutMs: 60000 });
+        insightState[kind] = data;
+        const s = data.summary || {};
+        if (isDev) {
+          const chips = [chipHtml('Devices', s.devices, 'ok'), chipHtml('Users with devices', s.users_with_devices)];
+          Object.entries(s.by_type || {}).forEach(([k, v]) => chips.push(chipHtml(k, v)));
+          Object.entries(s.by_os || {}).slice(0, 8).forEach(([k, v]) => chips.push(chipHtml(k, v, 'warn')));
+          const dm = s.developer_mode || {};
+          chips.push(chipHtml('developer_mode on', dm.true || 0, (dm.true || 0) ? 'warn' : 'ok'));
+          chips.push(chipHtml('developer_mode off', dm.false || 0));
+          const adb = s.adb || {};
+          chips.push(chipHtml('adb on', adb.true || 0, (adb.true || 0) ? 'warn' : 'ok'));
+          Object.entries(s.by_compromised || {}).slice(0, 4).forEach(([k, v]) => chips.push(chipHtml('compromised:' + k, v)));
+          Object.entries(s.by_encryption || {}).slice(0, 4).forEach(([k, v]) => chips.push(chipHtml('encrypt:' + k, v)));
+          $('devChips').innerHTML = chips.join('');
+          renderInsightSources('devSources', data.sources);
+        } else {
+          const mb = s.total_storage_mb;
+          $('actChips').innerHTML = [
+            chipHtml('Active users', s.active_users, 'ok'),
+            chipHtml('With devices', s.with_devices),
+            chipHtml('Total storage', mb == null ? '—' : (mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb + ' MB')),
+            chipHtml('Gmail sent 7d', s.gmail_sent_7d),
+            chipHtml('Gmail received 7d', s.gmail_received_7d),
+            chipHtml('Drive edits 7d', s.drive_edited_7d),
+            chipHtml('Gemini users 30d', s.gemini_users_30d),
+            chipHtml('NotebookLM users 30d', s.notebooklm_users_30d),
+            chipHtml('2SV enrolled', s.two_sv_enrolled, 'warn'),
+          ].join('');
+          const w = data.usage_window || {};
+          const sd = w.seven_day || {};
+          $('actNote').textContent = `Users with lastLoginTime set (after domain filter). Usage snapshot date ${w.snapshot_date || '—'}; 7-day sums ${sd.start || '—'} → ${sd.end || '—'} (Reports API lags ~2 days). `
+            + `Gemini / NotebookLM / Drive audit = last 30 days. traffic_bytes: not available from Google (counts are proxies, not bytes). Region source per row: region_source.`;
+          renderInsightSources('actSources', data.sources);
+        }
+        renderInsightTable(kind);
+      } catch (e) {
+        $(isDev ? 'devTable' : 'actTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin(isDev ? 'devSpin' : 'actSpin', false);
+      }
+    }
+    async function refreshInsight(kind, btn) {
+      const isDev = kind === 'devices';
+      const msgEl = $(isDev ? 'devMsg' : 'actMsg');
+      if (btn) btn.disabled = true;
+      setSpin(isDev ? 'devSpin' : 'actSpin', true);
+      try {
+        const started = await api('/api/v1/reports/' + kind + '/refresh' + insightQuery(), { method: 'POST', timeoutMs: 20000 });
+        const deadline = Date.now() + INSIGHT_POLL_TIMEOUT_MS;
+        let last = started;
+        while (Date.now() < deadline) {
+          await sleep(3000);
+          last = await api(started.poll_url + insightQuery(), { timeoutMs: 15000 });
+          const done = (last.items || []).filter(i => !['queued', 'running'].includes(i.status)).length;
+          msgEl.textContent = `GAM refresh ${last.status}: ${done}/${(last.items || []).length} sources done…`;
+          if (last.status !== 'running') break;
+        }
+        if (last.status === 'running') throw new Error('GAM refresh still running after ' + Math.round(INSIGHT_POLL_TIMEOUT_MS / 60000) + ' min — Reload later.');
+        const errs = (last.items || []).filter(i => i.status !== 'ok');
+        toast(`GAM ${kind} refresh ${last.status}` + (errs.length ? ` (${errs.map(i => i.report).join(', ')} failed)` : ''), errs.length ? 'err' : 'ok');
+        await loadInsight(kind);
+      } catch (e) {
+        msgEl.textContent = e.message;
+        toast(e.message, 'err');
+      } finally {
+        if (btn) btn.disabled = false;
+        setSpin(isDev ? 'devSpin' : 'actSpin', false);
+      }
+    }
+
+    /* ---- 0.4.17 Attendance radar (snap vs confirmed vs SEMIS) ---- */
+    async function loadAttendanceRadar() {
+      setSpin('radarSpin', true);
+      const grain = ($('radarGrain') && $('radarGrain').value) || 'province';
+      const period = ($('radarPeriod') && $('radarPeriod').value) || 'week';
+      try {
+        const data = await api('/api/v1/attendance/radar?grain=' + encodeURIComponent(grain)
+          + '&period=' + encodeURIComponent(period), { timeoutMs: 30000 });
+        const emptyEl = $('radarEmpty');
+        const tableEl = $('radarTable');
+        const chips = $('radarChips');
+        const land = $('radarLanding');
+        if (land) land.textContent = JSON.stringify(data.landing || data.schema || {}, null, 2);
+        if (data.empty) {
+          emptyEl.hidden = false;
+          emptyEl.innerHTML = `<strong>No sync data on this host yet.</strong><br/>`
+            + esc(data.message || '')
+            + `<br/><br/>Point tablet <code>sync_endpoint_url</code> to `
+            + `<code>${esc((data.landing || {}).ingest_api || '/api/v1/attendance/ingest')}</code>`
+            + ` (schema: <a href="/api/v1/attendance/ingest/schema">/api/v1/attendance/ingest/schema</a>).`
+            + `<br/>Host outbox dir: <code>${esc((data.landing || {}).ndjson_dir_host || '')}</code>`
+            + `<br/>Designed cloud path: <code>${esc((data.landing || {}).designed_cloud || '')}</code>`;
+          tableEl.innerHTML = '';
+          chips.innerHTML = chipHtml('Sessions', 0);
+          $('radarMsg').textContent = 'empty';
+          return;
+        }
+        emptyEl.hidden = true;
+        emptyEl.innerHTML = '';
+        chips.innerHTML = [
+          chipHtml('Sessions', data.count, 'ok'),
+          chipHtml('Axes', (data.axes || []).length),
+          chipHtml('Grain', grain),
+          chipHtml('Period', period),
+        ].join('');
+        const axes = data.axes || [];
+        if (!axes.length) {
+          tableEl.innerHTML = '<p class="empty">No axes to chart.</p>';
+        } else {
+          const rows = axes.map(a => `<tr>
+            <td>${esc(a.axis)}</td><td class="mono">${esc(a.period_key)}</td>
+            <td data-sort="${a.snap}">${a.snap}</td>
+            <td data-sort="${a.confirmed}">${a.confirmed}</td>
+            <td data-sort="${a.semis == null ? '' : a.semis}">${a.semis == null ? '—' : a.semis}</td>
+            <td data-sort="${a.sessions}">${a.sessions}</td>
+          </tr>`).join('');
+          tableEl.innerHTML = `<table><thead><tr>
+            <th>Axis</th><th>Period</th><th>Snap</th><th>Confirmed</th><th>SEMIS</th><th>Sessions</th>
+          </tr></thead><tbody>${rows}</tbody></table>`;
+          enableColumnSort(tableEl, 'attendance-radar');
+        }
+        $('radarMsg').textContent = `${axes.length} axes · ${data.count} sessions`;
+      } catch (e) {
+        $('radarMsg').textContent = e.message;
+        $('radarTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('radarSpin', false);
+      }
+    }
+    $('btnRadarReload')?.addEventListener('click', () => loadAttendanceRadar());
+    $('radarGrain')?.addEventListener('change', () => loadAttendanceRadar());
+    $('radarPeriod')?.addEventListener('change', () => loadAttendanceRadar());
+
+    async function loadWhoami() {
+      try {
+        const w = await api('/api/v1/whoami' + (PAGE_AS ? '?as=' + encodeURIComponent(PAGE_AS) : ''));
+        $('whoami').textContent = (w.email || 'local (no IAP header)') + (w.superadmin ? ' · super-admin (all domains)' : ' · scoped to ' + (w.domain || '—'));
+      } catch (e) { $('whoami').textContent = 'whoami: ' + e.message; }
+    }
+    $('btnDevReload').addEventListener('click', () => loadInsight('devices'));
+    $('btnActReload').addEventListener('click', () => loadInsight('active-users'));
+    $('btnDevRefresh').addEventListener('click', (e) => refreshInsight('devices', e.currentTarget));
+    $('btnActRefresh').addEventListener('click', (e) => refreshInsight('active-users', e.currentTarget));
+    $('devSearch').addEventListener('input', () => renderInsightTable('devices'));
+    $('actSearch').addEventListener('input', () => renderInsightTable('active-users'));
+
+    /* ---- 0.4.15 Raw GAM exports (super-admin only; 403 for everyone else) ---- */
+    let rawState = null;
+    function fmtBytes(n) {
+      n = Number(n) || 0;
+      if (n >= 1048576) return (n / 1048576).toFixed(2) + ' MB';
+      if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
+      return n + ' B';
+    }
+    function renderRawExports() {
+      if (!rawState) return;
+      const sel = $('rawFolder');
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">all folders</option>' + (rawState.folders || []).map(g =>
+        `<option value="${esc(g.folder)}">${esc(g.folder)} (${g.files})</option>`).join('');
+      if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+      const probe = (rawState.folders || []).filter(g => g.folder.startsWith('probe'));
+      $('rawChips').innerHTML = [
+        chipHtml('CSV files', rawState.count, 'ok'),
+        chipHtml('Folders', (rawState.folders || []).length),
+        ...probe.map(g => chipHtml(g.folder, `${g.files} files · ${g.rows} rows`, 'warn')),
+      ].join('');
+      const q = ($('rawSearch').value || '').trim().toLowerCase();
+      const files = (rawState.files || []).filter(f => (!sel.value || f.folder === sel.value)
+        && (!q || f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q)));
+      $('rawMsg').textContent = `${files.length} of ${rawState.count} files`;
+      if (!files.length) {
+        $('rawTable').innerHTML = '<p class="empty">No CSV files match.</p>';
+        return;
+      }
+      const rows = files.map(f => `<tr>
+          <td class="mono">${esc(f.folder)}</td>
+          <td class="mono">${esc(f.name)}${f.err ? ` <span class="badge" title="${esc(f.err)}">.err</span>` : ''}</td>
+          <td data-sort="${f.size_bytes}">${esc(fmtBytes(f.size_bytes))}</td>
+          <td data-sort="${f.rows}">${f.rows}</td>
+          <td class="mono">${esc(String(f.modified || '').replace('T', ' ').replace('+00:00', '').slice(0, 19))}</td>
+          <td><button type="button" data-raw="${esc(f.path)}">Preview</button>
+            <a class="mono" style="font-size:0.8rem;margin-left:0.35rem" href="${esc(withAs('/api/v1/gam/raw-exports/download?path=' + encodeURIComponent(f.path)))}">Download</a></td>
+        </tr>`).join('');
+      $('rawTable').innerHTML = `<table>
+          <thead><tr><th>Folder</th><th>File</th><th>Size</th><th>Rows</th><th>Modified (UTC)</th><th data-nosort></th></tr></thead>
+          <tbody>${rows}</tbody></table>`;
+      $('rawTable').querySelectorAll('[data-raw]').forEach(btn =>
+        btn.addEventListener('click', () => openRawPreview(btn.getAttribute('data-raw'))));
+      enableColumnSort($('rawTable'), 'raw-exports');
+    }
+    async function loadRawExports() {
+      const sec = $('rawExports');
+      if (!sec) return;
+      setSpin('rawSpin', true);
+      try {
+        // Ask whoami first so scoped users never even request the super-admin-only list.
+        const who = await api('/api/v1/whoami' + (PAGE_AS ? '?as=' + encodeURIComponent(PAGE_AS) : ''), { timeoutMs: 10000 });
+        if (!who.superadmin) {
+          rawState = null;
+          sec.style.display = 'none';
+          return;
+        }
+        rawState = await api('/api/v1/gam/raw-exports', { timeoutMs: 30000 });
+        sec.style.display = '';
+        renderRawExports();
+      } catch (e) {
+        rawState = null;
+        if (e.status === 403 || e.status === 401) {
+          sec.style.display = 'none';
+        } else {
+          sec.style.display = '';
+          $('rawTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        }
+      } finally {
+        setSpin('rawSpin', false);
+      }
+    }
+    async function openRawPreview(path) {
+      setModalMode('raw');
+      gamModalReport = null;
+      gamModalRunId = null;
+      const body = $('gamModalBody');
+      const dl = withAs('/api/v1/gam/raw-exports/download?path=' + encodeURIComponent(path));
+      $('gamModalTitle').textContent = 'Raw GAM export — ' + path;
+      $('gamModalDownload').href = dl;
+      body.innerHTML = '<p class="empty"><span class="spinner"></span> Loading preview…</p>';
+      $('gamModal').classList.add('open');
+      try {
+        const data = await api('/api/v1/gam/raw-exports/preview?path=' + encodeURIComponent(path), { timeoutMs: 30000 });
+        body.innerHTML = `<p class="mono" style="font-size:0.8rem;margin:0 0 0.5rem">${esc(data.path)} · ${esc(fmtBytes(data.size_bytes))}
+          · ${data.total_rows} rows${data.truncated ? ` (showing first ${data.shown_rows})` : ''} · modified ${esc(String(data.modified).replace('T', ' ').replace('+00:00', ' UTC'))}</p>`
+          + (data.err ? `<details style="margin-bottom:0.5rem"><summary>GAM stderr (.err)</summary><pre class="view">${esc(data.err)}</pre></details>` : '');
+        if (data.headers && data.headers.length) {
+          body.appendChild(renderSortableCsvTable(data.headers, data.rows || [], 'raw'));
+        } else {
+          body.insertAdjacentHTML('beforeend', '<p class="empty">Empty file (no header row).</p>');
+        }
+      } catch (e) {
+        body.innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      }
+    }
+    $('btnRawReload').addEventListener('click', loadRawExports);
+    $('rawFolder').addEventListener('change', renderRawExports);
+    $('rawSearch').addEventListener('input', renderRawExports);
+
+    loadUiPrefs();
+    loadDomainPrefs();
+    loadEventPrefs();
+    initCollapsibleSections();
+    renderDomainChecks();
+    if ($('prefCompactDomains')) {
+      $('prefCompactDomains').addEventListener('change', () => { saveUiPrefs(); reloadFiltered(); });
+    }
+    if ($('prefSortable')) {
+      $('prefSortable').addEventListener('change', () => { saveUiPrefs(); reloadFiltered(); });
+    }
+    Promise.all([loadWhoami(), loadHealth(), loadDomains(), reloadFiltered(), loadRawExports()]);
+  
+    /* ---- 0.4.18 Drive Doc / Sheet exports ---- */
+    function domainQueryForExport() {
+      // Reuse domainQuery() (?domain=a&domain=b); empty = all domains
+      try { return domainQuery(); } catch (_) { return ''; }
+    }
+
+    function setExportStatus(el, html, cls) {
+      if (!el) return;
+      el.hidden = !html;
+      el.className = 'export-status' + (cls ? ' ' + cls : '');
+      el.innerHTML = html || '';
+    }
+
+    async function runSectionExport(section, formats, statusEl, btn) {
+      const prev = btn ? btn.disabled : false;
+      if (btn) btn.disabled = true;
+      setExportStatus(statusEl, '<span class="spinner"></span> Building ' + formats + '…', '');
+      try {
+        const q = domainQueryForExport();
+        const sep = q ? '&' : '?';
+        const url = '/api/v1/export/' + encodeURIComponent(section) + q + sep +
+          'formats=' + encodeURIComponent(formats) + '&orientation=auto&upload=true';
+        const data = await api(url, { method: 'POST', timeoutMs: 300000 });
+        const links = [];
+        const drive = data.drive || {};
+        if (drive.doc && drive.doc.webViewLink) {
+          links.push('<a href="' + drive.doc.webViewLink + '" target="_blank" rel="noopener">Doc</a>');
+        }
+        if (drive.sheet && drive.sheet.webViewLink) {
+          links.push('<a href="' + drive.sheet.webViewLink + '" target="_blank" rel="noopener">Sheet</a>');
+        }
+        if (drive.folder && drive.folder.webViewLink) {
+          links.push('<a href="' + drive.folder.webViewLink + '" target="_blank" rel="noopener">Folder</a>');
+        }
+        if (data.section === 'all' && data.master && data.master.drive) {
+          links.push('<a href="' + data.master.drive.webViewLink + '" target="_blank" rel="noopener">All folder</a>');
+        }
+        if (data.upload_ok === false || (data.master && data.master.upload_error)) {
+          const err = data.upload_error || (data.master && data.master.upload_error) || 'upload failed';
+          const local = data.local ? Object.values(data.local).join(', ') : '';
+          setExportStatus(
+            statusEl,
+            'Local OK' + (local ? ' (' + local.split('/').pop() + ')' : '') +
+              ' · Drive: ' + err +
+              (data.upload_hint ? ' — see toast' : ''),
+            'err'
+          );
+          if (data.upload_hint) toast(String(data.upload_hint).slice(0, 280), 'err');
+          else toast('Export local ok; Drive upload failed: ' + err, 'err');
+        } else if (links.length) {
+          setExportStatus(statusEl, 'Done: ' + links.join(' · ') +
+            ' <span class="empty">(' + (data.row_count != null ? data.row_count + ' rows' : (data.children || []).length + ' sections') + ')</span>', 'ok');
+          toast('Exported ' + (data.title || section) + ' to Drive', 'ok');
+        } else if (data.children) {
+          const okKids = (data.children || []).filter(c => c.upload_ok);
+          const folderLink = data.master && data.master.drive
+            ? '<a href="' + data.master.drive.webViewLink + '" target="_blank" rel="noopener">Open all folder</a>'
+            : '';
+          setExportStatus(statusEl,
+            'Export all: ' + okKids.length + '/' + (data.children || []).length + ' uploaded. ' + folderLink, 'ok');
+          toast('Export all finished', 'ok');
+        } else {
+          setExportStatus(statusEl, 'Local files written (no Drive links)', 'ok');
+        }
+        return data;
+      } catch (e) {
+        setExportStatus(statusEl, 'Failed: ' + (e.message || e), 'err');
+        toast('Export failed: ' + (e.message || e), 'err');
+        throw e;
+      } finally {
+        if (btn) btn.disabled = prev;
+      }
+    }
+
+    document.querySelectorAll('.export-btns[data-export]').forEach(wrap => {
+      const section = wrap.getAttribute('data-export');
+      const statusEl = wrap.querySelector('.export-status');
+      wrap.querySelectorAll('button[data-export-fmt]').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          runSectionExport(section, btn.getAttribute('data-export-fmt'), statusEl, btn);
+        });
+      });
+    });
+    const btnExportAll = document.getElementById('btnExportAll');
+    if (btnExportAll) {
+      btnExportAll.addEventListener('click', () => {
+        runSectionExport('all', 'doc,sheet', document.getElementById('exportAllStatus'), btnExportAll);
+      });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+*** Begin Patch
+*** Add File: apps/api/app/gcs_gam.py
++"""Pull GAM CSV runs from GCS when GAM_GCS_BUCKET is set (cloud path).
++
++On gbu, gam-sync.sh uploads docker-data/.../gam-out/runs/* to
++  gs://$BUCKET/$COUNTRY/gam-out/runs/
++This module mirrors that prefix into local DATA_DIR/gam-out/runs so the
++existing file-based GAM report endpoints keep working without host `gam`.
++"""
++from __future__ import annotations
++
++import logging
++import os
++from pathlib import Path
++
++log = logging.getLogger("p4sgi.gcs_gam")
++
++
++def sync_gam_csvs_from_gcs(dest_runs_dir: Path) -> int:
++    """Download objects under the country prefix into dest_runs_dir.
++
++    Returns number of objects fetched. No-op if GAM_GCS_BUCKET unset.
++    Requires google-cloud-storage on the image (add to requirements.txt).
++    """
++    bucket_name = os.getenv("GAM_GCS_BUCKET", "").strip()
++    if not bucket_name:
++        return 0
++    country = os.getenv("COUNTRY", "sl").strip() or "sl"
++    prefix = f"{country}/gam-out/runs/"
++    dest_runs_dir.mkdir(parents=True, exist_ok=True)
++
++    try:
++        from google.cloud import storage  # type: ignore
++    except ImportError as exc:  # pragma: no cover
++        log.warning("google-cloud-storage not installed; skip GCS sync: %s", exc)
++        return 0
++
++    client = storage.Client()
++    bucket = client.bucket(bucket_name)
++    n = 0
++    for blob in client.list_blobs(bucket_name, prefix=prefix):
++        name = blob.name[len(prefix) :]
++        if not name or name.endswith("/"):
++            continue
++        target = dest_runs_dir / name
++        if target.is_file() and target.stat().st_size == blob.size:
++            continue
++        target.parent.mkdir(parents=True, exist_ok=True)
++        blob.download_to_filename(str(target))
++        n += 1
++    log.info("GCS GAM sync: fetched %s object(s) from gs://%s/%s", n, bucket_name, prefix)
++    return n
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/api/requirements.txt
+@@
+ fastapi==0.115.6
+ uvicorn[standard]==0.34.0
+ pydantic==2.10.4
+ pydantic-settings==2.7.0
+ psycopg[binary]==3.2.3
+ python-multipart==0.0.20
++google-cloud-storage==2.19.0
++google-auth==2.37.0
++PyJWT[crypto]==2.10.1
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/api/app/main.py
+@@
+ from . import db
++from . import gcs_gam
+@@
+ @app.on_event("startup")
+ def _startup() -> None:
+     ...
++    # Cloud: refresh cached GAM CSVs from GCS (gbu cron uploads them).
++    try:
++        gcs_gam.sync_gam_csvs_from_gcs(GAM_RUNS_DIR)
++    except Exception as exc:  # noqa: BLE001
++        import logging
++        logging.getLogger("p4sgi").warning("GCS GAM sync failed: %s", exc)
+@@
++@app.post("/api/v1/gam/sync")
++def trigger_gam_gcs_sync() -> dict:
++    """Operator hook: re-pull CSVs from GCS without restarting the service."""
++    n = gcs_gam.sync_gam_csvs_from_gcs(GAM_RUNS_DIR)
++    return {"synced": n, "bucket": os.getenv("GAM_GCS_BUCKET", ""), "dir": str(GAM_RUNS_DIR)}
+*** End Patch
+
+NOTES:
+- On Cloud Run, on-demand POST /api/v1/gam/reports that shells out to host `gam`
+  will fail (no binary). UI should use cached latest CSVs; optionally hide
+  "Refresh" or make it call /api/v1/gam/sync instead.
+- Keep GAM OAuth on gbu; do not bake credentials into the image.

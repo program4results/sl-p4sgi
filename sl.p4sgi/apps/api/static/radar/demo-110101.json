@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1",
+  "kind": "radar_parents",
+  "emis": "110101",
+  "schoolName": "Test Primary School",
+  "schoolEmail": "sl-test@sl.p4sgi.com",
+  "domain": "sl.p4sgi.com",
+  "classLabel": "Nursery 3",
+  "asOf": "2026-09-28",
+  "source": "demo",
+  "demo": true,
+  "headline": {
+    "A": 4,
+    "B": 4,
+    "C": 6,
+    "note": "Known Test Primary Nursery 3 snapshot only: snap 4, confirmed 4, SEMIS enrollment 6."
+  },
+  "valuesNote": "Every axis repeats that single known snapshot so each period can draw a spider (needs at least 3 axes). These are not extra SEMIS schools and not a historical series.",
+  "series": [
+    {"id": "A", "key": "snap", "label": "Snap (face count)", "color": "#1E88E5"},
+    {"id": "B", "key": "confirmed", "label": "Confirmed", "color": "#FDD835"},
+    {"id": "C", "key": "semis", "label": "SEMIS enrollment", "color": "#43A047"}
+  ],
+  "periods": {
+    "Daily": {"axes": [
+      {"label": "09-26", "A": 4, "B": 4, "C": 6},
+      {"label": "09-27", "A": 4, "B": 4, "C": 6},
+      {"label": "09-28", "A": 4, "B": 4, "C": 6}
+    ]},
+    "Weekly": {"axes": [
+      {"label": "W37", "A": 4, "B": 4, "C": 6},
+      {"label": "W38", "A": 4, "B": 4, "C": 6},
+      {"label": "W39", "A": 4, "B": 4, "C": 6}
+    ]},
+    "Monthly": {"axes": [
+      {"label": "2026-07", "A": 4, "B": 4, "C": 6},
+      {"label": "2026-08", "A": 4, "B": 4, "C": 6},
+      {"label": "2026-09", "A": 4, "B": 4, "C": 6}
+    ]},
+    "Termly": {"axes": [
+      {"label": "T1", "A": 4, "B": 4, "C": 6},
+      {"label": "T2", "A": 4, "B": 4, "C": 6},
+      {"label": "T3", "A": 4, "B": 4, "C": 6}
+    ]},
+    "Annual": {"axes": [
+      {"label": "2024", "A": 4, "B": 4, "C": 6},
+      {"label": "2025", "A": 4, "B": 4, "C": 6},
+      {"label": "2026", "A": 4, "B": 4, "C": 6}
+    ]}
+  }
+}

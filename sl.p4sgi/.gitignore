@@ -1,0 +1,54 @@
+# Secrets / local env
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+**/secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node (if added later)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Data / runtime (live under docker-data; never commit local copies)
+data/
+postgres-data/
+*.sqlite
+*.db
+
+# Symlinks into docker-data (if created locally)
+docker-data
+gam-out
+school-configs
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker override (local-only)
+docker-compose.override.yml
+
+# Local edit backups
+*.bak
+*.bak.*

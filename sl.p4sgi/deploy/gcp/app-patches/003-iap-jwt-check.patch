@@ -1,0 +1,110 @@
+*** Begin Patch
+*** Add File: apps/api/app/iap_auth.py
++"""Verify IAP JWT (x-goog-iap-jwt-assertion) and enforce @DOMAIN email suffix.
++
++Audience for Cloud Run (direct IAP, GA):
++  /projects/PROJECT_NUMBER/locations/REGION/services/SERVICE_NAME
++See: https://cloud.google.com/iap/docs/signed-headers-howto
++"""
++from __future__ import annotations
++
++import logging
++import os
++from typing import Callable
++
++from fastapi import Request, Response
++from starlette.middleware.base import BaseHTTPMiddleware
++from starlette.responses import JSONResponse
++
++log = logging.getLogger("p4sgi.iap")
++
++IAP_HEADER = "x-goog-iap-jwt-assertion"
++HEALTH_PATHS = {"/health", "/api/v1/health"}
++
++
++def _expected_audience() -> str:
++    return os.getenv("IAP_AUDIENCE", "").strip()
++
++
++def _allowed_suffix() -> str:
++    return (os.getenv("IAP_ALLOWED_EMAIL_SUFFIX") or "").strip().lower()
++
++
++def verify_iap_jwt(token: str) -> tuple[str | None, str | None, str]:
++    """Return (sub, email, error). error empty on success."""
++    audience = _expected_audience()
++    if not audience:
++        return None, None, "IAP_AUDIENCE not configured"
++    try:
++        from google.auth.transport import requests as google_requests
++        from google.oauth2 import id_token
++
++        decoded = id_token.verify_token(
++            token,
++            google_requests.Request(),
++            audience=audience,
++            certs_url="https://www.gstatic.com/iap/verify/public_key",
++        )
++        if decoded.get("iss") != "https://cloud.google.com/iap":
++            return None, None, "bad issuer"
++        email = (decoded.get("email") or "").strip()
++        sub = (decoded.get("sub") or "").strip()
++        if not email or not sub:
++            return None, None, "missing email/sub"
++        return sub, email, ""
++    except Exception as exc:  # noqa: BLE001
++        return None, None, f"jwt validation failed: {exc}"
++
++
++class IapJwtMiddleware(BaseHTTPMiddleware):
++    """Second guard after Cloud Run IAP: verify JWT + email domain."""
++
++    async def dispatch(self, request: Request, call_next: Callable) -> Response:
++        # Local / tests: skip when IAP_AUDIENCE unset.
++        if not _expected_audience():
++            return await call_next(request)
++        if request.url.path in HEALTH_PATHS:
++            return await call_next(request)
++
++        token = request.headers.get(IAP_HEADER)
++        if not token:
++            return JSONResponse({"error": "missing_iap_jwt"}, status_code=401)
++
++        sub, email, err = verify_iap_jwt(token)
++        if err:
++            log.warning("IAP JWT rejected: %s", err)
++            return JSONResponse({"error": "invalid_iap_jwt", "detail": err}, status_code=401)
++
++        suffix = _allowed_suffix()
++        if suffix and email and not email.lower().endswith(suffix):
++            return JSONResponse(
++                {"error": "email_domain_denied", "email": email, "need_suffix": suffix},
++                status_code=403,
++            )
++
++        request.state.iap_email = email
++        request.state.iap_sub = sub
++        return await call_next(request)
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/api/app/main.py
+@@
+ from . import db
++from .iap_auth import IapJwtMiddleware
+@@
+ app = FastAPI(
+     title=APP_TITLE,
+     ...
+ )
++
++# Cloud: verify IAP JWT + @DOMAIN email. No-op when IAP_AUDIENCE unset (local).
++app.add_middleware(IapJwtMiddleware)
+*** End Patch
+
+NOTES:
+- Set Cloud Run env:
+    IAP_AUDIENCE=/projects/PROJECT_NUMBER/locations/REGION/services/SERVICE_NAME
+    IAP_ALLOWED_EMAIL_SUFFIX=@sl.p4sgi.com
+- Health checks bypass JWT (Cloud Run / LB probes).
+- Unsigned headers x-goog-authenticated-user-email are NOT trusted alone.

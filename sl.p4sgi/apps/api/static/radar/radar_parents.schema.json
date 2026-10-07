@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sl.p4sgi.local/schemas/radar_parents/1",
+  "title": "radar_parents",
+  "description": "Tiny JSON for progressive spider charts. Series A snap / B confirmed / C SEMIS enrollment. Axes are period or class buckets (tablet RadarAggregator). No PNG, no base64 images.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "emis", "series", "periods"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "kind": { "const": "radar_parents" },
+    "emis": { "type": "string", "minLength": 3, "maxLength": 32 },
+    "schoolName": { "type": "string" },
+    "schoolEmail": { "type": "string" },
+    "domain": { "type": "string", "description": "Workspace domain already in the warehouse, e.g. sl.p4sgi.com" },
+    "classLabel": { "type": "string" },
+    "asOf": { "type": "string", "description": "ISO date the snapshot refers to" },
+    "source": { "type": "string", "enum": ["demo", "tablet", "apps_script", "webhook"] },
+    "demo": { "type": "boolean" },
+    "headline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "A": { "type": "number" },
+        "B": { "type": "number" },
+        "C": { "type": "number" },
+        "note": { "type": "string" }
+      }
+    },
+    "valuesNote": { "type": "string" },
+    "series": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "key", "label"],
+        "properties": {
+          "id": { "enum": ["A", "B", "C"] },
+          "key": { "enum": ["snap", "confirmed", "semis"] },
+          "label": { "type": "string" },
+          "color": { "type": "string" }
+        }
+      }
+    },
+    "periods": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Daily", "Weekly", "Monthly", "Termly", "Annual"],
+      "properties": {
+        "Daily": { "$ref": "#/$defs/period" },
+        "Weekly": { "$ref": "#/$defs/period" },
+        "Monthly": { "$ref": "#/$defs/period" },
+        "Termly": { "$ref": "#/$defs/period" },
+        "Annual": { "$ref": "#/$defs/period" }
+      }
+    }
+  },
+  "$defs": {
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["axes"],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "A", "B", "C"],
+            "properties": {
+              "label": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "A": { "type": "number", "minimum": 0 },
+              "B": { "type": "number", "minimum": 0 },
+              "C": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

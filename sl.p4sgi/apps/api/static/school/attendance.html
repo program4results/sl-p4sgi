@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Attendance — p4sgi</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a222c;
+      --text: #e7eef6;
+      --muted: #93a4b5;
+      --line: #2c3a48;
+      --line-soft: #1e2832;
+      --a: #1E88E5;
+      --link: #8ec5ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    body.embed { background: var(--bg); }
+    header, section, footer {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0.85rem 1.15rem;
+      width: 100%;
+    }
+    body.embed header,
+    body.embed section,
+    body.embed footer {
+      max-width: none;
+      padding: 0.55rem 0.7rem;
+    }
+    h1 { font-size: 1.2rem; margin: 0 0 0.2rem; }
+    h2 { font-size: 1.02rem; margin: 0 0 0.55rem; color: var(--text); }
+    .sub, .note, .muted { color: var(--muted); font-size: 0.88rem; }
+    a { color: var(--link); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      padding: 0.95rem 1.05rem;
+      box-shadow: none;
+    }
+    /* Stack sections with breathing room — no hard HR between cards */
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    ul.bullets { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    ul.bullets li { margin: 0.2rem 0; }
+    .md pre, .md code { white-space: pre-wrap; font-family: inherit; }
+    .md p, .md h1, .md h2, .md h3 { margin: 0.35rem 0; }
+    .md h1, .md h2, .md h3 { font-size: 1rem; }
+    .radar-card {
+      padding: 0.85rem 0.85rem 0.65rem;
+    }
+    .radar-card > .note { margin: 0 0 0.85rem; }
+    .radar-card h2 { margin-bottom: 0.35rem; }
+    .radar-frame {
+      width: 100%;
+      min-height: 720px;
+      height: 720px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--bg);
+      display: block;
+    }
+    body.embed .radar-frame { min-height: 680px; height: 680px; }
+    .err { color: #ffb4a8; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: baseline; }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 0.45rem;
+      margin: 0.45rem 0 0.35rem;
+    }
+    .metric {
+      background: #121920;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      padding: 0.4rem 0.5rem;
+    }
+    .metric .lbl { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric .val { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 0.08rem; }
+    body.embed .metrics { gap: 0.3rem; margin: 0.3rem 0 0.2rem; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); }
+    body.embed .metric { padding: 0.22rem 0.35rem; border-radius: 6px; }
+    body.embed .metric .lbl { font-size: 0.55rem; }
+    body.embed .metric .val { font-size: 0.88rem; margin-top: 0; }
+    .metric .val.a { color: #8ec5ff; }
+    .metric .val.b { color: #ffe082; }
+    .metric .val.c { color: #81c784; }
+    .metric .val.gap { color: #ffb4a8; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">Attendance</h1>
+    <p class="sub" id="sub">Loading…</p>
+    <p class="row" id="links"></p>
+  </header>
+  <section class="stack">
+    <div class="card" id="daily-card">
+      <h2>Daily summary</h2>
+      <div id="metrics" class="metrics" hidden></div>
+      <div id="daily" class="md muted">Loading daily summary…</div>
+    </div>
+    <div class="card radar-card">
+      <h2>Progressive radar (spiders)</h2>
+      <p class="note" style="margin-top:0">Snap (blue) · Confirmed (yellow) · SEMIS enrollment (green). Same as the tablet Progressive Tracking report — not grouped bars when ≥3 axes.</p>
+      <iframe id="radar" class="radar-frame" title="Radar spider charts" loading="lazy"></iframe>
+    </div>
+  </section>
+  <footer>
+    <p class="note" id="foot">Hosted by p4sgi dash. Google Sites should embed this page URL (Insert → Embed → By URL). Attendance Doc remains optional for longer text history.</p>
+  </footer>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const pathEmis = (location.pathname.match(/\/school\/([^/]+)\/attendance/) || [])[1];
+    const emis = (params.get("emis") || pathEmis || "110101").trim();
+    if (params.get("embed") === "1") document.body.classList.add("embed");
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    function simpleMd(md) {
+      if (!md) return "";
+      return esc(md)
+        .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+        .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+        .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+        .replace(/^\- (.+)$/gm, "<li>$1</li>")
+        .replace(/(<li>.*<\/li>\n?)+/g, m => "<ul class='bullets'>" + m + "</ul>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n{2,}/g, "<br/><br/>")
+        .replace(/\n/g, "<br/>");
+    }
+
+    async function loadBundle() {
+      const res = await fetch("/api/v1/school/" + encodeURIComponent(emis) + "/attendance-bundle", {
+        headers: { Accept: "application/json" }
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(res.status + " " + t.slice(0, 240));
+      }
+      return res.json();
+    }
+
+    function fmtNum(n) {
+      if (n == null || n === "") return "—";
+      const x = Number(n);
+      if (!Number.isFinite(x)) return esc(n);
+      return Number.isInteger(x) ? String(x) : String(x);
+    }
+
+    function renderMetrics(bundle) {
+      const box = document.getElementById("metrics");
+      const m = bundle.metrics || {};
+      const daily = bundle.daily || {};
+      const snap = m.snap != null ? m.snap : daily.snap;
+      const confirmed = m.confirmed != null ? m.confirmed : daily.confirmed;
+      const semis = m.semis != null ? m.semis : daily.semis;
+      const gap = m.gapPct != null ? m.gapPct : daily.gapPct;
+      const cls = m.classLabel || daily.classLabel;
+      const date = m.attendanceDate || daily.attendanceDate || daily.asOf;
+      const has = snap != null || confirmed != null || semis != null || gap != null || cls || date;
+      if (!has) { box.hidden = true; box.innerHTML = ""; return; }
+      const cells = [];
+      if (cls) cells.push('<div class="metric"><div class="lbl">Class</div><div class="val">' + esc(cls) + '</div></div>');
+      if (date) cells.push('<div class="metric"><div class="lbl">Date</div><div class="val">' + esc(date) + '</div></div>');
+      if (snap != null) cells.push('<div class="metric"><div class="lbl">A · Snap</div><div class="val a">' + fmtNum(snap) + '</div></div>');
+      if (confirmed != null) cells.push('<div class="metric"><div class="lbl">B · Confirmed</div><div class="val b">' + fmtNum(confirmed) + '</div></div>');
+      if (semis != null) cells.push('<div class="metric"><div class="lbl">C · SEMIS</div><div class="val c">' + fmtNum(semis) + '</div></div>');
+      if (gap != null) cells.push('<div class="metric"><div class="lbl">Gap vs SEMIS</div><div class="val gap">' + fmtNum(gap) + '%</div></div>');
+      box.innerHTML = cells.join("");
+      box.hidden = cells.length === 0;
+    }
+
+    function renderDaily(daily, cfg, bundle) {
+      const box = document.getElementById("daily");
+      if (!daily) {
+        box.innerHTML = '<p class="err">No daily summary JSON yet for EMIS ' + esc(emis) +
+          '. Parents still see the Attendance Doc on the Site when HQ embeds it, and radar below when JSON exists.</p>';
+        return;
+      }
+      const bits = [];
+      if (daily.headline) bits.push('<p><strong>' + esc(daily.headline) + '</strong></p>');
+      if (Array.isArray(daily.bullets) && daily.bullets.length) {
+        bits.push('<ul class="bullets">' + daily.bullets.map(b => '<li>' + esc(b) + '</li>').join("") + '</ul>');
+      } else if (daily.reportMarkdown) {
+        bits.push('<div>' + simpleMd(daily.reportMarkdown) + '</div>');
+      } else if (daily.payload_preview || daily.payloadPreview) {
+        bits.push('<p>' + esc(daily.payload_preview || daily.payloadPreview) + '</p>');
+      } else {
+        bits.push('<p class="muted">Daily summary present but empty.</p>');
+      }
+      if (daily.siteRef) {
+        bits.push('<p class="note">Site/legacy ref <code>' + esc(daily.siteRef) +
+          '</code> is <strong>not</strong> warehouse EMIS <code>' + esc(emis) + '</code>.</p>');
+      }
+      if (cfg && cfg.publishExecUrlNote) {
+        bits.push('<p class="note">' + esc(cfg.publishExecUrlNote) + '</p>');
+      }
+      if (daily.demo) bits.push('<p class="note">Demo scaffold — replace via POST /api/v1/attendance/' + esc(emis) + ' (JSON only, no PNG).</p>');
+      if (daily.radarValuesNote) bits.push('<p class="note">' + esc(daily.radarValuesNote) + '</p>');
+      box.innerHTML = bits.join("");
+    }
+
+    function renderLinks(bundle) {
+      const cfg = bundle.config || {};
+      const daily = bundle.daily || {};
+      const links = [];
+      if (cfg.attendanceDocId) {
+        links.push('<a href="https://docs.google.com/document/d/' + esc(cfg.attendanceDocId) + '/edit" target="_blank" rel="noopener">Attendance Doc</a>');
+      }
+      if (bundle.radarPageUrl || cfg.radarPageUrl) {
+        links.push('<a href="' + esc(bundle.radarPageUrl || cfg.radarPageUrl) + '" target="_blank" rel="noopener">Radar only</a>');
+      }
+      if (cfg.googleRadarExecUrl) {
+        links.push('<a href="' + esc(cfg.googleRadarExecUrl) + '" target="_blank" rel="noopener">Google charts (/exec)</a>');
+      }
+      if (cfg.siteAttendanceUrl) {
+        links.push('<a href="' + esc(cfg.siteAttendanceUrl) + '" target="_blank" rel="noopener">School Site</a>');
+      }
+      if (daily.attendanceDate || daily.asOf) {
+        links.push('<span class="pill">as of ' + esc(daily.attendanceDate || daily.asOf) + '</span>');
+      }
+      document.getElementById("links").innerHTML = links.join(" · ");
+    }
+
+    loadBundle().then(bundle => {
+      const cfg = bundle.config || {};
+      const daily = bundle.daily || {};
+      const name = bundle.schoolName || cfg.schoolName || daily.schoolName || "School";
+      const cls = daily.classLabel || (bundle.metrics && bundle.metrics.classLabel) || "";
+      document.getElementById("title").textContent = name + " · attendance";
+      document.getElementById("sub").textContent =
+        "EMIS " + emis +
+        (cls ? " · " + cls : "") +
+        (daily.attendanceDate || daily.asOf ? " · " + (daily.attendanceDate || daily.asOf) : "") +
+        " · combined daily text + radar for Site embed";
+      renderMetrics(bundle);
+      renderDaily(daily, cfg, bundle);
+      renderLinks(bundle);
+      const radarSrc = "/radar/?emis=" + encodeURIComponent(emis) + "&embed=1";
+      document.getElementById("radar").src = radarSrc;
+      if (bundle.publicBaseIsLocal) {
+        document.getElementById("foot").innerHTML =
+          'This dash is still on a <strong>local</strong> base (' + esc(bundle.publicBaseUrl) +
+          '). Local dash is HQ preview only — Sites cannot iframe localhost. Prefer Google Apps Script /exec (googleRadarExecUrl). See docs/SITE_ATTENDANCE_EMBED.md. Cloudflare not required for this pilot.';
+      }
+    }).catch(err => {
+      document.getElementById("sub").innerHTML = '<span class="err">' + esc(err.message) + '</span>';
+    });
+  </script>
+</body>
+</html>

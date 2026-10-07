@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>p4sgi</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --border: #334155;
+      font-family: system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.02em; }
+    header .meta { color: var(--muted); font-size: 0.85rem; }
+    header .meta a { color: var(--accent); text-decoration: none; }
+    header .meta a:hover { text-decoration: underline; }
+    main { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+    section {
+      background: var(--panel); border-radius: 10px; padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem; border: 1px solid var(--border);
+    }
+    h2 { margin: 0 0 0.75rem; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+    h2 .spin { margin-left: auto; }
+    p { color: var(--muted); line-height: 1.45; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+    a { color: var(--accent); }
+    button {
+      background: var(--accent); color: #0f172a; border: 0; border-radius: 6px;
+      padding: 0.4rem 0.75rem; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #475569; color: var(--text); }
+    button.danger { background: #7f1d1d; color: #fecaca; }
+    button.linkish { background: transparent; color: var(--accent); padding: 0.2rem 0.35rem; font-weight: 500; }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: #243247; }
+    tr.expanded { background: #1a2740; }
+    .badge {
+      display: inline-block; padding: 0.1rem 0.45rem; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge.pending { background: #422006; color: var(--warn); }
+    .badge.approved, .badge.ok { background: #064e3b; color: var(--ok); }
+    .badge.rejected, .badge.failed, .badge.error, .badge.timeout { background: #450a0a; color: var(--bad); }
+    .badge.kind { background: #1e3a5f; color: var(--accent); text-transform: none; font-weight: 500; }
+    .msg { margin-top: 0.5rem; font-size: 0.85rem; }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--bad); }
+    .empty { color: var(--muted); font-style: italic; padding: 0.75rem 0; }
+    select, input[type="text"] {
+      background: #0f172a; color: var(--text); border: 1px solid #475569;
+      border-radius: 6px; padding: 0.35rem 0.5rem;
+    }
+    .preview { max-width: 320px; color: var(--muted); font-size: 0.8rem; }
+    pre.view {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.75rem; max-height: 280px; overflow: auto; white-space: pre-wrap;
+      font-size: 0.75rem; color: var(--muted); margin: 0.5rem 0;
+    }
+    /* Domain filter — first control */
+    #domainFilter {
+      background: #162032; border: 1px solid #3b82f6;
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.15);
+    }
+    #domainFilter .section-toggle {
+      background: transparent; color: var(--text); padding: 0; font-size: inherit;
+      font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    #domainFilter .section-toggle:hover { color: var(--accent); }
+    #domainFilter .section-toggle .chevron { color: var(--accent); width: 1rem; }
+    #domainFilter .filter-summary {
+      margin-left: auto; color: var(--muted); font-size: 0.8rem; font-weight: 500;
+      text-align: right; max-width: 72%; overflow-wrap: anywhere;
+    }
+    #domainFilter .checks { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
+    #domainFilter label { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; color: var(--text); }
+    #domainFilter input { accent-color: var(--accent); width: 1rem; height: 1rem; }
+    details.dom-collapse { display: inline-block; max-width: 16rem; vertical-align: top; }
+    details.dom-collapse > summary {
+      cursor: pointer; list-style: none; color: var(--accent); font-size: 0.85rem;
+      user-select: none;
+    }
+    details.dom-collapse > summary::-webkit-details-marker { display: none; }
+    details.dom-collapse > summary::before { content: "▸ "; color: var(--muted); }
+    details.dom-collapse[open] > summary::before { content: "▾ "; }
+    details.dom-collapse .dom-list { margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { color: var(--accent); }
+    th.sortable .sort-ind { color: var(--muted); font-size: 0.75em; margin-left: 0.2rem; }
+
+    .detail {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.85rem; margin: 0.35rem 0 0.5rem;
+    }
+    .detail h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+    .detail dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.25rem 0.75rem; margin: 0 0 0.75rem; font-size: 0.85rem; }
+    .detail dt { color: var(--muted); }
+    .detail dd { margin: 0; word-break: break-word; }
+    .diff table { font-size: 0.8rem; }
+    .diff .from { color: var(--bad); }
+    .diff .to { color: var(--ok); }
+    .spinner {
+      display: inline-block; width: 0.9rem; height: 0.9rem;
+      border: 2px solid #475569; border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(2,6,23,0.72);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      width: min(1100px, 100%); max-height: 90vh; display: flex; flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+    .modal header {
+      border-bottom: 1px solid var(--border); padding: 0.85rem 1rem;
+    }
+    .modal .body { padding: 1rem; overflow: auto; flex: 1; }
+    .modal .foot {
+      border-top: 1px solid var(--border); padding: 0.75rem 1rem;
+      display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;
+    }
+    .csv-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--border); border-radius: 8px; }
+    .csv-wrap table { font-size: 0.78rem; white-space: nowrap; }
+    .csv-wrap th { position: sticky; top: 0; background: #1e293b; }
+    /* Toasts */
+    #toasts {
+      position: fixed; top: 1rem; right: 1rem; z-index: 200;
+      display: flex; flex-direction: column; gap: 0.5rem; max-width: min(360px, 92vw);
+    }
+    .toast {
+      background: #1e293b; border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.85rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      animation: slidein 0.2s ease-out;
+    }
+    .toast.err { border-left-color: var(--bad); }
+    .toast.ok { border-left-color: var(--ok); }
+    @keyframes slidein { from { opacity: 0; transform: translateY(-6px); } }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem; margin: 0.75rem 0 1rem;
+    }
+    .card {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+    }
+    .card .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card .value { font-size: 1.35rem; font-weight: 700; margin-top: 0.25rem; color: var(--accent); }
+
+
+    .section-chips {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.75rem;
+    }
+    .chip {
+      display: inline-flex; align-items: baseline; gap: 0.35rem;
+      background: #0f172a; border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.25rem 0.65rem; font-size: 0.78rem;
+    }
+    .chip .chip-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.68rem; }
+    .chip .chip-val { color: var(--accent); font-weight: 700; }
+    .chip.warn .chip-val { color: var(--warn); }
+    .chip.ok .chip-val { color: var(--ok); }
+    .emis-multi {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; align-items: center;
+      max-height: 7.5rem; overflow: auto; background: #0f172a; border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.45rem 0.65rem; min-width: 14rem; max-width: 42rem;
+    }
+    .emis-multi label { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.85rem; }
+    .emis-multi input { accent-color: var(--accent); }
+    .emis-multi .emis-empty { color: var(--muted); font-style: italic; font-size: 0.8rem; }
+
+    .preview-totals {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; align-items: baseline;
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.55rem 0.75rem; margin: 0 0 0.65rem; font-size: 0.85rem;
+    }
+    .preview-totals .tot-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 0.25rem; }
+    .preview-totals strong { color: var(--text); font-weight: 600; }
+    .fleet-hint { color: var(--muted); font-size: 0.8rem; margin: 0.35rem 0 0.75rem; }
+    .fleet-empty-row td { color: var(--muted); font-style: italic; }
+  </style>
+</head>
+<body>
+  <div id="toasts" aria-live="polite"></div>
+
+  <header>
+    <h1>p4sgi</h1>
+    <div class="meta">
+      Phase 4a — fleet / devices &amp; telemetry · v0.4.11 · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
+      &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="domainFilter">
+      <h2>
+        <button type="button" class="section-toggle" id="domainToggle" aria-expanded="false" aria-controls="domainFilterBody">
+          <span class="chevron" id="domainChevron" aria-hidden="true">▸</span> Domain filter
+        </button>
+        <span class="filter-summary" id="domainSummary">All domains</span>
+      </h2>
+      <div id="domainFilterBody" hidden>
+        <p style="margin-top:0">Filters GAM runs, schools, jobs, publish events, devices, and telemetry. Persisted in <code>localStorage</code>.</p>
+        <div class="checks" id="domainChecks">
+          <label><input type="checkbox" id="domAll" checked /> All</label>
+          <span class="spinner" id="domSpin" hidden></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Health <button type="button" class="secondary" id="btnRefresh">Refresh all</button></h2>
+      <p>API probe: <a href="/api/v1/health"><code>/api/v1/health</code></a>.
+         RBAC/OAuth/WhatsApp/Play not enforced yet. Tablet apps stay in snapait.
+         Primary GAM path is <strong>Run report</strong> below.</p>
+    </section>
+
+    <section>
+      <h2>Schools <button type="button" class="secondary" id="btnReloadSchools">Reload</button>
+        <span class="spin" id="schoolsSpin" hidden><span class="spinner"></span></span></h2>
+      <div id="schoolsTable"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section>
+      <h2>GAM reports <button type="button" class="secondary" id="btnReloadRuns">Reload</button>
+        <button type="button" class="secondary" id="btnReloadGamSummary">Summary</button>
+        <span class="spin" id="runsSpin" hidden><span class="spinner"></span></span>
+        <span class="spin" id="gamSumSpin" hidden><span class="spinner"></span></span></h2>
+      <div class="section-chips" id="gamSummaryChips" aria-live="polite"></div>
+      <p class="empty" id="gamSummaryNote" style="margin-top:-0.25rem;margin-bottom:0.65rem"></p>
+      <p>Runs allowlisted <code>gam</code> on the gbu host. <strong>Preview</strong> opens a modal (CSV table / text); Download is secondary. User reports include <code>recoveryEmail</code> when GAM returns it.</p>
+      <div class="row" id="gamButtons">
+        <button type="button" data-report="users">Users</button>
+        <button type="button" data-report="enrolled">Users enrolled</button>
+        <button type="button" data-report="never_logged_in">Never logged in</button>
+        <button type="button" data-report="wrong_password">Wrong password</button>
+        <button type="button" data-report="data_storage">Data / storage</button>
+        <button type="button" data-report="ous">OUs</button>
+        <button type="button" data-report="admins">Admins</button>
+        <button type="button" data-report="groups">Groups</button>
+        <button type="button" data-report="suspended">Suspended</button>
+        <button type="button" data-report="security_2sv">2SV / security</button>
+        <button type="button" data-report="last_login">Last login</button>
+      </div>
+      <p id="gamAvail" class="mono" style="font-size:0.8rem;"></p>
+      <div id="runsTable"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section>
+      <h2>Provisioning jobs <button type="button" class="secondary" id="btnReloadJobs">Reload</button>
+        <span class="spin" id="jobsSpin" hidden><span class="spinner"></span></span></h2>
+      <p>School provision: Approve writes <code>school-config.json</code> for EMIS (Attendance Doc, publish URL, Site link) into docker-data <code>school-configs</code>. <strong>Does NOT</strong> create a Google Site or change SEMIS. Expand a job to review payload / diff first — no blind approve.</p>
+      <div class="row"><span class="msg" id="jobsMsg"></span></div>
+      <div id="jobsTable"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section>
+      <h2>Recent publish events <button type="button" class="secondary" id="btnReloadEvents">Reload</button>
+        <span class="spin" id="eventsSpin" hidden><span class="spinner"></span></span></h2>
+      <div class="row">
+        <label style="display:flex;flex-direction:column;gap:0.25rem;align-items:flex-start">
+          EMIS
+          <div class="emis-multi" id="filterEmisMulti" title="From schools / school-configs / GAM OU paths (no invented SEMIS)"></div>
+          <span class="empty" style="font-size:0.75rem">Multi-select · warehouse / GAM Directory only</span>
+        </label>
+        <label>Kind
+          <select id="filterKind">
+            <option value="">all</option>
+            <option value="daily_attendance_parents">daily_attendance_parents</option>
+            <option value="radar_parents">radar_parents</option>
+            <option value="sqao_*">sqao_*</option>
+            <option value="school_config_publish">school_config_publish</option>
+          </select>
+        </label>
+        <span class="msg" id="eventsMsg"></span>
+      </div>
+      <div id="eventsTable"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section>
+      <h2>Telemetry summary <button type="button" class="secondary" id="btnReloadTelemetrySummary">Reload</button>
+        <span class="spin" id="telemSumSpin" hidden><span class="spinner"></span></span></h2>
+      <p>Fleet dash cards from tablet outbox telemetry (Phase 4a stubs). Android/snapait sync lands later.</p>
+      <div class="cards" id="telemCards"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section id="fleetDevices">
+      <h2>Fleet / devices <button type="button" class="secondary" id="btnReloadDevices">Reload</button>
+        <span class="spin" id="devicesSpin" hidden><span class="spinner"></span></span></h2>
+      <p>Identity registry: EMIS · school · device serial / Android ID · SIM / WhatsApp · device type · data used (telemetry). Demo Test Primary rows today; empty-pattern shows ~100-school scale. Prefer school-configs + device registry — no invented SEMIS schools.</p>
+      <div id="devicesTable"><p class="empty">Loading…</p></div>
+    </section>
+
+  </main>
+
+  <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
+    <div class="modal">
+      <header>
+        <h2 id="gamModalTitle" style="margin:0;font-size:1rem;">GAM preview</h2>
+        <button type="button" class="secondary" id="gamModalClose">Close</button>
+      </header>
+      <div class="body" id="gamModalBody"><p class="empty">…</p></div>
+      <div class="foot">
+        <a class="mono" id="gamModalDownload" href="#" target="_blank" rel="noopener">Download</a>
+        <button type="button" class="secondary" id="gamModalClose2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const LS_DOMAINS = 'slp4sgi.domainFilters';
+    const LS_EVENTS = 'slp4sgi.eventFilters';
+
+    const DOMAIN_CATALOG = ['ao.p4sgi.com', 'auiped.p4sgi.com', 'bw.p4sgi.com', 'cg.p4sgi.com', 'chikoro.p4sgi.com', 'esccom.p4sgi.com', 'gesci.p4sgi.com', 'gm.p4sgi.com', 'idrc.p4sgi.com', 'ls.p4sgi.com', 'mg.p4sgi.com', 'mu.p4sgi.com', 'mw.p4sgi.com', 'mz.p4sgi.com', 'na.p4sgi.com', 'p4rtracker.com', 'p4sgi.com', 'sadc.p4sgi.com', 'sl.p4sgi.com', 'swazi.school', 'sz.p4sgi.com', 'tl.p4sgi.com', 'tz.p4sgi.com', 'ug.p4sgi.com', 'uio.p4sgi.com', 'uis.p4sgi.com', 'za.p4sgi.com', 'zm.p4sgi.com', 'zw.p4sgi.com'];
+    let availableDomains = [...DOMAIN_CATALOG];
+    let selectedDomains = new Set(); // empty = All
+    let expandedJobId = null;
+    let jobCache = {};
+
+    function toast(msg, kind) {
+      const el = document.createElement('div');
+      el.className = 'toast' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
+      el.textContent = msg;
+      $('toasts').appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+    }
+
+    function setSpin(id, on) {
+      const el = $(id);
+      if (el) el.hidden = !on;
+    }
+
+    
+    function domainsCell(domains, opts) {
+      const list = Array.isArray(domains) ? domains.filter(Boolean) : [];
+      const compact = opts && opts.compact;
+      if (!list.length) return '—';
+      if (list.length === 1) {
+        return `<span class="badge kind">${esc(list[0])}</span>`;
+      }
+      const summary = compact
+        ? `${esc(list[0])} (+${list.length - 1})`
+        : `${list.length} domains`;
+      const badges = list.map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ');
+      return `<details class="dom-collapse"><summary title="${esc(list.join(', '))}">${summary}</summary><div class="dom-list">${badges}</div></details>`;
+    }
+
+    function domainsHeaderLine(domains) {
+      const list = Array.isArray(domains) ? domains.filter(Boolean) : [];
+      if (!list.length) return '';
+      if (list.length === 1) return ` · <span class="badge kind">${esc(list[0])}</span>`;
+      const badges = list.map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ');
+      return ` · <details class="dom-collapse" style="display:inline-block"><summary>${esc(list[0])} (+${list.length - 1})</summary><div class="dom-list">${badges}</div></details>`;
+    }
+
+    function isQuotaHeader(h) {
+      const s = String(h || '').toLowerCase();
+      return s.includes('quota') || s.includes('used_') || s.endsWith('_in_mb') || s.includes('storage');
+    }
+
+    function findCol(headers, ...cands) {
+      const lower = headers.map(h => String(h || '').toLowerCase());
+      for (const c of cands) {
+        const needle = c.toLowerCase();
+        let i = lower.indexOf(needle);
+        if (i >= 0) return i;
+        i = lower.findIndex(h => h.includes(needle));
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+
+    function filterCsvRowsByDomain(headers, rows) {
+      if (!selectedDomains.size) return rows.slice();
+      const idxs = [];
+      headers.forEach((h, i) => {
+        const s = String(h || '').toLowerCase();
+        if (s.includes('email') || s === 'user' || s.endsWith(':user') || s === 'primaryemail') idxs.push(i);
+      });
+      if (!idxs.length) return rows.slice();
+      return rows.filter(r => {
+        for (const i of idxs) {
+          const cell = String(r[i] || '');
+          const at = cell.lastIndexOf('@');
+          if (at >= 0) {
+            const d = cell.slice(at + 1).trim().toLowerCase();
+            if (selectedDomains.has(d)) return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    function isNeverLogin(v) {
+      const s = String(v ?? '').trim();
+      return s === '' || /^never$/i.test(s);
+    }
+
+    function formatBytesMb(mb) {
+      const n = Number(mb);
+      if (!Number.isFinite(n)) return '—';
+      if (Math.abs(n) >= 1024) return (n / 1024).toFixed(2) + ' GB';
+      return n.toFixed(1) + ' MB';
+    }
+
+    function computePreviewTotals(headers, rows, report) {
+      const n = rows.length;
+      const bits = [];
+      const noun = (report === 'ous' || report === 'groups' || report === 'admins')
+        ? (report === 'ous' ? 'OUs' : report)
+        : 'rows';
+      if (report === 'enrolled' || report === 'users' || report === 'last_login' || report === 'suspended' || report === 'never_logged_in') {
+        bits.push(`${n} users`);
+      } else {
+        bits.push(`${n} ${noun}`);
+      }
+      const lli = findCol(headers, 'lastlogintime', 'last_login', 'last login');
+      if (lli >= 0) {
+        let never = 0;
+        for (const r of rows) if (isNeverLogin(r[lli])) never += 1;
+        bits.push(`${never} never logged in`);
+        bits.push(`${n - never} ever logged in`);
+      }
+      const sus = findCol(headers, 'suspended');
+      if (sus >= 0) {
+        let t = 0, f = 0;
+        for (const r of rows) {
+          const v = String(r[sus] || '').trim().toLowerCase();
+          if (v === 'true' || v === '1' || v === 'yes') t += 1;
+          else if (v === 'false' || v === '0' || v === 'no') f += 1;
+        }
+        bits.push(`${t} suspended`);
+        if (f) bits.push(`${f} not suspended`);
+      }
+      const rec = findCol(headers, 'recoveryemail', 'recovery_email', 'recovery email');
+      if (rec >= 0) {
+        let withRec = 0;
+        for (const r of rows) if (String(r[rec] || '').trim()) withRec += 1;
+        bits.push(`${withRec} with recovery email`);
+      }
+      // data_storage / quota sums
+      const quotaIdxs = headers.map((h, i) => isQuotaHeader(h) ? i : -1).filter(i => i >= 0);
+      for (const i of quotaIdxs) {
+        let sum = 0, ok = 0;
+        for (const r of rows) {
+          const v = String(r[i] || '').trim().replace(/,/g, '');
+          if (v === '' || Number.isNaN(Number(v))) continue;
+          sum += Number(v);
+          ok += 1;
+        }
+        if (ok) bits.push(`Σ ${headers[i]}=${formatBytesMb(sum)}`);
+      }
+      return bits.join(' · ');
+    }
+
+    function parseSortKey(raw, header) {
+      const v = String(raw ?? '').trim();
+      const h = String(header || '').toLowerCase();
+      const dateish = /time|date|login|created|seen/.test(h)
+        || /^\d{4}-\d{2}-\d{2}/.test(v)
+        || /^never$/i.test(v);
+      if (dateish && (v === '' || /^never$/i.test(v))) {
+        // Never / empty = oldest
+        return { k: 'n', n: Number.NEGATIVE_INFINITY };
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
+        const t = Date.parse(v);
+        if (!Number.isNaN(t)) return { k: 'n', n: t };
+      }
+      const cleaned = v.replace(/,/g, '');
+      if (cleaned !== '' && /^-?\d+(\.\d+)?$/.test(cleaned)) {
+        return { k: 'n', n: Number(cleaned) };
+      }
+      // column looks numeric (quota) — coerce empties to 0
+      if (isQuotaHeader(h) || /count|size|mb|quota|used/.test(h)) {
+        if (cleaned === '' || Number.isNaN(Number(cleaned))) return { k: 'n', n: 0 };
+        return { k: 'n', n: Number(cleaned) };
+      }
+      return { k: 's', s: v.toLowerCase() };
+    }
+
+    function renderSortableCsvTable(headers, rows, report) {
+      // Persist sort for this modal session via returned object + outer totalsEl
+      const state = {
+        col: null,
+        dir: 1,
+        headers: headers.slice(),
+        rows: (rows || []).map(r => r.slice()),
+        report: report || '',
+      };
+      const root = document.createElement('div');
+      const totalsEl = document.createElement('div');
+      totalsEl.className = 'preview-totals';
+      const wrap = document.createElement('div');
+      wrap.className = 'csv-wrap';
+      root.appendChild(totalsEl);
+      root.appendChild(wrap);
+
+      function paint() {
+        totalsEl.innerHTML = `<span class="tot-label">Totals</span><strong>${esc(computePreviewTotals(state.headers, state.rows, state.report))}</strong>`;
+        const head = state.headers.map((h, i) => {
+          const ind = state.col === i ? (state.dir > 0 ? ' ▲' : ' ▼') : '';
+          return `<th class="sortable" data-col="${i}" title="Sort">${esc(h)}<span class="sort-ind">${ind}</span></th>`;
+        }).join('');
+        const body = state.rows.map(r =>
+          `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`
+        ).join('');
+        wrap.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+        if (!state.rows.length) {
+          const empty = document.createElement('p');
+          empty.className = 'empty';
+          empty.textContent = 'Header only — no data rows in preview window (after domain filter).';
+          wrap.appendChild(empty);
+        }
+        wrap.querySelectorAll('th.sortable').forEach(th => {
+          th.addEventListener('click', () => {
+            const i = Number(th.getAttribute('data-col'));
+            if (state.col === i) state.dir = -state.dir;
+            else { state.col = i; state.dir = 1; }
+            const header = state.headers[i];
+            state.rows.sort((a, b) => {
+              const av = parseSortKey(a[i], header);
+              const bv = parseSortKey(b[i], header);
+              let cmp = 0;
+              if (av.k === 'n' && bv.k === 'n') cmp = av.n - bv.n;
+              else if (av.k === 'n') cmp = -1;
+              else if (bv.k === 'n') cmp = 1;
+              else cmp = av.s.localeCompare(bv.s, undefined, { sensitivity: 'base' });
+              return cmp * state.dir;
+            });
+            paint();
+          });
+        });
+      }
+      paint();
+      return root;
+    }
+
+function domainQuery() {
+      if (!selectedDomains.size) return '';
+      const params = new URLSearchParams();
+      [...selectedDomains].forEach(d => params.append('domain', d));
+      return '?' + params.toString();
+    }
+
+    async function api(path, opts) {
+      const res = await fetch(path, opts);
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!res.ok) {
+        const detail = data && data.detail !== undefined ? data.detail : text;
+        throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      }
+      return data;
+    }
+
+    function badge(status) {
+      const s = (status || '').toLowerCase();
+      return `<span class="badge ${s}">${status || '?'}</span>`;
+    }
+    function kindBadge(kind) {
+      if (!kind) return '—';
+      return `<span class="badge kind">${kind}</span>`;
+    }
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[c]);
+    }
+    function siteLink(url) {
+      if (!url) return '<span class="empty">—</span>';
+      const short = url.replace(/^https?:\/\//, '').slice(0, 48) + (url.length > 56 ? '…' : '');
+      return `<a href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">Site ↗</a>
+              <div class="mono" style="font-size:0.7rem;color:var(--muted)">${esc(short)}</div>`;
+    }
+
+    /* ---- Domain filter ---- */
+    function loadDomainPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_DOMAINS);
+        if (!raw) { selectedDomains = new Set(); return; }
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) selectedDomains = new Set(arr);
+        else selectedDomains = new Set();
+      } catch { selectedDomains = new Set(); }
+    }
+    function saveDomainPrefs() {
+      localStorage.setItem(LS_DOMAINS, JSON.stringify([...selectedDomains]));
+    }
+    function renderDomainSummary() {
+      const names = availableDomains.filter(d => selectedDomains.has(d));
+      $('domainSummary').textContent = selectedDomains.size
+        ? `${names.length} selected: ${names.join(', ')}`
+        : `All domains (${availableDomains.length})`;
+    }
+
+    function setDomainPanel(open) {
+      $('domainFilterBody').hidden = !open;
+      $('domainToggle').setAttribute('aria-expanded', String(open));
+      $('domainChevron').textContent = open ? '▾' : '▸';
+    }
+
+    function renderDomainChecks() {
+      renderDomainSummary();
+      const host = $('domainChecks');
+      const allChecked = selectedDomains.size === 0;
+      let html = `<label><input type="checkbox" id="domAll" ${allChecked ? 'checked' : ''}/> All</label>`;
+      for (const d of availableDomains) {
+        const checked = !allChecked && selectedDomains.has(d);
+        html += `<label><input type="checkbox" class="domOne" data-domain="${esc(d)}" ${checked ? 'checked' : ''}/> ${esc(d)}</label>`;
+      }
+      host.innerHTML = html;
+      $('domAll').addEventListener('change', () => {
+        if ($('domAll').checked) {
+          selectedDomains = new Set();
+          saveDomainPrefs();
+          renderDomainChecks();
+          reloadFiltered();
+        } else if (!selectedDomains.size) {
+          // unchecking All with nothing else → keep All
+          $('domAll').checked = true;
+        }
+      });
+      host.querySelectorAll('.domOne').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const d = cb.getAttribute('data-domain');
+          if (cb.checked) selectedDomains.add(d);
+          else selectedDomains.delete(d);
+          if (selectedDomains.size === availableDomains.length) selectedDomains = new Set();
+          saveDomainPrefs();
+          renderDomainChecks();
+          reloadFiltered();
+        });
+      });
+    }
+    async function loadDomains() {
+      setSpin('domSpin', true);
+      try {
+        const data = await api('/api/v1/domains');
+        availableDomains = data.domains && data.domains.length
+          ? [...new Set(data.domains)].sort((a, b) => a.localeCompare(b))
+          : [...DOMAIN_CATALOG];
+        // drop selected that vanished
+        selectedDomains = new Set([...selectedDomains].filter(d => availableDomains.includes(d)));
+        renderDomainChecks();
+      } catch (e) {
+        toast('Domains: ' + e.message, 'err');
+        renderDomainChecks();
+      } finally {
+        setSpin('domSpin', false);
+      }
+    }
+
+    function reloadFiltered() {
+      loadEmisOptions();
+      loadGamSummary();
+      return Promise.all([loadSchools(), loadRuns(), loadJobs(), loadEvents(), loadDevices(), loadTelemetrySummary()]);
+    }
+
+    /* ---- Health ---- */
+    async function loadHealth() {
+      try {
+        const h = await api('/api/v1/health');
+        const pl = h.phase_label ? ` (${h.phase_label})` : '';
+        $('health').textContent = `phase=${h.phase}${pl} status=${h.status} db=${h.db} v${h.version}`;
+        $('health').style.color = h.status === 'ok' ? 'var(--ok)' : 'var(--warn)';
+      } catch (e) {
+        $('health').textContent = 'unreachable: ' + e.message;
+        $('health').style.color = 'var(--bad)';
+        toast('Health check failed', 'err');
+      }
+    }
+
+    /* ---- Schools ---- */
+    async function loadSchools() {
+      setSpin('schoolsSpin', true);
+      try {
+        const data = await api('/api/v1/schools' + domainQuery());
+        const schools = data.schools || [];
+        if (!schools.length) {
+          $('schoolsTable').innerHTML = '<p class="empty">No schools match the domain filter.</p>';
+          return;
+        }
+        const rows = schools.map(s => `<tr>
+          <td class="mono">${esc(s.emis)}</td>
+          <td>${esc(s.name)}</td>
+          <td class="mono">${esc(s.email || '—')}</td>
+          <td>${(s.domains || []).map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ') || '—'}</td>
+          <td>v${s.config_version ?? '—'}</td>
+          <td>${siteLink(s.site_attendance_url)}</td>
+        </tr>`).join('');
+        $('schoolsTable').innerHTML = `<table>
+          <thead><tr><th>EMIS</th><th>Name</th><th>Email</th><th>Domains</th><th>Config</th><th>Site</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      } catch (e) {
+        $('schoolsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('schoolsSpin', false);
+      }
+    }
+
+    /* ---- GAM ---- */
+    async function loadRuns() {
+      setSpin('runsSpin', true);
+      $('gamMsg').textContent = '';
+      try {
+        const data = await api('/api/v1/gam/reports' + domainQuery());
+        const avail = data.gam_available
+          ? `gam: available (${data.gam_detail})`
+          : `gam: NOT available — ${data.gam_detail}`;
+        $('gamAvail').textContent = avail;
+        $('gamAvail').style.color = data.gam_available ? 'var(--ok)' : 'var(--bad)';
+        const runs = data.runs || [];
+        if (!runs.length) {
+          $('runsTable').innerHTML = '<p class="empty">No runs match. Click a report button above (or clear domain filter).</p>';
+          return;
+        }
+        const rows = runs.map(r => `<tr>
+          <td class="mono">${esc(r.id)}</td>
+          <td>${kindBadge(r.report)}</td>
+          <td>${badge(r.status || 'ok')}</td>
+          <td>${r.size_bytes ?? '—'}</td>
+          <td>${domainsCell(r.domains)}</td>
+          <td class="mono">${esc((r.created_at || '').replace('T', ' ').slice(0, 19))}</td>
+          <td>
+            <button type="button" data-view="${esc(r.id)}">Preview</button>
+            <a class="mono" style="font-size:0.8rem;margin-left:0.35rem"
+               href="/api/v1/gam/reports/${encodeURIComponent(r.id)}/download">Download</a>
+          </td>
+        </tr>`).join('');
+        $('runsTable').innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Report</th><th>Status</th><th>Bytes</th><th>Domains</th><th>When (UTC)</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        $('runsTable').querySelectorAll('[data-view]').forEach(btn => {
+          btn.addEventListener('click', () => openGamPreview(btn.getAttribute('data-view')));
+        });
+      } catch (e) {
+        $('runsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('runsSpin', false);
+      }
+    }
+
+    async function runReport(report, btn) {
+      if (btn) btn.disabled = true;
+      $('gamMsg').textContent = `Running ${report}…`;
+      $('gamMsg').className = 'msg';
+      try {
+        const payload = { report };
+        if (selectedDomains.size) payload.domains = [...selectedDomains];
+        const data = await api('/api/v1/gam/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        $('gamMsg').textContent = `OK ${data.id} (${data.size_bytes} bytes)`;
+        $('gamMsg').className = 'msg ok';
+        toast(`GAM ${report} ready`, 'ok');
+        await loadRuns();
+        await openGamPreview(data.id);
+      } catch (e) {
+        $('gamMsg').textContent = e.message;
+        $('gamMsg').className = 'msg err';
+        toast(e.message, 'err');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function openGamPreview(id) {
+      const modal = $('gamModal');
+      const body = $('gamModalBody');
+      body.innerHTML = '<p class="empty"><span class="spinner"></span> Loading preview…</p>';
+      $('gamModalTitle').textContent = 'GAM preview — ' + id;
+      $('gamModalDownload').href = '/api/v1/gam/reports/' + encodeURIComponent(id) + '/download';
+      modal.classList.add('open');
+      try {
+        const data = await api('/api/v1/gam/reports/' + encodeURIComponent(id));
+        let html = `<p class="mono" style="font-size:0.8rem;margin:0 0 0.75rem">
+          ${esc(data.filename)} · ${badge(data.status)} · ${data.size_bytes ?? 0} bytes
+          · format=${esc(data.format || 'text')}
+          · report=${esc(data.report || '')}
+          ${domainsHeaderLine(data.domains)}
+        </p>`;
+        body.innerHTML = html;
+        if (data.format === 'csv' && data.headers && data.headers.length) {
+          body.insertAdjacentHTML('beforeend',
+            '<p class="empty" style="margin:0 0 0.5rem">Click any column header to sort (numeric / dates / Never). Totals use loaded rows after domain filter. lastLoginTime Never = never signed into Workspace (GAM).</p>');
+          const filtered = filterCsvRowsByDomain(data.headers, data.rows || []);
+          body.appendChild(renderSortableCsvTable(data.headers, filtered, data.report));
+        } else {
+          body.insertAdjacentHTML('beforeend', `<pre class="view">${esc(data.preview || '(empty)')}</pre>`);
+        }
+      } catch (e) {
+        body.innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      }
+    }
+    function closeGamModal() { $('gamModal').classList.remove('open'); }
+
+    /* ---- Jobs ---- */
+    async function loadJobs() {
+      setSpin('jobsSpin', true);
+      $('jobsMsg').textContent = '';
+      try {
+        const data = await api('/api/v1/provisioning/jobs' + domainQuery());
+        const jobs = data.jobs || [];
+        if (!jobs.length) {
+          $('jobsTable').innerHTML = '<p class="empty">No provisioning jobs match.</p>';
+          return;
+        }
+        const rows = jobs.map(j => {
+          const id = j.id;
+          const open = expandedJobId === id;
+          const summary = j.payload_summary || {};
+          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}">
+            <td class="mono">${esc(id.slice(0, 8))}…</td>
+            <td>${badge(j.status)}</td>
+            <td>${esc(j.emis || '—')}</td>
+            <td>${esc(j.school_name || '—')}</td>
+            <td class="mono">${esc(j.source_filename || '')}</td>
+            <td>${(j.domains || []).map(d => `<span class="badge kind">${esc(d)}</span>`).join(' ') || '—'}</td>
+            <td>${open ? '▼ detail' : '▶ expand'}</td>
+          </tr>
+          <tr class="job-detail-row" data-detail-for="${esc(id)}" style="display:${open ? 'table-row' : 'none'}">
+            <td colspan="7"><div class="detail" id="jobDetail-${esc(id)}">${open ? '<span class="spinner"></span> Loading…' : ''}</div></td>
+          </tr>`;
+        }).join('');
+        $('jobsTable').innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Status</th><th>EMIS</th><th>School</th><th>Source</th><th>Domains</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+        $('jobsTable').querySelectorAll('tr.clickable').forEach(tr => {
+          tr.addEventListener('click', () => toggleJob(tr.getAttribute('data-job')));
+        });
+        if (expandedJobId) fillJobDetail(expandedJobId);
+      } catch (e) {
+        $('jobsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('jobsSpin', false);
+      }
+    }
+
+    async function toggleJob(id) {
+      if (expandedJobId === id) {
+        expandedJobId = null;
+        await loadJobs();
+        return;
+      }
+      expandedJobId = id;
+      await loadJobs();
+    }
+
+    async function fillJobDetail(id) {
+      const box = document.getElementById('jobDetail-' + id);
+      if (!box) return;
+      box.innerHTML = '<span class="spinner"></span> Loading job preview…';
+      try {
+        const j = await api('/api/v1/provisioning/jobs/' + encodeURIComponent(id));
+        jobCache[id] = j;
+        const p = j.preview || {};
+        const schools = (p.schools_affected || []).map(s =>
+          `${esc(s.name || s.emis)} (${esc(s.emis)})${s.new ? ' <em>new</em>' : ''}`
+        ).join(', ') || '—';
+        const diffRows = (p.config_diff || []).map(d => `<tr>
+          <td class="mono">${esc(d.key)}</td>
+          <td class="from mono">${esc(d.from === null || d.from === undefined ? '∅' : d.from)}</td>
+          <td class="to mono">${esc(d.to === null || d.to === undefined ? '∅' : d.to)}</td>
+        </tr>`).join('');
+        const canApprove = j.status === 'pending' || j.status === 'failed';
+        const approveBtn = canApprove
+          ? `<button type="button" id="btnApprove-${esc(id)}" ${p.can_approve === false ? 'disabled title="Cannot approve — see errors"' : ''}>Approve (after review)</button>`
+          : `<span class="empty">Already ${esc(j.status)}</span>`;
+        box.innerHTML = `
+          <h3>Job ${esc(id.slice(0, 8))}… — review before approve</h3>
+          <dl>
+            <dt>Status</dt><dd>${badge(j.status)}</dd>
+            <dt>Source</dt><dd class="mono">${esc(j.source_filename)} (${esc(j.source_format)})</dd>
+            <dt>Schools affected</dt><dd>${schools}</dd>
+            <dt>Will write</dt><dd class="mono">${esc(p.will_write || '—')}</dd>
+            <dt>Payload rows</dt><dd>${p.payload_row_count ?? 0}</dd>
+            <dt>Action</dt><dd>${esc(p.action || '')}</dd>
+          </dl>
+          ${p.propose_error ? `<p class="msg err">${esc(p.propose_error)}</p>` : ''}
+          <h3>Payload fields</h3>
+          <pre class="view">${esc(JSON.stringify(p.payload_fields || {}, null, 2))}</pre>
+          <h3>Sample rows</h3>
+          <pre class="view">${esc(JSON.stringify(p.payload_sample_rows || [], null, 2))}</pre>
+          <h3>Proposed config</h3>
+          <pre class="view">${esc(JSON.stringify(p.proposed_config || {}, null, 2))}</pre>
+          <h3>Config diff vs current</h3>
+          <div class="diff">${diffRows
+            ? `<table><thead><tr><th>Key</th><th>From</th><th>To</th></tr></thead><tbody>${diffRows}</tbody></table>`
+            : '<p class="empty">No differences (or no proposed config).</p>'}</div>
+          <div class="row" style="margin-top:0.75rem">
+            ${approveBtn}
+            <button type="button" class="secondary" data-collapse="${esc(id)}">Collapse</button>
+          </div>`;
+        const ab = document.getElementById('btnApprove-' + id);
+        if (ab) ab.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          approve(id, ab);
+        });
+        box.querySelector('[data-collapse]')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          expandedJobId = null;
+          loadJobs();
+        });
+      } catch (e) {
+        box.innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      }
+    }
+
+    async function approve(id, btn) {
+      if (!confirm('Approve this school provision job? Writes school-config.json for EMIS into docker-data school-configs (Attendance Doc / publish URL / Site link). Does NOT create a Google Site or change SEMIS.')) return;
+      if (btn) btn.disabled = true;
+      $('jobsMsg').textContent = 'Approving…';
+      $('jobsMsg').className = 'msg';
+      try {
+        const data = await api(`/api/v1/provisioning/jobs/${id}/approve`, { method: 'POST' });
+        $('jobsMsg').textContent = `Approved → ${data.config_path} (v${data.config_version})`;
+        $('jobsMsg').className = 'msg ok';
+        toast(`Approved ${data.config_path}`, 'ok');
+        expandedJobId = null;
+        await Promise.all([loadJobs(), loadEvents(), loadSchools()]);
+      } catch (e) {
+        $('jobsMsg').textContent = e.message;
+        $('jobsMsg').className = 'msg err';
+        toast(e.message, 'err');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+
+    /* ---- EMIS multi-select (warehouse / GAM) + GAM summary chips ---- */
+    let selectedEmis = new Set();
+    let availableEmis = [];
+
+    function selectedEmisList() {
+      return [...selectedEmis].sort();
+    }
+
+    function renderEmisMulti() {
+      const box = $('filterEmisMulti');
+      if (!box) return;
+      if (!availableEmis.length) {
+        box.innerHTML = '<span class="emis-empty">No EMIS in warehouse yet (schools / school-configs / GAM OU paths)</span>';
+        return;
+      }
+      box.innerHTML = availableEmis.map(e => {
+        const id = 'emis_' + String(e.emis).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const checked = selectedEmis.has(String(e.emis)) ? 'checked' : '';
+        const label = e.name ? `${esc(e.emis)} · ${esc(e.name)}` : esc(e.emis);
+        return `<label for="${id}"><input type="checkbox" id="${id}" data-emis="${esc(e.emis)}" ${checked} /> ${label}</label>`;
+      }).join('');
+      box.querySelectorAll('input[data-emis]').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const code = inp.getAttribute('data-emis');
+          if (inp.checked) selectedEmis.add(code);
+          else selectedEmis.delete(code);
+          saveEventPrefs();
+          loadEvents();
+        });
+      });
+    }
+
+    async function loadEmisOptions() {
+      try {
+        const data = await api('/api/v1/emis' + domainQuery());
+        availableEmis = data.emis || [];
+        selectedEmis = new Set([...selectedEmis].filter(c => availableEmis.some(e => String(e.emis) === c)));
+        renderEmisMulti();
+      } catch (e) {
+        const box = $('filterEmisMulti');
+        if (box) box.innerHTML = `<span class="emis-empty">${esc(e.message)}</span>`;
+      }
+    }
+
+    function chipHtml(label, val, cls) {
+      return `<span class="chip ${cls || ''}"><span class="chip-label">${esc(label)}</span><span class="chip-val">${esc(String(val ?? '—'))}</span></span>`;
+    }
+
+    async function loadGamSummary() {
+      setSpin('gamSumSpin', true);
+      try {
+        const data = await api('/api/v1/gam/summary' + domainQuery());
+        const pct = data.pct_never_of_enrolled;
+        const pctTxt = (pct === null || pct === undefined) ? '—' : `${pct}%`;
+        $('gamSummaryChips').innerHTML = [
+          chipHtml('Enrolled', data.enrolled, 'ok'),
+          chipHtml('Never logged in', data.never_logged_in, 'warn'),
+          chipHtml('% never of enrolled', pctTxt, 'warn'),
+          chipHtml('Ever logged in', data.ever_logged_in),
+          chipHtml('Suspended', data.suspended),
+          chipHtml('Recovery email set', data.with_recovery_email),
+        ].join('');
+        const src = data.sources || {};
+        const parts = [];
+        if (src.enrolled) parts.push('enrolled=' + src.enrolled);
+        if (src.never_logged_in) parts.push('never=' + src.never_logged_in);
+        if (src.suspended) parts.push('suspended=' + src.suspended);
+        $('gamSummaryNote').textContent = (data.note || '')
+          + (parts.length ? ' Sources: ' + parts.join(', ') : ' (run Users enrolled / Never logged in / Suspended to populate)');
+      } catch (e) {
+        $('gamSummaryChips').innerHTML = '';
+        $('gamSummaryNote').textContent = e.message;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('gamSumSpin', false);
+      }
+    }
+
+    /* ---- Events ---- */
+    function loadEventPrefs() {
+      try {
+        const raw = localStorage.getItem(LS_EVENTS);
+        if (!raw) return;
+        const o = JSON.parse(raw);
+        if (Array.isArray(o.emisList)) selectedEmis = new Set(o.emisList.map(String));
+        else if (typeof o.emis === 'string' && o.emis.trim()) {
+          selectedEmis = new Set(o.emis.split(',').map(s => s.trim()).filter(Boolean));
+        }
+        if (o.kind) $('filterKind').value = o.kind;
+      } catch { /* ignore */ }
+    }
+    function saveEventPrefs() {
+      localStorage.setItem(LS_EVENTS, JSON.stringify({
+        emisList: selectedEmisList(),
+        kind: $('filterKind').value,
+      }));
+    }
+
+    async function loadEvents() {
+      setSpin('eventsSpin', true);
+      $('eventsMsg').textContent = '';
+      try {
+        const params = new URLSearchParams();
+        const kind = $('filterKind').value;
+        selectedEmisList().forEach(e => params.append('emis', e));
+        if (kind) params.set('kind', kind);
+        selectedDomains.forEach(d => params.append('domain', d));
+        const qs = params.toString() ? '?' + params.toString() : '';
+        const data = await api('/api/v1/publish-events' + qs);
+        const events = data.events || [];
+        if (!events.length) {
+          $('eventsTable').innerHTML = '<p class="empty">No publish events match.</p>';
+          return;
+        }
+        const rows = events.map(e => `<tr>
+          <td class="mono">${esc((e.id || '').slice(0, 8))}…</td>
+          <td>${kindBadge(e.kind)}</td>
+          <td>${badge(e.status || (e.config_path ? 'ok' : ''))}</td>
+          <td>${esc(e.emis || '—')}</td>
+          <td class="mono">${esc(e.school_email || '—')}</td>
+          <td>${siteLink(e.site_attendance_url)}</td>
+          <td class="preview">${esc(e.payload_preview || e.config_path || '—')}</td>
+          <td class="mono">${esc((e.created_at || '').replace('T', ' ').slice(0, 19))}</td>
+        </tr>`).join('');
+        $('eventsTable').innerHTML = `<table>
+          <thead><tr>
+            <th>ID</th><th>Kind</th><th>Status</th><th>EMIS</th><th>Email</th><th>Site</th><th>Preview</th><th>When</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      } catch (e) {
+        $('eventsTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('eventsSpin', false);
+      }
+    }
+
+
+    /* ---- Devices / Telemetry (Phase 4a) ---- */
+    async function loadTelemetrySummary() {
+      setSpin('telemSumSpin', true);
+      try {
+        const data = await api('/api/v1/telemetry/summary' + domainQuery());
+        const cards = [
+          ['Devices', data.devices],
+          ['Seen 7d', data.devices_seen_7d],
+          ['Skills', data.skills_run],
+          ['Prompts', data.prompts],
+          ['Publishes', data.publishes],
+          ['LLM local', data.llm_local],
+          ['LLM online', data.llm_online],
+          ['Radar', data.radar_points],
+          ['Data MB', data.data_mb_total],
+        ];
+        $('telemCards').innerHTML = cards.map(([label, val]) =>
+          `<div class="card"><div class="label">${esc(label)}</div><div class="value">${esc(String(val ?? 0))}</div></div>`
+        ).join('');
+      } catch (e) {
+        $('telemCards').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('telemSumSpin', false);
+      }
+    }
+
+    function formatDataUsed(mb) {
+      if (mb === null || mb === undefined || mb === '') return '<span class="empty">no telemetry yet</span>';
+      return esc(formatBytesMb(mb));
+    }
+
+    async function loadDevices() {
+      setSpin('devicesSpin', true);
+      try {
+        const data = await api('/api/v1/devices' + domainQuery());
+        const devices = data.devices || [];
+        const hint = data.scale_hint || '~100 schools (registry grows as tablets enrol)';
+        if (!devices.length) {
+          $('devicesTable').innerHTML = `<p class="empty">No devices match the domain filter.</p>
+            <p class="fleet-hint">${esc(hint)}. Empty registry — enrol tablets via API /api/v1/devices when ready.</p>
+            <table>
+              <thead><tr>
+                <th>EMIS</th><th>School</th><th>Serial / device id</th><th>Android id</th>
+                <th>SIM / phone</th><th>WhatsApp</th><th>Device type</th><th>Data used</th><th>Last seen</th>
+              </tr></thead>
+              <tbody>
+                <tr class="fleet-empty-row"><td colspan="9">— placeholder row (no SEMIS invented) —</td></tr>
+              </tbody>
+            </table>`;
+          return;
+        }
+        const rows = devices.map(d => `<tr>
+          <td class="mono">${esc(d.emis || '—')}</td>
+          <td>${esc(d.school_name || '—')}</td>
+          <td class="mono">${esc(d.serial || (d.id || '').slice(0, 8) || '—')}</td>
+          <td class="mono">${esc(d.tablet_android_id || '—')}</td>
+          <td class="mono">${esc(d.sim || '—')}</td>
+          <td class="mono">${esc(d.whatsapp || '—')}</td>
+          <td class="mono">${esc(d.device_type || '—')}</td>
+          <td>${formatDataUsed(d.data_mb)}</td>
+          <td class="mono">${esc((d.last_seen || '').replace('T', ' ').slice(0, 19) || '—')}</td>
+        </tr>`).join('');
+        // Visual empty-pattern: a few muted placeholder rows so ~100-school scale is obvious
+        const placeholders = Array.from({ length: 3 }, (_, i) =>
+          `<tr class="fleet-empty-row"><td colspan="9">… slot ${devices.length + i + 1} (awaiting school tablet enrol) …</td></tr>`
+        ).join('');
+        $('devicesTable').innerHTML = `
+          <p class="fleet-hint">Showing <strong>${devices.length}</strong> registry row(s). ${esc(hint)}. Sources: Postgres devices + school-configs / schools (not SEMIS invent).</p>
+          <table>
+          <thead><tr>
+            <th>EMIS</th><th>School</th><th>Serial / device id</th><th>Android id</th>
+            <th>SIM / phone</th><th>WhatsApp</th><th>Device type</th><th>Data used</th><th>Last seen</th>
+          </tr></thead>
+          <tbody>${rows}${placeholders}</tbody>
+        </table>`;
+      } catch (e) {
+        $('devicesTable').innerHTML = `<p class="msg err">${esc(e.message)}</p>`;
+        toast(e.message, 'err');
+      } finally {
+        setSpin('devicesSpin', false);
+      }
+    }
+
+    /* ---- Wire ---- */
+    document.querySelectorAll('#gamButtons [data-report]').forEach(btn => {
+      btn.addEventListener('click', () => runReport(btn.getAttribute('data-report'), btn));
+    });
+    $('domainToggle').addEventListener('click', () => {
+      setDomainPanel($('domainFilterBody').hidden);
+    });
+    $('btnRefresh').addEventListener('click', () =>
+      Promise.all([loadHealth(), loadDomains(), loadEmisOptions(), loadGamSummary(), reloadFiltered()]).then(() => toast('Refreshed', 'ok'))
+    );
+    $('btnReloadSchools').addEventListener('click', loadSchools);
+    $('btnReloadRuns').addEventListener('click', loadRuns);
+    $('btnReloadJobs').addEventListener('click', loadJobs);
+    $('btnReloadEvents').addEventListener('click', () => { saveEventPrefs(); loadEvents(); });
+    $('btnReloadDevices').addEventListener('click', loadDevices);
+    $('btnReloadTelemetrySummary').addEventListener('click', loadTelemetrySummary);
+    if ($('btnReloadGamSummary')) $('btnReloadGamSummary').addEventListener('click', loadGamSummary);
+    $('filterKind').addEventListener('change', () => { saveEventPrefs(); loadEvents(); });
+    $('gamModalClose').addEventListener('click', closeGamModal);
+    $('gamModalClose2').addEventListener('click', closeGamModal);
+    $('gamModal').addEventListener('click', (e) => { if (e.target === $('gamModal')) closeGamModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGamModal(); });
+
+    loadDomainPrefs();
+    loadEventPrefs();
+    renderDomainChecks();
+    Promise.all([loadHealth(), loadDomains(), loadEmisOptions(), loadGamSummary(), reloadFiltered()]);
+  </script>
+</body>
+</html>

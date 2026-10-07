@@ -1,0 +1,61 @@
+"""Static control catalogue for the PIA monitor (generated from workbook tab 3 + monitor spec).
+
+Each row: (id, axis, evidence collectors, automation, Bill ref as drafted, what the monitor measures).
+The Bill is NOT enacted; references are voluntary-alignment tags only.
+"""
+
+AXES = [
+    (1, 'Governance'),
+    (2, 'Legal basis & children'),
+    (3, 'Transparency & rights'),
+    (4, 'Minimisation & retention'),
+    (5, 'Identity design'),
+    (6, 'Sharing & third parties'),
+    (7, 'Access control'),
+    (8, 'Logging & monitoring'),
+    (9, 'Security, devices & incident'),
+    (10, 'AI, publication & training'),
+]
+
+CONTROLS = [
+    ('A01', 1, 'V', 'Semi', 'Part VIII / Sec 27', 'Controller + accountable official named in a signed record (tab 10 / register doc)'),
+    ('A02', 1, 'V', 'Semi', 'Part VIII', 'DPO / focal-point designation letter exists, dated, signed (R16, ACT-01)'),
+    ('A03', 2, 'V', 'Semi', 'Secs 38-39', 'Lawful-basis register per processing activity (doc, approved)'),
+    ('A04', 2, 'V', 'Semi', '-', 'Legal-status opinion dated; Bill status field Bill/Assented/Commenced'),
+    ('A05', 2, 'D+V', 'Semi', 'Sec 36', 'Consent/assent protocol doc + % learners with guardian-notice/consent flag in SEMIS'),
+    ('A06', 3, 'W+V', 'Semi', 'Sec 28', 'Privacy notice present on enrolment screen / school Site, language(s), version'),
+    ('A07', 4, 'D', 'Auto', 'Sec 27', 'DHIS2 data elements/attributes vs the 16 approved inventory items (extras = breach)'),
+    ('A08', 4, 'D+V', 'Manual', 'Sec 40', 'API consumers/joins vs DSA purposes; NIN used outside approved joins'),
+    ('A09', 3, 'S+D', 'Semi', 'Sec 27 / Part VII', 'Correction requests: count, median days to close'),
+    ('A10', 3, 'S', 'Semi', 'Part VII', 'Rights-request log: open, overdue, closed; channel published'),
+    ('A11', 4, 'D+V', 'Semi', 'Sec 41', 'Records past retention still identifiable; approved schedule coverage (tab 2 col I)'),
+    ('A12', 4, 'D+S', 'Semi', 'Sec 41', 'Analytics/public datasets contain no direct identifiers'),
+    ('A13', 5, 'D', 'Auto', '-', 'ULID values pass format test: no name/DOB/sex/school/district/NIN encoded'),
+    ('A14', 5, 'D+V', 'Semi', 'Sec 40', 'Who/what can read NIN attribute; separate authorisation doc'),
+    ('A15', 5, 'D', 'Auto', 'Secs 30-31', 'No fingerprint/photo attributes or file resources exist in the Hub (target 0)'),
+    ('A16', 6, 'V+G', 'Semi', 'Sec 40 / 59-60', 'Signed DSA per partner (NCRA, TSC, WAEC, SurveyCTO, SQAMR, Google) + external-share events'),
+    ('A17', 6, 'V+G', 'Semi', 'Secs 59(4)-(5), 60', 'DPAs with HISP UiO/WCA, Saudigitus, CGA; external-domain accounts and roles'),
+    ('A18', 6, 'A+V', 'Manual', 'Sec 42', 'Hosting/processing location register + approval record (hosting provider still TBD)'),
+    ('A19', 7, 'G+D', 'Auto', 'Secs 59-60', 'Actual roles vs tab-8 matrix; shared/generic accounts; school multi-scope; DHIS2 role mismatch'),
+    ('A20', 7, 'G+D', 'Auto', 'Secs 59-60', 'Super/delegated admins, external admins, no 2SV, no expiry (DHIS2 superusers)'),
+    ('A21', 7, 'G+A', 'Semi', 'Secs 59-60', 'Quarterly review record age; dormant-but-active accounts'),
+    ('A22', 7, 'G+D', 'Auto', 'Secs 59-60', '2SV enrolled/enforced % (privileged first); DHIS2 2FA'),
+    ('A23', 8, 'G+D', 'Auto', 'Secs 59-60', 'Audit sources present & non-empty (login, token, drive, admin); DHIS2 audit on'),
+    ('A24', 8, 'A+G', 'Manual', 'Secs 59-60', 'Evidence of log review + Alert Center rules; investigation records'),
+    ('A25', 9, 'G+A', 'Semi', 'Secs 59-60', 'Device encryption %; hosting/backup encryption attestation'),
+    ('A26', 9, 'G+S', 'Auto', 'Secs 59-60', 'Tablet compliance (0.4.19 devices), stale sync, passcode, dev mode, loss/theft wipe'),
+    ('A27', 8, 'G+D', 'Auto', 'Secs 59-60', 'Bulk download/export events per user (Drive audit; DHIS2 export audit)'),
+    ('A28', 5, 'D', 'Semi', '-', 'Merge/uncertain-match log exists, reviewer named, merges reversible'),
+    ('A29', 9, 'V', 'Semi', 'Sec 61', 'Incident procedure doc approved; last drill date'),
+    ('A30', 9, 'V', 'Semi', 'Sec 61', 'Escalation matrix incl. 48h processor->controller, 72h->Authority timers'),
+    ('A31', 9, 'A', 'Manual', 'Secs 59-60', 'Backup restore-test record age'),
+    ('A32', 9, 'G+A', 'Semi', 'Secs 59-60', 'OS/security-patch age distribution; vulnerability scan reports'),
+    ('A33', 10, 'G+V', 'Semi', 'Sec 47', 'Gemini/NotebookLM use by OU; human-in-loop SOP; automated flags with no human review'),
+    ('A34', 10, 'S+G+W', 'Auto', 'Sec 27', 'Published pages/JSON: no identifiers, no cell < k, no public links to learner data'),
+    ('A35', 10, 'V+G', 'Semi', 'Sec 27', 'Training register matched to staff list (users_full): % trained'),
+    ('A36', 1, 'V', 'Semi', 'Sec 27', 'SOP set present, approved, within review age'),
+    ('A37', 1, 'computed', 'Auto', 'Sec 27', '% of controls with fresh, approved evidence (computed by the module)'),
+    ('A38', 1, 'V+S', 'Manual', 'Sec 35', 'System/sharing change log vs PIA review date (release tags, new processors)'),
+    ('A39', 3, 'W+S', 'Semi', 'Part VII', 'Complaint channel published + complaints log'),
+    ('A40', 1, 'computed', 'Auto', 'Sec 35', 'Scale-up gate computed from risk register + tracker (see Gate)'),
+]

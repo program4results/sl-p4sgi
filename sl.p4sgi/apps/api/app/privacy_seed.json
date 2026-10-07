@@ -1,0 +1,1598 @@
+{
+ "project": {
+  "Project name": "Unique Learner ID (ULID) System and Education Data Warehouse",
+  "Reference number": "LRPS-2025-9200546",
+  "Parent programme": "Delivering the Foundations of Learning for All Programme 2024-2027 (funded by the Global Partnership for Education (GPE); grant agent: UNICEF)",
+  "Data Controller": "Ministry of Basic and Senior Secondary Education (MBSSE), Government of Sierra Leone",
+  "Proposed technical partner / consortium": "University of Oslo (UiO) & HISP Network, with HISP West & Central Africa and Saudigitus (HISP Mozambique) as delivery partners",
+  "Other processors / systems in scope": "SurveyCTO (EMIS/Annual School Census), the DHIS2 SEMIS (School Education Management Information System) app used for learner enrolment, Teaching Service Commission (TSC) / Wi De Ya (built by CGA Technologies), School Quality Assurance Service (SQAMR), National Civil Registration Authority (NCRA), West African Examinations Council (WAEC), and optionally Google Workspace for Education",
+  "Purpose of processing": "Assign a unique, verifiable Learner ID to every learner, enrolled via the DHIS2 SEMIS app; enable longitudinal tracking of attendance, enrolment, transfers and Foundational Literacy & Numeracy (FLN) outcomes from P1 to P4 (extendable to P6); eliminate duplicate/ghost records; integrate learner, teacher and exam data into a national Education Data Hub (DHIS2) for planning, monitoring and AI-assisted early-warning analytics",
+  "Categories of data subjects": "Learners (primary and, in future phases, potentially pre-primary/secondary — the large majority are children, including some under 12 who will not yet hold a NIN); teachers and school staff; indirectly, parents/guardians",
+  "Categories of personal data": "Identity data (name, DOB, sex/gender); National Identification Number (NIN); biometric data (fingerprint, facial photograph, via NCRA/Wi De Ya); disability status and functioning data (Washington Group Short Set / Child Functioning Module); attendance, enrolment and transfer records; learning assessment and exam results; teacher qualification, deployment and payroll data",
+  "Special category / high-risk data": "Biometric identifiers; disability status; data relating to children — see Data Inventory and Risk Register tabs",
+  "Legal basis for processing": "Not yet formally established in national law. Sierra Leone has not enacted the Data Protection and Right to Access Information Bill, 2025; The Bill has not been passed into law. MBSSE has been advised to align the project with its provisions as the applicable standard pending enactment. Under the Bill: Sec. 27 sets the core processing principles (accountability, fair and lawful collection, purpose limitation, data minimisation, accuracy, confidentiality/integrity, transparency); Sec. 39 lists grounds for processing without consent that MBSSE's public-education mandate may fall under (e.g. 'performance of a function of the state authorised by law', 'provision of a service or benefit to a data subject from the state'); but Sec. 36 separately and specifically requires parental/guardian consent, a best-interests test, and a prescribed age-verification mechanism for any processing of a child's personal data — this is not yet in place (see Risk R3).",
+  "Geographic scope": "Pilot phase: Western Area Rural, Bombali, Kailahun and Moyamba districts. Planned scale-up to national coverage (all 16 districts) following pilot evaluation.",
+  "Data hosting / residency": "Stated intent: hosted within Sierra Leone or the regional jurisdiction (proposal Section 7.1); specific hosting provider/data centre not yet confirmed",
+  "Core technology platform": "DHIS2 Education Data Hub and Analytics Platform (open-source). Learner enrolment is captured specifically through the DHIS2 SEMIS (School Education Management Information System) app, which feeds the central Education Data Hub; the platform also includes an AI-driven analytics module and optional Google Workspace for Education integration",
+  "Project phase at assessment": "Pilot (pilote) — Western Area Rural, Bombali, Kailahun & Moyamba districts",
+  "Assessment prepared by": "Djamila Dillé, Eric Adu-Gyamfi",
+  "Assessment date": "2026-10-05",
+  "Recommended next review": "Before scale-up beyond the current pilot to national rollout, and upon enactment of the Data Protection and Right to Access Information Bill"
+ },
+ "controls": [
+  {
+   "id": "A01",
+   "area": "Governance",
+   "question": "Has MBSSE formally identified the Data Controller and accountable senior official?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A02",
+   "area": "Governance",
+   "question": "Has a Data Protection / Privacy focal point or equivalent function been formally designated?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A03",
+   "area": "Legal basis",
+   "question": "Is the lawful basis for each major processing activity documented and approved?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A04",
+   "area": "Legal framework",
+   "question": "Has MBSSE Legal confirmed the current status and applicability of Sierra Leone data-protection legislation/policies?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A05",
+   "area": "Children",
+   "question": "Is processing of children's data supported by the required legal/consent and best-interests arrangements?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A06",
+   "area": "Privacy notice",
+   "question": "Is a clear privacy notice provided at or before collection, in an appropriate language?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A07",
+   "area": "Data minimisation",
+   "question": "Has every collected data field a documented purpose and necessity?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A08",
+   "area": "Purpose limitation",
+   "question": "Are ULID/NIN data prevented from being reused for incompatible purposes?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A09",
+   "area": "Accuracy",
+   "question": "Is there a documented process for correcting inaccurate learner records?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A10",
+   "area": "Data subject rights",
+   "question": "Can learners/parents/guardians request access, correction or other applicable rights?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A11",
+   "area": "Retention",
+   "question": "Is there an approved retention and disposal schedule for each data category?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A12",
+   "area": "Anonymisation",
+   "question": "Are long-term analytical/statistical datasets anonymised or appropriately de-identified where possible?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A13",
+   "area": "ULID design",
+   "question": "Is the ULID non-specific and free of names, DOB, sex, school, district, disability and NIN?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A14",
+   "area": "NIN linkage",
+   "question": "Is NIN linkage separately justified, authorised and limited to necessary fields?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A15",
+   "area": "Biometrics",
+   "question": "If biometric data are involved, are they processed only by the authorised system and not unnecessarily copied into the ULID registry?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A16",
+   "area": "Data sharing",
+   "question": "Is every external sharing arrangement supported by documented purpose, legal basis, fields, security, retention and disposal terms?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A17",
+   "area": "Third parties",
+   "question": "Are processors bound by written agreements, confidentiality, security, breach reporting, deletion/return and audit obligations?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A18",
+   "area": "Cross-border",
+   "question": "Has each external hosting/processing location been assessed and approved?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A19",
+   "area": "Access control",
+   "question": "Is access role-based, least-privilege, named-user and approved?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A20",
+   "area": "Privileged access",
+   "question": "Are administrator and technical-provider accounts restricted, logged and time-limited where possible?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A21",
+   "area": "Access review",
+   "question": "Are user accounts and privileges reviewed at least quarterly?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A22",
+   "area": "Authentication",
+   "question": "Are strong authentication controls applied to privileged and sensitive access?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A23",
+   "area": "Logging",
+   "question": "Are authentication, lookup, edit, merge, export and administrative actions logged?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A24",
+   "area": "Monitoring",
+   "question": "Are security logs reviewed and suspicious activity investigated?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A25",
+   "area": "Encryption",
+   "question": "Is personal data protected in transit and appropriately protected at rest and in backups?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A26",
+   "area": "Offline devices",
+   "question": "Are tablets/devices protected by authentication, encryption, secure sync, remote management and loss/theft procedures?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A27",
+   "area": "Exports",
+   "question": "Are bulk learner-level exports restricted, approved, logged and minimised?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A28",
+   "area": "Duplicate matching",
+   "question": "Are uncertain matches reviewed by authorised staff and merges logged/reversible?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A29",
+   "area": "Incident response",
+   "question": "Is there a documented personal-data breach and security incident procedure?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A30",
+   "area": "Breach escalation",
+   "question": "Are internal escalation, regulator/authority and data-subject notification requirements defined?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A31",
+   "area": "Backup/recovery",
+   "question": "Are backups tested and protected against unauthorised access or loss?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A32",
+   "area": "Vulnerability management",
+   "question": "Are application, server, dependency and device vulnerabilities identified and remediated?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A33",
+   "area": "AI/analytics",
+   "question": "Where AI/predictive analytics are used, are human review, bias, explainability and impact safeguards defined?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A34",
+   "area": "Public reporting",
+   "question": "Are aggregation, suppression and disclosure-control rules applied to dashboards/reports?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A35",
+   "area": "Training",
+   "question": "Have staff handling learner data completed privacy, confidentiality and security training?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A36",
+   "area": "SOPs",
+   "question": "Are key procedures approved and used: registration, access, rights, incidents, sharing, retention?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A37",
+   "area": "Audit readiness",
+   "question": "Can MBSSE produce evidence of controls, approvals, logs, agreements, training, incidents and reviews?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A38",
+   "area": "Change management",
+   "question": "Does a material system/data-sharing change trigger DPIA/PIA review before implementation?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A39",
+   "area": "Complaints",
+   "question": "Is there a documented channel for privacy complaints and escalation?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  },
+  {
+   "id": "A40",
+   "area": "Scale-up decision",
+   "question": "Are all critical/high gaps closed or formally accepted before national scale-up?",
+   "status": "Not started",
+   "declared": 0.0,
+   "evidence": "",
+   "gap": "",
+   "action": "",
+   "owner": "",
+   "target": ""
+  }
+ ],
+ "risks": [
+  {
+   "id": "R1",
+   "description": "Absence of an enacted national data protection law leaves the whole project without a clear statutory legal basis or independent regulatory oversight.",
+   "category": "Legal basis / Governance",
+   "subjects": "All learners, teachers",
+   "L": 5,
+   "I": 4,
+   "inherent": 20,
+   "inherent_band": "Critical",
+   "mitigation": "MBSSE has been advised to voluntarily align with the Data Protection and Right to Access Information Bill, 2025 pending enactment (Sec. 27 principles, Sec. 39 lawful-processing grounds); the Bill has completed national validation but has no commencement date, so there is no binding law or operational regulator yet.",
+   "rL": 4,
+   "rI": 3,
+   "residual": 12,
+   "residual_band": "High",
+   "owner": "MBSSE senior management / Legal counsel (DPO focal point to be designated)",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R2",
+   "description": "Collection and cross-system linkage of biometric identifiers (fingerprint, facial photograph) via NIN integration, for learners from age 12 and all teachers.",
+   "category": "Special category / Biometric data",
+   "subjects": "Learners (12+), Teachers",
+   "L": 4,
+   "I": 5,
+   "inherent": 20,
+   "inherent_band": "Critical",
+   "mitigation": "Privacy-preserving verification referenced (Zero-Knowledge Proofs); encryption at rest; NIN linkage described as 'controlled, privacy-compliant... where available' (proposal Sec. 7.1). Biometric data is explicitly 'sensitive personal data' under the Bill (Secs. 30-31 interpretation), so processing must meet one of the Bill's specific conditions (explicit consent or a defined legal ground). Architecturally, the DHIS2 Education Data Hub / ULID system does not receive or store the raw fingerprint or facial-image data itself — only the verification outcome (match confirmation / verified NIN) is passed to it by NCRA/Wi De Ya, which reduces (but does not remove) the Hub's own exposure to this sensitive personal data.",
+   "rL": 2,
+   "rI": 4,
+   "residual": 8,
+   "residual_band": "Medium",
+   "owner": "HISP UiO Data Architecture Lead; NCRA (data-sharing agreement)",
+   "status": "In Progress"
+  },
+  {
+   "id": "R3",
+   "description": "Processing of children's personal data — the large majority of data subjects are minors, including learners under 12 without an independent NIN — captured at first enrolment in the DHIS2 SEMIS app, with no documented parental/guardian consent or notice mechanism.",
+   "category": "Children's data / Consent",
+   "subjects": "Learners (esp. under 12)",
+   "L": 5,
+   "I": 4,
+   "inherent": 20,
+   "inherent_band": "Critical",
+   "mitigation": "Not addressed in the proposal. The Bill (Sec. 36) makes parental/guardian consent, a best-interests test, and a prescribed age-verification mechanism mandatory preconditions for processing a child's data — none of these currently exist for SEMIS enrolment.",
+   "rL": 3,
+   "rI": 3,
+   "residual": 9,
+   "residual_band": "Medium",
+   "owner": "MBSSE + Child Rights Act compliance lead",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R4",
+   "description": "Collection of disability status (Washington Group Short Set / Child Functioning Module) and gender-disaggregated data, which is special-category and carries stigma or discrimination risk for the children concerned.",
+   "category": "Special category data",
+   "subjects": "Learners with disabilities",
+   "L": 3,
+   "I": 5,
+   "inherent": 15,
+   "inherent_band": "High",
+   "mitigation": "MBSSE Inclusive Data Charter & Radical Inclusion Policy (2021) mandates disaggregation; role-based access controls referenced (proposal Sec. 8.1). The Bill's sensitive-personal-data definition names 'sex' explicitly and covers disability by analogy to 'physical or health status', so Secs. 30-31 conditions apply to this data.",
+   "rL": 2,
+   "rI": 4,
+   "residual": 8,
+   "residual_band": "Medium",
+   "owner": "MBSSE Inclusive Education Unit",
+   "status": "In Progress"
+  },
+  {
+   "id": "R5",
+   "description": "Using the NIN as a primary key across education (ULID), TSC/Wi De Ya, WAEC and NCRA creates a de facto unified profile of each child, enabling function creep beyond the stated education-monitoring purpose.",
+   "category": "Purpose limitation / Function creep",
+   "subjects": "Learners, Teachers",
+   "L": 4,
+   "I": 4,
+   "inherent": 16,
+   "inherent_band": "Critical",
+   "mitigation": "'Controlled, privacy-compliant linkage' and institutional data sovereignty are stated principles (proposal Sec. 1, 7.1). The Bill's purpose-limitation and further-processing compatibility test (Sec. 40) governs using NIN/ULID data across TSC, WAEC and NCRA systems.",
+   "rL": 3,
+   "rI": 3,
+   "residual": 9,
+   "residual_band": "Medium",
+   "owner": "Education Data Working Group (EDWG) / MBSSE Data Governance",
+   "status": "In Progress"
+  },
+  {
+   "id": "R6",
+   "description": "Data sharing and interoperability with external systems (SurveyCTO/EMIS, TSC, SQAMR, NCRA, WAEC, optionally Google) is planned without confirmed data-sharing or data-processing agreements evidenced in the proposal.",
+   "category": "Third-party sharing / Contracts",
+   "subjects": "All data subjects",
+   "L": 4,
+   "I": 4,
+   "inherent": 16,
+   "inherent_band": "Critical",
+   "mitigation": "Institutional data sovereignty is stated as a design principle; specific DSAs/DPAs are not evidenced in the proposal. The Bill (Secs. 59(4)-(5), 60) would require security and confidentiality obligations to be flowed down contractually to every processor.",
+   "rL": 3,
+   "rI": 3,
+   "residual": 9,
+   "residual_band": "Medium",
+   "owner": "MBSSE Procurement / Legal",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R7",
+   "description": "Optional adoption of Google Workspace for Education may involve cross-border data transfer and dependence on a foreign vendor's jurisdiction and terms of service.",
+   "category": "Cross-border transfer / Vendor",
+   "subjects": "Learners, Teachers, Staff",
+   "L": 3,
+   "I": 3,
+   "inherent": 9,
+   "inherent_band": "Medium",
+   "mitigation": "Proposal cites an advertisement-free configuration, no commercial data mining, full school administrative control, and compliance with 'leading international child data protection standards' (proposal Sec. 8.5). The Bill's cross-border test (Sec. 42) requires both destination-country adequacy and data-subject consent; its commercial-use provision (Sec. 37) requires anonymisation or express consent.",
+   "rL": 2,
+   "rI": 3,
+   "residual": 6,
+   "residual_band": "Medium",
+   "owner": "MBSSE ICT / Procurement (if module adopted)",
+   "status": "Open - Decision Pending"
+  },
+  {
+   "id": "R8",
+   "description": "AI-driven predictive analytics / early-warning systems will flag at-risk learners (dropout, learning gaps) without documented safeguards against automated-decision harms, bias, or lack of human review.",
+   "category": "Automated decision-making / AI",
+   "subjects": "Learners flagged as at-risk",
+   "L": 4,
+   "I": 4,
+   "inherent": 16,
+   "inherent_band": "Critical",
+   "mitigation": "AI-ready architecture referenced (proposal Sec. 8.4, 15.1); no bias-testing, human-in-the-loop, or explainability safeguards are specified. The Bill (Sec. 47) gives a data subject the right to prevent a decision that significantly affects them from being based solely on automated processing.",
+   "rL": 3,
+   "rI": 3,
+   "residual": 9,
+   "residual_band": "Medium",
+   "owner": "HISP UiO / MBSSE M&E",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R9",
+   "description": "Offline learner enrolment via the DHIS2 SEMIS app and other tablet-based data capture (Wi De Ya) in low-connectivity pilot schools risks exposure of locally stored PII (Personally Identifiable Information) if a device is lost, stolen, or improperly decommissioned before syncing.",
+   "category": "Security / Device management",
+   "subjects": "Learners, Teachers at pilot schools",
+   "L": 3,
+   "I": 4,
+   "inherent": 12,
+   "inherent_band": "High",
+   "mitigation": "Offline capture with later sync is a core design feature of SEMIS and Wi De Ya (Sec. 7.1); device passcodes/encryption are referenced for related MDM controls, but a formal device-security SOP is not evidenced.",
+   "rL": 2,
+   "rI": 3,
+   "residual": 6,
+   "residual_band": "Medium",
+   "owner": "MBSSE ICT / School administrators",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R10",
+   "description": "No documented data-retention or disposal schedule for learner and teacher records, risking indefinite retention beyond the stated FLN-monitoring purpose (P1-P4, extendable to P6).",
+   "category": "Data minimisation / Retention",
+   "subjects": "All data subjects",
+   "L": 4,
+   "I": 3,
+   "inherent": 12,
+   "inherent_band": "High",
+   "mitigation": "Not addressed in the proposal. The Bill (Sec. 41) requires that data not be retained longer than necessary and be deleted or de-identified at expiry of the retention period — the Data Inventory tab now carries suggested retention periods aligned to this.",
+   "rL": 4,
+   "rI": 3,
+   "residual": 12,
+   "residual_band": "High",
+   "owner": "MBSSE Data Governance",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R11",
+   "description": "Limited or undefined mechanisms for data subjects (learners, parents/guardians, teachers) to access, correct, or request erasure of their records.",
+   "category": "Data subject rights",
+   "subjects": "All data subjects",
+   "L": 4,
+   "I": 3,
+   "inherent": 12,
+   "inherent_band": "High",
+   "mitigation": "Not addressed in the proposal. The Bill (Part VII) grants specific rights: correction, access, restriction of processing, objection to direct marketing, protection from solely-automated decisions, and data portability — none of these currently have an operational process.",
+   "rL": 4,
+   "rI": 3,
+   "residual": 12,
+   "residual_band": "High",
+   "owner": "MBSSE Client Services / DPO focal point",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R12",
+   "description": "Multiple consortium partners and subcontractors (HISP UiO, HISP WCA, Saudigitus, CGA Technologies for Wi De Ya) will have technical access to national learner/teacher data without a confirmed access-control or staff-vetting policy documented in the proposal.",
+   "category": "Third-party / Vendor access",
+   "subjects": "All data subjects",
+   "L": 3,
+   "I": 4,
+   "inherent": 12,
+   "inherent_band": "High",
+   "mitigation": "Multi-factor, role-based access; zero-trust model; audit trails are cited as design commitments (proposal Sec. 7.1, 8.1). The Bill (Secs. 59-60) would require these controls, plus confidentiality duties, to be contractually imposed on every consortium partner and subcontractor.",
+   "rL": 2,
+   "rI": 3,
+   "residual": 6,
+   "residual_band": "Medium",
+   "owner": "MBSSE Contract Management",
+   "status": "In Progress"
+  },
+  {
+   "id": "R13",
+   "description": "Cybersecurity risk of data breach, unauthorised access, or ransomware affecting sensitive student and teacher records during data-warehouse integration (already flagged as 'High' in the proposal's own risk table).",
+   "category": "Security",
+   "subjects": "All data subjects",
+   "L": 3,
+   "I": 5,
+   "inherent": 15,
+   "inherent_band": "High",
+   "mitigation": "Zero Trust architecture, AES-256+ encryption at rest, salted password hashing, MFA, TLS, regular security audits, geographic redundancy, ZKP, and a 3-2-1 backup strategy are committed (proposal Sec. 13). The Bill (Sec. 61) sets specific breach-notification timelines: processor to controller within 48 hours; controller/processor to the Authority within 72 hours; data subject in writing within a reasonably practical period — the project's incident-response plan should be built to these deadlines.",
+   "rL": 2,
+   "rI": 4,
+   "residual": 8,
+   "residual_band": "Medium",
+   "owner": "HISP UiO/WCA Security Lead",
+   "status": "In Progress"
+  },
+  {
+   "id": "R14",
+   "description": "Public-facing dashboards intended to show only aggregated, non-personal data (modelled on Wi De Ya) carry residual re-identification risk in small schools or subgroups (e.g. the only learner with a disability in a small school).",
+   "category": "Data publication / Re-identification",
+   "subjects": "Learners in small cohorts",
+   "L": 3,
+   "I": 3,
+   "inherent": 9,
+   "inherent_band": "Medium",
+   "mitigation": "'Personal names excluded from analytics platforms... reporting focused on aggregated trends' (Sec. 7.1); small-cell suppression is not explicitly specified.",
+   "rL": 2,
+   "rI": 3,
+   "residual": 6,
+   "residual_band": "Medium",
+   "owner": "MBSSE M&E / Statistics Unit",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R15",
+   "description": "Daily biometric fingerprint scanning of teachers for attendance (Wi De Ya model) raises necessity/proportionality questions if less-intrusive alternatives were not formally assessed.",
+   "category": "Necessity & proportionality",
+   "subjects": "Teachers",
+   "L": 3,
+   "I": 3,
+   "inherent": 9,
+   "inherent_band": "Medium",
+   "mitigation": "Framed as an accountability and payroll-integrity measure, with precedent since the 2022 pilot and 2018 civil-service verification exercise (Annex 2).",
+   "rL": 2,
+   "rI": 3,
+   "residual": 6,
+   "residual_band": "Medium",
+   "owner": "TSC / MBSSE",
+   "status": "Accepted (existing practice)"
+  },
+  {
+   "id": "R16",
+   "description": "No Data Protection Officer or designated privacy focal point identified within MBSSE or the consortium to own ongoing compliance, incident response, and data-subject requests.",
+   "category": "Governance / Accountability",
+   "subjects": "All data subjects",
+   "L": 5,
+   "I": 4,
+   "inherent": 20,
+   "inherent_band": "Critical",
+   "mitigation": "Not addressed in the proposal. The Bill's registration regime (Part VIII) would require MBSSE and each processor to hold a Certificate of Registration, which in practice needs a named internal owner (DPO/focal point) to obtain and maintain.",
+   "rL": 5,
+   "rI": 4,
+   "residual": 20,
+   "residual_band": "Critical",
+   "owner": "MBSSE senior management",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R17",
+   "description": "MBSSE and its consortium partners/processors (HISP UiO, HISP WCA, Saudigitus and others) are not registered as a data controller/data processor, and no Certificate of Registration process has begun, in anticipation of the Bill's Part VIII registration regime.",
+   "category": "Registration / Regulatory readiness",
+   "subjects": "MBSSE, consortium partners",
+   "L": 3,
+   "I": 3,
+   "inherent": 9,
+   "inherent_band": "Medium",
+   "mitigation": "Not addressed in the proposal — no Authority yet exists to register with, but readiness work (documentation, internal ownership) can start now.",
+   "rL": 2,
+   "rI": 2,
+   "residual": 4,
+   "residual_band": "Low",
+   "owner": "MBSSE Legal / Procurement",
+   "status": "Open - Action Required"
+  },
+  {
+   "id": "R18",
+   "description": "This Privacy Impact Assessment has not been submitted to any data protection authority, and none currently exists to receive it; once the Bill is enacted, Sec. 35(3) will require a DPIA report for high-risk processing to reach the Authority at least 60 days before that processing begins.",
+   "category": "Regulatory submission / DPIA governance",
+   "subjects": "All data subjects",
+   "L": 3,
+   "I": 3,
+   "inherent": 9,
+   "inherent_band": "Medium",
+   "mitigation": "This workbook is intended to serve as the basis for that future submission once the Authority is operational; no formal internal sign-off or external submission process exists yet (see Sign-off tab).",
+   "rL": 2,
+   "rI": 2,
+   "residual": 4,
+   "residual_band": "Low",
+   "owner": "MBSSE senior management",
+   "status": "Open - Action Required"
+  }
+ ],
+ "actions": [
+  {
+   "id": "ACT-01",
+   "action": "Designate a Data Protection Focal Point / DPO within MBSSE to own PIA governance, incident response, and data-subject requests.",
+   "risks": [
+    "R16"
+   ],
+   "owner": "MBSSE senior management",
+   "priority": "Critical",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-02",
+   "action": "Complete legal review of the project against the draft Data Protection and Right to Access Information Bill, the Child Rights Act 2007, and the Malabo Convention; document interim legal-basis approach.",
+   "risks": [
+    "R1"
+   ],
+   "owner": "Legal counsel / Ministry of Justice",
+   "priority": "Critical",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-03",
+   "action": "Design and document a parental/guardian consent, assent, and notice protocol appropriate for minors, including learners under 12 without a NIN, meeting the Bill's Sec. 36 requirements (parental consent, best-interests test, prescribed age-verification mechanism).",
+   "risks": [
+    "R3"
+   ],
+   "owner": "MBSSE + Child Rights lead",
+   "priority": "Critical",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-04",
+   "action": "Confirm and finalise the retention and disposal schedule now drafted in the Data Inventory tab (column H) against the Bill's Sec. 41 retain-no-longer-than-necessary and delete/de-identify-at-expiry requirement, and any surviving statutory retention rules (e.g. exam or payroll records).",
+   "risks": [
+    "R10"
+   ],
+   "owner": "MBSSE Data Governance",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-05",
+   "action": "Execute data-sharing / data-processing agreements with NCRA, TSC, WAEC, SurveyCTO and any Google Workspace deployment.",
+   "risks": [
+    "R6",
+    "R7"
+   ],
+   "owner": "MBSSE Procurement / Legal",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-06",
+   "action": "Define human-in-the-loop review, bias testing and explainability safeguards for AI-driven predictive/early-warning analytics.",
+   "risks": [
+    "R8"
+   ],
+   "owner": "HISP UiO / MBSSE M&E",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-07",
+   "action": "Publish a device-security SOP for offline tablets (encryption, remote wipe, loss/theft reporting, decommissioning).",
+   "risks": [
+    "R9"
+   ],
+   "owner": "MBSSE ICT",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-08",
+   "action": "Establish a data-subject rights procedure (access, correction, erasure requests) for learners, guardians and teachers.",
+   "risks": [
+    "R11"
+   ],
+   "owner": "MBSSE Client Services",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-09",
+   "action": "Confirm access-control and staff-vetting policy for all consortium partners and subcontractors with system access.",
+   "risks": [
+    "R12"
+   ],
+   "owner": "MBSSE Contract Management",
+   "priority": "Medium",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-10",
+   "action": "Define small-cell suppression / statistical disclosure control rules for public dashboards.",
+   "risks": [
+    "R14"
+   ],
+   "owner": "MBSSE M&E / Statistics Unit",
+   "priority": "Medium",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-11",
+   "action": "Complete NIN/biometric linkage necessity and proportionality assessment, including for learners under 12.",
+   "risks": [
+    "R2",
+    "R5"
+   ],
+   "owner": "HISP UiO Data Architecture Lead",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-12",
+   "action": "If Google Workspace for Education is adopted, complete vendor due diligence and sign a Data Processing Agreement.",
+   "risks": [
+    "R7"
+   ],
+   "owner": "MBSSE ICT / Procurement",
+   "priority": "Medium",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-13",
+   "action": "Establish a breach-response protocol matching the Bill's timelines: processor to controller within 48 hours (Sec. 61(3)); controller/processor to the Authority within 72 hours (Sec. 61(1)(a)); data subject notified in writing within a reasonably practical period (Sec. 61(1)(b)).",
+   "risks": [
+    "R13"
+   ],
+   "owner": "HISP UiO/WCA Security Lead / MBSSE ICT",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-14",
+   "action": "Prepare for Certificate of Registration as data controller (MBSSE) and data processors (HISP UiO, HISP WCA, Saudigitus, CGA Technologies, and any other processor) once the Authority is established (Bill Part VIII).",
+   "risks": [
+    "R6",
+    "R12",
+    "R16"
+   ],
+   "owner": "MBSSE Legal / Procurement",
+   "priority": "Medium",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-15",
+   "action": "Build a human-in-the-loop review step into AI-driven early-warning analytics so that no decision significantly affecting a learner is based solely on automated processing (Bill Sec. 47).",
+   "risks": [
+    "R8"
+   ],
+   "owner": "HISP UiO / MBSSE M&E",
+   "priority": "High",
+   "target": "",
+   "status": "Not started"
+  },
+  {
+   "id": "ACT-16",
+   "action": "Once the Authority is operational, submit this Data Protection Impact Assessment (or its successor) at least 60 days before any high-risk processing begins (Bill Sec. 35(3)).",
+   "risks": [
+    "R18"
+   ],
+   "owner": "MBSSE senior management",
+   "priority": "Medium",
+   "target": "",
+   "status": "Not started"
+  }
+ ],
+ "stakeholders": [
+  {
+   "id": "S01",
+   "name": "MBSSE Policy & Planning / Data Protection Focal Point",
+   "role": "Data controller function; owns PIA outcome and sign-off",
+   "required": "Yes",
+   "method": "Working group",
+   "status": "Not started",
+   "notes": "Focal point role not yet designated (see R16)",
+   "owner": ""
+  },
+  {
+   "id": "S02",
+   "name": "Teaching Service Commission (TSC)",
+   "role": "Co-owns Wi De Ya; teacher biometric attendance data",
+   "required": "Yes",
+   "method": "Bilateral meeting",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S03",
+   "name": "National Civil Registration Authority (NCRA)",
+   "role": "Owns NIN/biometric registry that ULID will link to",
+   "required": "Yes",
+   "method": "Data-sharing agreement negotiation",
+   "status": "Not started",
+   "notes": "Highly sensitive data source",
+   "owner": ""
+  },
+  {
+   "id": "S04",
+   "name": "West African Examinations Council (WAEC)",
+   "role": "NIN-based exam registration (NPSE, BECE)",
+   "required": "Yes",
+   "method": "Bilateral meeting",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S05",
+   "name": "UNICEF (grant agent)",
+   "role": "Programme funder/oversight; child-protection standards",
+   "required": "Yes",
+   "method": "Programme steering committee",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S06",
+   "name": "Global Partnership for Education (GPE)",
+   "role": "Programme funder",
+   "required": "Recommended",
+   "method": "Progress reporting",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S07",
+   "name": "Parents / guardians / PTAs",
+   "role": "Data subjects (by proxy) for minor learners",
+   "required": "Yes",
+   "method": "District-level consultation / notice",
+   "status": "Not started",
+   "notes": "No consent mechanism defined yet (see R3)",
+   "owner": ""
+  },
+  {
+   "id": "S08",
+   "name": "Disability-focused CSOs (e.g. Sightsavers)",
+   "role": "Advise on disability-disaggregated data collection and safeguards",
+   "required": "Yes",
+   "method": "Technical working group",
+   "status": "Not started",
+   "notes": "Already active MBSSE partner on WG-SS data",
+   "owner": ""
+  },
+  {
+   "id": "S09",
+   "name": "District Education Offices / School Quality Assurance Officers",
+   "role": "Front-line data handling and device custody",
+   "required": "Yes",
+   "method": "Training / briefing sessions",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S10",
+   "name": "National Cyber Security Coordination Centre (NCSCC)",
+   "role": "National cybersecurity oversight",
+   "required": "Recommended",
+   "method": "Security review",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S11",
+   "name": "Ministry of Justice / Attorney-General's Office",
+   "role": "Legal basis given no enacted Data Protection Act",
+   "required": "Yes",
+   "method": "Legal review",
+   "status": "Not started",
+   "notes": "Critical given R1",
+   "owner": ""
+  },
+  {
+   "id": "S12",
+   "name": "HISP UiO / HISP WCA / Saudigitus (technical consortium)",
+   "role": "System designers and processors",
+   "required": "Yes",
+   "method": "Design workshops",
+   "status": "Not started",
+   "notes": "",
+   "owner": ""
+  },
+  {
+   "id": "S13",
+   "name": "Google (if Workspace for Education adopted)",
+   "role": "Potential data processor / cross-border transfer",
+   "required": "Conditional",
+   "method": "Vendor due diligence / DPA",
+   "status": "Not started",
+   "notes": "Only if module R7 is adopted",
+   "owner": ""
+  }
+ ],
+ "inventory": [
+  {
+   "n": "1",
+   "element": "Full name",
+   "subjects": "Learner / Teacher",
+   "category": "Standard",
+   "source": "DHIS2 SEMIS app (learner enrolment), Wi De Ya, WAEC",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + 3 years (covers correction/appeal window), then de-identify",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise for all operational and analytical use: replace with ULID; keep the name-to-ULID mapping separately, access-restricted. Anonymise (drop the mapping) once retention expires.",
+   "shared_with": "TSC, WAEC, NCRA (for NIN matching)"
+  },
+  {
+   "n": "2",
+   "element": "Date of birth",
+   "subjects": "Learner / Teacher",
+   "category": "Standard",
+   "source": "DHIS2 SEMIS app (learner enrolment), NCRA",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + 3 years, then de-identify",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise: store against the ULID, not the name. For analytics, generalise to age band/grade cohort rather than exact date.",
+   "shared_with": "NCRA (age/NIN verification)"
+  },
+  {
+   "n": "3",
+   "element": "Sex / gender",
+   "subjects": "Learner / Teacher",
+   "category": "Standard (disaggregation mandated) — 'sex' is listed in the Bill's definition of sensitive personal data",
+   "source": "DHIS2 SEMIS app (learner enrolment)",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + 3 years, then anonymise",
+   "retention_approved": "",
+   "pseudonymisation": "Keep pseudonymised (via ULID) for individual-level records, since 'sex' is sensitive personal data under the Bill. Anonymise to aggregate counts for any dashboard or public reporting — never publish at individual level.",
+   "shared_with": "MBSSE M&E / Inclusive Data Charter reporting"
+  },
+  {
+   "n": "4",
+   "element": "National Identification Number (NIN)",
+   "subjects": "Learner (from age ~12) / Teacher",
+   "category": "Identifier / high-risk",
+   "source": "NCRA civil registry",
+   "storage": "DHIS2 Hub, WAEC, TSC (as attribute)",
+   "retention": "Active enrolment + 3 years after the learner leaves the system, then de-identify; do not retain longer than NCRA's own linkage need requires",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise: use the ULID as the working identifier in EMIS/analytics; store the NIN mapping separately with the most restrictive access of any field in this inventory, given its cross-sector linkage power.",
+   "shared_with": "NCRA, WAEC, TSC (used as cross-sector primary key)"
+  },
+  {
+   "n": "5",
+   "element": "Fingerprint biometric",
+   "subjects": "Teacher (all); Learner (via NCRA ID from age 12)",
+   "category": "Special category / biometric — sensitive personal data under the Bill (biometric data)",
+   "source": "NCRA registry; Wi De Ya daily clock-in",
+   "storage": "NCRA centralised DB; Wi De Ya cloud DB. The DHIS2 Education Data Hub / ULID system does NOT receive or store the raw fingerprint template — only the verification outcome (match confirmation / verified NIN) is passed to it.",
+   "retention": "Shortest period that serves the verification purpose only (e.g. duration of active daily-attendance use); not the same duration as general learner/teacher records",
+   "retention_approved": "",
+   "pseudonymisation": "Cannot be meaningfully pseudonymised — a biometric template is inherently identifying. Securely delete (destroy) the template itself at expiry; do not retain 'anonymised' derivatives for analytics.",
+   "shared_with": "NCRA <-> TSC verification only; the fingerprint itself is not shared with or shared onward by the Education Data Hub."
+  },
+  {
+   "n": "6",
+   "element": "Facial photograph",
+   "subjects": "Learner / Teacher (NCRA ID holders, age 12+)",
+   "category": "Special category / biometric — sensitive personal data under the Bill (biometric data)",
+   "source": "NCRA registry",
+   "storage": "NCRA centralised DB. The DHIS2 Education Data Hub / ULID system does NOT receive or store the facial image — only the verification outcome is passed to it.",
+   "retention": "Shortest period that serves the identity-verification purpose only",
+   "retention_approved": "",
+   "pseudonymisation": "As for fingerprints: securely delete the image/template at expiry rather than attempting to anonymise it.",
+   "shared_with": "NCRA identity verification services only; the image itself is not shared with or shared onward by the Education Data Hub."
+  },
+  {
+   "n": "7",
+   "element": "Disability status (Washington Group Short Set / Child Functioning Module)",
+   "subjects": "Learner",
+   "category": "Special category — treated as sensitive personal data by analogy to 'physical or health status' under the Bill",
+   "source": "MBSSE EMIS (disability-disaggregated module)",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + duration of any related support programme, then anonymise; review annually",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise individual records (via ULID) while support is active. Anonymise and aggregate for any reporting beyond individual case management; apply small-cell suppression where a school/cohort is small enough that a disability status could identify a specific learner (see Risk R14).",
+   "shared_with": "MBSSE Inclusive Education Unit, donors/CSOs (aggregated)"
+  },
+  {
+   "n": "8",
+   "element": "Attendance records",
+   "subjects": "Learner / Teacher",
+   "category": "Standard",
+   "source": "Wi De Ya",
+   "storage": "Wi De Ya cloud DB → DHIS2 Hub",
+   "retention": "Active enrolment + 3 years, then anonymise for historical/trend analysis",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise via ULID during active use. Aggregate to school/district level for public dashboards; never publish individual attendance histories.",
+   "shared_with": "TSC, MBSSE dashboards (aggregated public view; individual records restricted)"
+  },
+  {
+   "n": "9",
+   "element": "Enrolment, transfer and dropout records",
+   "subjects": "Learner",
+   "category": "Standard",
+   "source": "DHIS2 SEMIS app, Wi De Ya",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + 3 years after last recorded activity, then anonymise",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise via ULID for tracking transfers/dropouts across schools. Anonymise for national trend statistics.",
+   "shared_with": "MBSSE M&E, district education offices"
+  },
+  {
+   "n": "10",
+   "element": "Learning assessment results (EGRA/EGMA, FLN indicators)",
+   "subjects": "Learner",
+   "category": "Standard",
+   "source": "MBSSE Learning Assessment Services",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Active enrolment + 3 years, longer only where needed for credential verification, then anonymise",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise via ULID for longitudinal tracking of the same learner's progress. Anonymise/aggregate for system-level FLN reporting.",
+   "shared_with": "MBSSE P&P, donors (aggregated)"
+  },
+  {
+   "n": "11",
+   "element": "Public examination results (NPSE, BECE)",
+   "subjects": "Learner",
+   "category": "Standard",
+   "source": "WAEC",
+   "storage": "WAEC systems → DHIS2 Hub (interoperability)",
+   "retention": "Per WAEC's own statutory retention rule where one exists; otherwise active enrolment + 3 years, then anonymise",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise via ULID/NIN for individual verification and progression tracking. Anonymise for aggregate pass-rate reporting.",
+   "shared_with": "WAEC, MBSSE"
+  },
+  {
+   "n": "12",
+   "element": "Cash-transfer / social-support eligibility flag (e.g. Girls in School programme)",
+   "subjects": "Learner",
+   "category": "Sensitive (welfare status)",
+   "source": "Wi De Ya-derived risk analysis",
+   "storage": "MBSSE social programme systems",
+   "retention": "Duration of programme participation + 3 years for audit, then anonymise",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise while a learner is an active or recently-exited beneficiary. Anonymise and aggregate for programme evaluation and donor reporting.",
+   "shared_with": "Programme implementing partners"
+  },
+  {
+   "n": "13",
+   "element": "Teacher qualification, deployment and payroll data",
+   "subjects": "Teacher",
+   "category": "Standard",
+   "source": "TMIS (TSC)",
+   "storage": "TSC TMIS → DHIS2 Hub",
+   "retention": "Per Ministry of Finance / national public-service records-retention rule (commonly 6-7 years after last activity for audit purposes; confirm the exact figure with MBSSE/Finance) — not indefinite",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise for cross-system analytics (deployment planning); payroll figures themselves are held under normal HR access controls, not published.",
+   "shared_with": "Ministry of Finance (payroll verification)"
+  },
+  {
+   "n": "14",
+   "element": "School location / GIS data",
+   "subjects": "School (institutional)",
+   "category": "Standard",
+   "source": "MBSSE EMIS",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Indefinite is reasonable here — this describes the school as an institution, not an identifiable individual, so it falls outside 'personal data' retention limits",
+   "retention_approved": "",
+   "pseudonymisation": "Not applicable at the institutional level; aggregate before combining with any individual-level data (e.g. do not let a GIS point resolve to a single learner's home).",
+   "shared_with": "Public dashboards (aggregated)"
+  },
+  {
+   "n": "15",
+   "element": "Device / user access and audit logs",
+   "subjects": "System users (MBSSE, TSC, DEO, school staff)",
+   "category": "Standard / security",
+   "source": "DHIS2 platform, Wi De Ya",
+   "storage": "DHIS2 Hub audit trail",
+   "retention": "2-3 years, aligned to typical security-audit and incident-investigation windows",
+   "retention_approved": "",
+   "pseudonymisation": "Pseudonymise user identity in routine reporting; retain the ability to re-identify only for a live security investigation, under restricted access.",
+   "shared_with": "System administrators only"
+  },
+  {
+   "n": "16",
+   "element": "Address",
+   "subjects": "Learner",
+   "category": "Standard",
+   "source": "DHIS2 SEMIS app, Wi De Ya",
+   "storage": "DHIS2 Education Data Hub",
+   "retention": "Shortest period necessary — normally only while active contact with the household is needed, not the full enrolment period",
+   "retention_approved": "",
+   "pseudonymisation": "Anonymise/generalise as early as possible: replace the street-level address with an administrative or geographic code (chiefdom/ward) for any use beyond direct household contact.",
+   "shared_with": "MBSSE M&E, district education offices"
+  }
+ ],
+ "access": [
+  {
+   "role": "Parent/Guardian",
+   "level": "Data subject",
+   "view learner pii": "On request",
+   "create/register": "No",
+   "edit/correct": "Request only",
+   "duplicate adjudication": "No",
+   "export pii": "No",
+   "analytics": "N/A",
+   "audit logs": "No",
+   "approval / conditions": "Identity verification / rights procedure"
+  },
+  {
+   "role": "School data-entry user",
+   "level": "School",
+   "view learner pii": "Own school",
+   "create/register": "Yes – own school",
+   "edit/correct": "Own school",
+   "duplicate adjudication": "Flag only",
+   "export pii": "No bulk export",
+   "analytics": "Approved reports",
+   "audit logs": "Own actions where authorised",
+   "approval / conditions": "Named account + training"
+  },
+  {
+   "role": "District EMIS/SEMIS focal point",
+   "level": "District",
+   "view learner pii": "Case-only",
+   "create/register": "No",
+   "edit/correct": "Case-specific",
+   "duplicate adjudication": "Yes – assigned cases",
+   "export pii": "No bulk export",
+   "analytics": "Approved reports",
+   "audit logs": "Case/action logs",
+   "approval / conditions": "Case-triggered access + approval"
+  },
+  {
+   "role": "National EMIS officer",
+   "level": "National",
+   "view learner pii": "Named authorised scope",
+   "create/register": "Yes",
+   "edit/correct": "Yes",
+   "duplicate adjudication": "Final/exception authority",
+   "export pii": "Restricted/logged",
+   "analytics": "Yes",
+   "audit logs": "Yes",
+   "approval / conditions": "Written role approval"
+  },
+  {
+   "role": "Data Protection / Security lead",
+   "level": "National oversight",
+   "view learner pii": "Investigation only",
+   "create/register": "No",
+   "edit/correct": "No",
+   "duplicate adjudication": "Policy/oversight",
+   "export pii": "Approval only",
+   "analytics": "Yes",
+   "audit logs": "Yes",
+   "approval / conditions": "Oversight role; no routine admin"
+  },
+  {
+   "role": "System administrator / technical lead",
+   "level": "Technical",
+   "view learner pii": "Technical/support only",
+   "create/register": "Technical only",
+   "edit/correct": "Support only",
+   "duplicate adjudication": "No",
+   "export pii": "Only written authorisation",
+   "analytics": "Synthetic/de-identified preferred",
+   "audit logs": "Yes",
+   "approval / conditions": "Privileged access logged/time-boxed"
+  },
+  {
+   "role": "Analyst / planner",
+   "level": "National analytical",
+   "view learner pii": "De-identified by default",
+   "create/register": "No",
+   "edit/correct": "No",
+   "duplicate adjudication": "No",
+   "export pii": "No PII self-export",
+   "analytics": "Yes",
+   "audit logs": "No",
+   "approval / conditions": "Identifiable data only by documented approval"
+  },
+  {
+   "role": "External processor / developer",
+   "level": "Contracted",
+   "view learner pii": "Only DPA scope",
+   "create/register": "No",
+   "edit/correct": "Support only",
+   "duplicate adjudication": "No",
+   "export pii": "No independent export",
+   "analytics": "Per DPA",
+   "audit logs": "Audit subject",
+   "approval / conditions": "Time-boxed, logged, confidentiality"
+  },
+  {
+   "role": "NCRA / identity partner",
+   "level": "External",
+   "view learner pii": "Minimum agreed fields",
+   "create/register": "No",
+   "edit/correct": "No",
+   "duplicate adjudication": "No",
+   "export pii": "No",
+   "analytics": "No",
+   "audit logs": "As agreed",
+   "approval / conditions": "Signed DSA + legal basis"
+  },
+  {
+   "role": "Examination partner",
+   "level": "External",
+   "view learner pii": "ULID + minimum exam fields",
+   "create/register": "No",
+   "edit/correct": "No",
+   "duplicate adjudication": "No",
+   "export pii": "No",
+   "analytics": "No",
+   "audit logs": "As agreed",
+   "approval / conditions": "Signed data-sharing arrangement"
+  },
+  {
+   "role": "Legal / Internal Audit",
+   "level": "Oversight",
+   "view learner pii": "Read-only as authorised",
+   "create/register": "No",
+   "edit/correct": "No",
+   "duplicate adjudication": "No",
+   "export pii": "No",
+   "analytics": "As authorised",
+   "audit logs": "Yes",
+   "approval / conditions": "Documented investigation/audit"
+  }
+ ],
+ "signoff_roles": [
+  "Prepared by (drafting technical partner)",
+  "Reviewed by — MBSSE Data Protection Focal Point (to be designated)",
+  "Reviewed by — Legal Counsel / Ministry of Justice",
+  "Reviewed by — UNICEF (grant agent)",
+  "Approved by — MBSSE Permanent Secretary / Project Sponsor",
+  "EMIS / SEMIS Director"
+ ],
+ "legal": [
+  {
+   "topic": "National data protection law",
+   "text": "Sierra Leone has not enacted the Data Protection and Right to Access Information Bill, 2025. The Bill completed nationwide validation in November 2025 but remains a Bill — it has not received presidential assent and has no commencement date. MBSSE has nonetheless been advised to align this project with the Bill's provisions as the applicable data protection standard pending enactment. (Sources: Ministry of Information & Civic Education; SierraLII, 'The Unseen Victims: How Sierra Leone's Lack of a Data Protection Regime is Endangering its Future', March 2025; project guidance to MBSSE.)"
+  },
+  {
+   "topic": "Direction of the draft law",
+   "text": "The draft Bill is reported to align with the EU General Data Protection Regulation (GDPR) and the African Union Malabo Convention on Cyber Security and Personal Data Protection, and proposes a single independent authority for both data protection and access to information."
+  },
+  {
+   "topic": "Interim standard to apply",
+   "text": "Pending enactment, this project should apply GDPR-equivalent data protection principles and the ISO/IEC 29134 DPIA methodology as a voluntary best-practice standard — consistent with the technical proposal's own stated commitment to 'regional data protection frameworks and forthcoming national legislation' (Sec. 7.1)."
+  },
+  {
+   "topic": "Children's rights framework",
+   "text": "The Sierra Leone Child Rights Act 2007 is the domestic legal framework for children's welfare and should inform any consent/assent design and 'best interests of the child' analysis for learner data processing."
+  },
+  {
+   "topic": "Sector policy framework",
+   "text": "Education Sector Plan (ESP) 2022-2026 'Transforming Learning for All'; the forthcoming national EMIS Policy (2026); MBSSE's Inclusive Data Charter and Radical Inclusion Policy (2021), which mandates disability- and gender-disaggregated data collection."
+  },
+  {
+   "topic": "National identity framework",
+   "text": "NCRA-administered National Identification Number (NIN) system; since 2023, biometric national ID cards have been issued from age 12; since 2024, a NIN has been mandatory for public examination (NPSE, BECE) registration."
+  },
+  {
+   "topic": "Regional / continental instruments",
+   "text": "African Union Malabo Convention on Cyber Security and Personal Data Protection (reference point for the draft Bill); ECOWAS regional data-governance commitments referenced indirectly through the draft Bill's alignment goals."
+  },
+  {
+   "topic": "Governance gap during the interim period",
+   "text": "Because no independent supervisory authority yet exists in Sierra Leone, interim oversight and sign-off for this PIA should rest with MBSSE senior management, a designated internal Data Protection Focal Point, and the Ministry of Justice / Attorney-General's Office, pending enactment of the Bill (see Sign-off tab)."
+  },
+  {
+   "topic": "Core processing principles (Sec. 27)",
+   "text": "Processing must be accountable to the data subject, fair and lawful, adequate/relevant/not excessive, retained no longer than necessary, accurate, confidential and secure, transparent, and subject to data-subject participation."
+  },
+  {
+   "topic": "Notice at collection (Sec. 28)",
+   "text": "At the point of collection, a data subject must be told: the nature/category of data collected, who is collecting it, the purpose, whether supply is mandatory or discretionary, the consequences of not providing it, the legal basis, who will receive the data, their rights of access/rectification, retention period, and their right to complain to the Authority. This is a substantially more detailed notice than is currently described for SEMIS enrolment (see Risk R3)."
+  },
+  {
+   "topic": "Sensitive personal data (Secs. 30-31, definitions)",
+   "text": "Defined to include race, physical or health status, ethnic/social origin, conscience, belief, genetic data, biometric data, property details, marital status, family details (including a person's children, parents, spouse), sex, and political or religious opinions. Collection/processing is prohibited except under specific statutory exemptions, freely-given consent, or narrow institutional exceptions — directly relevant to NIN/biometric linkage, gender disaggregation, and disability data (Risks R2, R4)."
+  },
+  {
+   "topic": "Data protection impact assessment (Sec. 35)",
+   "text": "Mandatory before any processing likely to result in high risk to a data subject's rights and freedoms. Must cover: the processing operations and purposes; necessity and proportionality; risks to data subjects; and mitigating measures/safeguards. Where high risk is found, the DPIA report must be submitted to the Authority at least 60 days before the processing begins. This workbook is intended to serve as that assessment once an Authority exists to receive it (see Risk R18)."
+  },
+  {
+   "topic": "Children's personal data (Sec. 36)",
+   "text": "Processing a child's personal data requires (a) consent from the child's parent or guardian, and (b) that the processing protects and advances the best interests of the child. Age must be verified using a prescribed mechanism, calibrated to available technology, the volume of data processed, the proportion likely to belong to children, and the potential for harm. This is a binding, specific precondition — not general good practice — and is not yet met by the project (Risk R3)."
+  },
+  {
+   "topic": "Consent standard and lawful alternatives (Secs. 38-39)",
+   "text": "Where relied upon, consent must be freely given, informed, specific, and given through clear affirmative action, and must be capable of withdrawal. Processing without consent is permitted only on defined grounds (e.g. performance of a state function authorised by law, provision of a state service/benefit, compliance with law, medical/public-health emergencies, employment administration) — MBSSE's statutory education mandate may support some processing on this basis, but does not substitute for the separate parental-consent requirement for children's data under Sec. 36."
+  },
+  {
+   "topic": "Purpose limitation and further processing (Sec. 40)",
+   "text": "Data collected for a specific purpose may only be further processed for a compatible purpose, assessed against the link to the original purpose, the nature of the data, how it was collected, the consequences for the data subject, and any contractual terms — relevant to using ULID/NIN data across TSC, WAEC and NCRA systems (Risk R5)."
+  },
+  {
+   "topic": "Retention and disposal (Sec. 41)",
+   "text": "Personal data must not be retained longer than necessary for the purpose collected, unless retention is required/authorised by law, contractually required, or consented to; it must be destroyed, deleted or de-identified at expiry of the retention period. This underpins the retention periods now suggested in the Data Inventory tab (Risk R10)."
+  },
+  {
+   "topic": "Cross-border processing (Sec. 42)",
+   "text": "A Sierra Leone-based processor storing or processing personal data outside Sierra Leone must ensure the destination country has data-protection measures at least equivalent to the Bill, and that the data subject has consented to the cross-border processing/storage — directly relevant to any optional Google Workspace for Education deployment (Risk R7)."
+  },
+  {
+   "topic": "Automated decision-making (Sec. 47)",
+   "text": "A data subject may require that a decision significantly affecting them not be based solely on automated processing. This applies to AI-driven dropout/early-warning flags that could trigger an intervention affecting a learner (Risk R8), and implies a human-in-the-loop safeguard is needed by design, not left optional."
+  },
+  {
+   "topic": "Registration of controllers and processors (Part VIII)",
+   "text": "Data controllers and processors will be required to hold a Certificate of Registration from the Authority, listed on a public Register of Data Controllers and Data Processors. MBSSE (as controller) and each processor (HISP UiO, HISP WCA, Saudigitus, CGA Technologies, and others) would need to register once the Authority is operational (Risk R6, R12, R16)."
+  },
+  {
+   "topic": "Security and breach notification (Secs. 59-61)",
+   "text": "Controllers and processors must identify and mitigate foreseeable risks, maintain and update safeguards, and flow security and confidentiality obligations down into contracts with processors. On a personal data breach with real risk of harm, the Authority must be notified without delay and within 72 hours (with reasons given for any delay), a processor must notify its controller within 48 hours, and affected data subjects must be notified in writing within a reasonably practical period. These are the specific timelines the project's incident-response plan should be built around (Risk R13)."
+  }
+ ],
+ "defects": [
+  {
+   "severity": "info",
+   "where": "3. Country Assessment",
+   "message": "every control is 'Not started': the workbook declares no progress yet"
+  },
+  {
+   "severity": "info",
+   "where": "3. Country Assessment",
+   "message": "the 'Evidence / reference' column is empty for every control"
+  },
+  {
+   "severity": "medium",
+   "where": "6. Mitigation Tracker",
+   "message": "16 of 16 actions have no target date (placeholder '[Enter date]')"
+  },
+  {
+   "severity": "medium",
+   "where": "4. Risk Register",
+   "message": "R4 has no linked mitigation action"
+  },
+  {
+   "severity": "medium",
+   "where": "4. Risk Register",
+   "message": "R15 has no linked mitigation action"
+  },
+  {
+   "severity": "medium",
+   "where": "4. Risk Register",
+   "message": "R17 has no linked mitigation action"
+  },
+  {
+   "severity": "high",
+   "where": "4. Risk Register",
+   "message": "15 risks show residual < inherent but none of their actions is complete (mitigation credited before it exists): R1, R2, R3, R4, R5, R6, R7, R8, R9, R12, R13, R14, R15, R17, R18"
+  },
+  {
+   "severity": "high",
+   "where": "2. Data Inventory",
+   "message": "retention is approved for 0 of 16 data elements"
+  },
+  {
+   "severity": "info",
+   "where": "10. Sign-off",
+   "message": "no signatory has a name, signature or date: agreement is not evidenced"
+  },
+  {
+   "severity": "info",
+   "where": "4. Risk Register",
+   "message": "4 different risk status wordings in use: Accepted (existing practice), In Progress, Open - Action Required, Open - Decision Pending"
+  }
+ ],
+ "imported_at": null,
+ "source": "PIA_Tool_ULID_SierraLeone_Oct_v6.xlsx (bundled seed; import a newer workbook to replace)"
+}

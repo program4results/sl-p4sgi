@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.18" />
+  <meta name="p4sgi-ui-version" content="0.4.20" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -258,6 +258,33 @@
       padding: 0.45rem 0.75rem; margin: 0 0 0.75rem;
     }
     #exportAllBar .label { color: var(--muted); font-size: 0.8rem; margin-right: 0.25rem; }
+    /* 0.4.20 privacy monitor (scoped) */
+    #secPrivacy .prv-box { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 0.85rem; margin: 0.6rem 0; }
+    #secPrivacy .prv-box.block { border-color: var(--bad); }
+    #secPrivacy .prv-box.okbox { border-color: var(--ok); }
+    #secPrivacy .prv-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: flex-end; margin: 0.5rem 0; }
+    #secPrivacy label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.78rem; color: var(--muted); }
+    #secPrivacy label.prv-wide { width: 100%; margin: 0.4rem 0; }
+    #secPrivacy input[type="email"], #secPrivacy input[type="date"], #secPrivacy input[type="number"], #secPrivacy textarea, #secPrivacy input[type="text"] {
+      background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit;
+    }
+    #secPrivacy input:required:invalid { border-color: var(--bad); }
+    #secPrivacy .prv-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0.8rem; }
+    #secPrivacy .prv-tabs button.on { background: var(--accent); color: #0b1220; }
+    #prvAxes, #prvControls, #prvRisks, #prvActions, #prvStake, #prvDefects, #prvHeat, #prvSignoff, #prvFbList, #prvTrend, #prvMatrix { overflow-x: auto; max-width: 100%; }
+    #secPrivacy .prv-h { font-size: 0.85rem; margin: 0.9rem 0 0.3rem; }
+    #secPrivacy .prv-radar-wrap { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+    #secPrivacy .prv-legend { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.82rem; }
+    #secPrivacy .prv-legend i { display: inline-block; width: 1.6rem; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 0.4rem; }
+    #secPrivacy .prv-heat td.cell { text-align: center; font-weight: 600; min-width: 2.6rem; color: #0b1220; }
+    #secPrivacy .prv-heat td.cell.none { background: repeating-linear-gradient(45deg,#1e293b,#1e293b 4px,#0f172a 4px,#0f172a 8px); color: var(--muted); }
+    #secPrivacy .prv-mx { border-collapse: collapse; margin: 0.4rem 0 0.8rem; }
+    #secPrivacy .prv-mx td { width: 4.2rem; height: 2.6rem; text-align: center; border: 1px solid #0b1220; font-size: 0.75rem; font-weight: 700; color: #0b1220; }
+    #secPrivacy .st { font-size: 0.72rem; padding: 0.05rem 0.45rem; border-radius: 999px; border: 1px solid #475569; white-space: nowrap; }
+    #secPrivacy .st.verified, #secPrivacy .st.evidenced { border-color: var(--ok); color: var(--ok); }
+    #secPrivacy .st.attested, #secPrivacy .st.partial { border-color: var(--warn); color: var(--warn); }
+    #secPrivacy .st.gap { border-color: var(--bad); color: var(--bad); }
+    #secPrivacy .st.no_data { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -266,7 +293,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.18</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.20</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -625,6 +652,125 @@
       </div>
     </section>
 
+    <section id="secSecurity">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secSecurity" aria-expanded="false" aria-controls="secSecurityBody">
+          <span class="chevron" aria-hidden="true">▸</span> Security audit
+        </button>
+        <button type="button" class="secondary" id="btnSecReload">Load / Reload</button>
+        <span class="spin" id="secSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secSecurityBody" hidden>
+        <details class="help-collapse" data-help="secSecurityHelp">
+          <summary>Show help</summary>
+          <p class="section-help"><strong>Read-only</strong> triage built from the GAM CSVs already cached on this box (token_activity, users_full, login_activity, devices_*). It never calls GAM and never changes Workspace. Loads only when you click <em>Load / Reload</em>, honours the Domain filter and your domain scope. Scores are heuristics, not a Google rating. Sections say plainly when a source report has not been run yet. <strong>Drive sharing exposure is not available</strong> (needs a new read-only GAM report, see docs/SECURITY_AUDIT.md). Fixes are a dry-run command plan from <code>POST /api/v1/security/actions/plan</code> (super-admin) for you to review and run yourself.</p>
+        </details>
+        <p class="msg" id="secMsg"></p>
+        <div class="cards" id="secCards"><p class="empty">Click <em>Load / Reload</em>.</p></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">OAuth apps (30 d)</h3>
+        <div id="secOauth"></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Users needing attention</h3>
+        <div id="secUsers"></div>
+        <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Device compliance (worst first)</h3>
+        <div id="secDevices"></div>
+      </div>
+    </section>
+
+    <section id="secPrivacy">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secPrivacy" aria-expanded="false" aria-controls="secPrivacyBody">
+          <span class="chevron" aria-hidden="true">▸</span> Privacy compliance (PIA) <span class="chip warn" style="margin-left:0.4rem"><span class="chip-val">EXPERIMENTAL</span></span>
+        </button>
+        <button type="button" class="secondary" id="btnPrvReload">Load / Reload</button>
+        <span class="spin" id="prvSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secPrivacyBody" hidden>
+        <details class="help-collapse" data-help="secPrivacyHelp">
+          <summary>Show help</summary>
+          <p class="section-help"><strong>Experimental.</strong> Tracks the Sierra Leone ULID Privacy Impact Assessment (40 controls, 18 risks) against <em>evidence</em>, not against what the workbook claims. Voluntary alignment with the Data Protection and Right to Access Information Bill 2025, which is <strong>not enacted</strong>. Read-only toward Google Workspace: it reads the GAM CSVs already cached here and keeps its own small state under <code>docker-data/sl.p4sgi/privacy/</code>. Only 7 of 40 controls can be measured from GAM today; the rest need an attestation with a link to the evidence. Nothing is shown as compliant or agreed without evidence. A <strong>DPO / focal-point email is required</strong> before anything can be recorded. Please use the <em>Feedback</em> tab: this is built to be changed by your answers. See docs/PRIVACY_MONITOR.md.</p>
+        </details>
+        <p class="msg" id="prvMsg"></p>
+        <div id="prvDpoBox" class="prv-box"><p class="empty">Click <em>Load / Reload</em>.</p></div>
+        <div id="prvMain" hidden>
+          <div class="prv-tabs" role="tablist" id="prvTabs">
+            <button type="button" class="secondary on" data-tab="overview">Overview</button>
+            <button type="button" class="secondary" data-tab="controls">Controls</button>
+            <button type="button" class="secondary" data-tab="risks">Risks</button>
+            <button type="button" class="secondary" data-tab="tracker">Actions &amp; stakeholders</button>
+            <button type="button" class="secondary" data-tab="units">Units</button>
+            <button type="button" class="secondary" data-tab="signoff">Sign-off</button>
+            <button type="button" class="secondary" data-tab="settings">Settings</button>
+            <button type="button" class="secondary" data-tab="feedback">Feedback</button>
+          </div>
+          <div class="prv-pane" data-pane="overview">
+            <div id="prvGate"></div>
+            <div class="cards" id="prvCards"></div>
+            <div class="prv-radar-wrap">
+              <div id="prvRadar"></div>
+              <div class="prv-legend" id="prvLegend"></div>
+            </div>
+            <div id="prvAxes"></div>
+            <div id="prvTri"></div>
+          </div>
+          <div class="prv-pane" data-pane="controls" hidden>
+            <div class="prv-row">
+              <label>Axis <select id="prvCtlAxis"><option value="">all</option></select></label>
+              <label>State <select id="prvCtlState"><option value="">all</option><option>verified</option><option>evidenced</option><option>attested</option><option>partial</option><option>gap</option><option>no_data</option></select></label>
+            </div>
+            <form id="prvAttForm" class="prv-box" hidden>
+              <strong id="prvAttTitle">Attest a control</strong>
+              <div class="prv-row">
+                <label>Control <input type="text" id="prvAttId" readonly size="5"></label>
+                <label>State <select id="prvAttState"><option value="met">met</option><option value="partial">partial</option><option value="gap">gap (known)</option></select></label>
+                <label>Fraction (partial) <input type="number" id="prvAttPct" min="0" max="1" step="0.05" value="0.5" style="width:5rem"></label>
+                <label>Valid until <input type="date" id="prvAttUntil"></label>
+                <label>Unit (email domain, blank = national) <input type="text" id="prvAttUnit" size="22" placeholder="national"></label>
+              </div>
+              <label class="prv-wide">Evidence link (Vault matter, Drive file URL, document ref). Without a link the attestation counts at the low 'attested' weight.<input type="text" id="prvAttRef" maxlength="500"></label>
+              <label class="prv-wide">Note <textarea id="prvAttNote" rows="2" maxlength="2000"></textarea></label>
+              <div class="prv-row"><button type="submit">Save attestation</button> <button type="button" class="secondary" id="prvAttCancel">Cancel</button></div>
+            </form>
+            <div id="prvControls"></div>
+          </div>
+          <div class="prv-pane" data-pane="risks" hidden>
+            <div id="prvMatrix"></div>
+            <div id="prvRisks"></div>
+          </div>
+          <div class="prv-pane" data-pane="tracker" hidden>
+            <h3 class="prv-h">Mitigation actions</h3>
+            <div id="prvActions"></div>
+            <h3 class="prv-h">Stakeholder consultation</h3>
+            <div id="prvStake"></div>
+            <h3 class="prv-h">Workbook data-quality findings</h3>
+            <div id="prvDefects"></div>
+          </div>
+          <div class="prv-pane" data-pane="units" hidden>
+            <p class="section-help">Each unit is an email domain visible to you. Cells show the observed score (0-100) over the controls measurable for that unit; empty cells mean no evidence, never a good score. Units with fewer active accounts than the small-cell limit are suppressed.</p>
+            <div id="prvHeat"></div>
+          </div>
+          <div class="prv-pane" data-pane="signoff" hidden>
+            <div id="prvSignoff"></div>
+          </div>
+          <div class="prv-pane" data-pane="settings" hidden>
+            <div id="prvSettings"></div>
+          </div>
+          <div class="prv-pane" data-pane="feedback" hidden>
+            <form id="prvFbForm" class="prv-box">
+              <strong>Tell us what to change</strong>
+              <div class="prv-row">
+                <label>About <select id="prvFbCat"><option value="idea">an idea</option><option value="wrong_control">a control that is wrong or missing</option><option value="threshold">a threshold / weight</option><option value="usability">usability</option><option value="bug">a bug</option><option value="other">other</option></select></label>
+                <label>Control / risk / action id (optional) <input type="text" id="prvFbRef" size="8" placeholder="A22"></label>
+                <label>Usefulness (1-5) <select id="prvFbRate"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+              </div>
+              <label class="prv-wide">Your feedback <textarea id="prvFbText" rows="3" maxlength="2000" required></textarea></label>
+              <div class="prv-row"><button type="submit">Send feedback</button></div>
+            </form>
+            <div id="prvFbList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
@@ -644,7 +790,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.18';
+    const UI_VERSION = '0.4.20';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -676,6 +822,8 @@
       secEvents: false,
       secTelemetry: false,
       fleetDevices: false,
+      secSecurity: false,
+      secPrivacy: false,
     };
 
     const DEV_DEFAULT_COLS = [
@@ -2319,6 +2467,422 @@
     }
     Promise.all([loadWhoami(), loadHealth(), loadDomains(), reloadFiltered(), loadRawExports()]);
   
+
+    /* ---- 0.4.19 Security audit (read-only) ---- */
+    function secUrl(path, extra) {
+      const q = domainQuery();
+      const sep = q ? '&' : '?';
+      return path + q + (extra ? sep + extra : '');
+    }
+    function secLevelChip(level) {
+      const cls = (level === 'CRITICAL' || level === 'HIGH') ? 'chip warn' : 'chip';
+      return `<span class="${cls}"><span class="chip-val">${esc(level)}</span></span>`;
+    }
+    function secTable(cols, rows, empty) {
+      if (!rows.length) return `<p class="empty">${esc(empty)}</p>`;
+      const head = cols.map(c => `<th>${esc(c.h)}</th>`).join('');
+      const body = rows.map(r => `<tr>${cols.map(c => `<td${c.wrap ? ' class="wrap"' : ''}>${c.f(r)}</td>`).join('')}</tr>`).join('');
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    function secMissing(sources) {
+      const bad = Object.entries(sources || {}).filter(([, v]) => v.status !== 'ok');
+      return bad.length ? `Missing cached reports (run them under GAM reports): ${bad.map(([k]) => k).join(', ')}.` : '';
+    }
+    async function loadSecurity() {
+      const spin = $('secSpin'), msg = $('secMsg');
+      spin.hidden = false; msg.className = 'msg'; msg.textContent = '';
+      try {
+        const [sum, oa, us, dv] = await Promise.all([
+          api(secUrl('/api/v1/security/summary')),
+          api(secUrl('/api/v1/security/oauth', 'limit=25')),
+          api(secUrl('/api/v1/security/users', 'limit=50')),
+          api(secUrl('/api/v1/security/devices', 'limit=50')),
+        ]);
+        const card = (label, val) => `<div class="card"><div class="label">${esc(label)}</div><div class="value">${esc(String(val ?? 0))}</div></div>`;
+        const ol = sum.oauth.by_level || {}, uf = sum.users.by_flag || {}, ds = sum.devices.by_status || {};
+        $('secCards').innerHTML = [
+          card('OAuth apps', sum.oauth.apps), card('OAuth critical/high', (ol.CRITICAL || 0) + (ol.HIGH || 0)),
+          card('Users flagged', sum.users.flagged), card('No 2SV', (uf.NO_2SV || 0) + (uf.ADMIN_NO_2SV || 0)),
+          card('Never logged in', uf.NEVER_LOGGED_IN || 0), card('Devices', sum.devices.total),
+          card('Devices critical', ds.CRITICAL || 0), card('Devices warning', ds.WARNING || 0),
+        ].join('');
+        const notes = [secMissing(sum.sources)];
+        if (!sum.oauth.scope_data_present && sum.oauth.apps) notes.push('token_activity has no scope columns, so apps are UNKNOWN risk.');
+        notes.push('As of ' + sum.as_of + '. Data is only as fresh as the cached GAM runs.');
+        msg.textContent = notes.filter(Boolean).join(' ');
+        $('secOauth').innerHTML = secTable([
+          { h: 'App', f: r => esc(r.app_name) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) + ' ' + esc(r.risk_score ?? '—') },
+          { h: 'Users', f: r => esc(r.user_count) }, { h: 'Last seen', f: r => esc(r.last_seen || '—') },
+          { h: 'Why', wrap: true, f: r => esc((r.reasons || []).join('; ')) }, { h: 'Client ID', f: r => `<span class="mono">${esc(r.client_id || '—')}</span>` },
+        ], oa.rows, 'No OAuth apps in scope (or token_activity not cached).');
+        $('secUsers').innerHTML = secTable([
+          { h: 'User', f: r => esc(r.email) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) },
+          { h: 'Flags', f: r => esc(r.flags.join(', ')) }, { h: 'Days idle', f: r => esc(r.days_since_login ?? '—') },
+          { h: '2SV', f: r => r.two_sv_enrolled === null ? '—' : (r.two_sv_enrolled ? 'yes' : 'no') }, { h: 'Failed 7d', f: r => esc(r.failed_logins_7d) },
+        ], us.rows, 'No flagged users in scope (or users_full not cached).');
+        $('secDevices').innerHTML = secTable([
+          { h: 'User', f: r => esc(r.email) }, { h: 'Model', f: r => esc(r.model || '—') }, { h: 'OS', f: r => esc(r.os || '—') },
+          { h: 'Status', f: r => secLevelChip(r.compliance_status) + ' ' + esc(r.compliance_score) },
+          { h: 'Flags', wrap: true, f: r => esc(r.flags.join(', ') || '—') }, { h: 'Last sync', f: r => esc(r.last_sync || '—') },
+        ], dv.rows, 'No devices in scope (or device reports not cached).');
+      } catch (e) {
+        msg.className = 'msg err'; msg.textContent = e.message;
+        toast(e.message, 'err');
+      } finally {
+        spin.hidden = true;
+      }
+    }
+    $('btnSecReload').addEventListener('click', loadSecurity);
+
+    /* ---- 0.4.20 Privacy / PIA compliance monitor (experimental) ---- */
+    const PRV = { status: null, summary: null, radar: null, series: { ideal: true, declared: true, observed: true, assured: false, threshold: true, unit: true }, unit: '' };
+    const PRV_STATES = ['verified', 'evidenced', 'attested', 'partial', 'gap', 'no_data'];
+    function prvMsg(text, kind) { const m = $('prvMsg'); m.className = 'msg' + (kind ? ' ' + kind : ''); m.textContent = text || ''; }
+    function prvErr(e) {
+      let t = e.message || String(e);
+      try { const j = JSON.parse(t); t = j.message || j.error || t; } catch { /* plain text */ }
+      prvMsg(t, 'err'); toast(t, 'err');
+    }
+    async function prvSend(path, body, method) {
+      const opt = { method: method || 'POST', headers: { 'Content-Type': 'application/json' } };
+      if (body !== undefined) opt.body = JSON.stringify(body);
+      return api(path, opt);
+    }
+    const prvPct = (v) => (v == null ? '—' : String(v));
+    const prvSt = (s) => `<span class="st ${esc(s)}">${esc(s.replace('_', ' '))}</span>`;
+    function prvHue(v) { return v == null ? null : `hsl(${Math.round(Math.max(0, Math.min(100, v)) * 1.2)},65%,55%)`; }
+    function prvBandColor(b) { return { Critical: '#f87171', High: '#fb923c', Medium: '#fbbf24', Low: '#86efac' }[b] || '#64748b'; }
+    function prvTable(cols, rows, empty) { return secTable(cols, rows, empty); }
+
+    function prvRenderDpo(st) {
+      const box = $('prvDpoBox'), d = st.dpo || {};
+      const canEdit = !!st.superadmin;
+      const form = `<form id="prvDpoForm" class="prv-row">
+          <label>DPO / data-protection focal point email <strong style="color:var(--bad)">*</strong>
+            <input type="email" id="prvDpoEmail" required maxlength="254" size="34" placeholder="dpo@your-ministry.gov.sl" value="${esc(d.email || '')}" ${canEdit ? '' : 'disabled'}></label>
+          <label>Name <input type="text" id="prvDpoName" maxlength="120" size="20" value="${esc(d.name || '')}" ${canEdit ? '' : 'disabled'}></label>
+          <label>Role / title <input type="text" id="prvDpoRole" maxlength="120" size="20" value="${esc(d.role || '')}" ${canEdit ? '' : 'disabled'}></label>
+          <label>Designation letter link (optional) <input type="text" id="prvDpoRef" maxlength="500" size="26" value="${esc(d.designation_ref || '')}" ${canEdit ? '' : 'disabled'}></label>
+          <button type="submit" ${canEdit ? '' : 'disabled'}>Save DPO</button>
+        </form>`;
+      if (!d.configured) {
+        box.className = 'prv-box block';
+        box.innerHTML = `<strong style="color:var(--bad)">Blocked: no Data Protection Officer contact</strong>
+          <p class="section-help">A DPO / focal-point email must be entered before the monitor can record anything (PIA action ACT-01, risk R16). Use a role mailbox so it survives staff changes.${canEdit ? '' : ' Only a super-admin can enter it: ask one to open this panel.'}</p>${form}`;
+        $('prvMain').hidden = true;
+      } else {
+        box.className = 'prv-box okbox';
+        const sum = PRV.summary;
+        const body = encodeURIComponent(`PIA compliance monitor (experimental)\nGate: ${sum ? sum.gate.status : 'n/a'}\nCoverage: ${sum ? Math.round(sum.triangulation.coverage * 100) : '?'}% of controls have any evidence\nSign-off: ${sum ? sum.signoff.state : 'n/a'}\n\nOpen the dashboard, Privacy compliance panel, for detail.`);
+        box.innerHTML = `<div class="prv-row"><span>DPO / focal point: <a href="mailto:${esc(d.email)}?subject=${encodeURIComponent('PIA compliance status')}&body=${body}">${esc(d.email)}</a>${d.name ? ' · ' + esc(d.name) : ''}${d.role ? ' (' + esc(d.role) + ')' : ''}</span>
+          <span class="chip ${d.designation_ref ? 'ok' : 'warn'}"><span class="chip-label">designation letter</span><span class="chip-val">${d.designation_ref ? 'linked' : 'not evidenced'}</span></span>
+          ${canEdit ? '<button type="button" class="secondary" id="prvDpoChange">Change</button>' : ''}</div>
+          <div id="prvDpoEdit" hidden>${form}</div>`;
+        $('prvMain').hidden = false;
+        const ch = $('prvDpoChange'); if (ch) ch.addEventListener('click', () => { $('prvDpoEdit').hidden = !$('prvDpoEdit').hidden; });
+      }
+      const f = $('prvDpoForm');
+      if (f) f.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        try {
+          const r = await prvSend('/api/v1/privacy/dpo', { email: $('prvDpoEmail').value, name: $('prvDpoName').value, role: $('prvDpoRole').value, designation_ref: $('prvDpoRef').value }, 'PUT');
+          toast('DPO saved' + ((r.warnings || []).length ? ' (' + r.warnings[0].split(':')[0] + ')' : ''), 'ok');
+          if ((r.warnings || []).length) prvMsg(r.warnings.join(' '), '');
+          loadPrivacy();
+        } catch (e) { prvErr(e); }
+      });
+    }
+
+    function prvRadarSvg(axes, unitAxes, thresholdOn) {
+      const S = 440, C = S / 2, R = 150, n = axes.length;
+      const pt = (i, v) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; const r = R * (Math.max(0, Math.min(100, v || 0)) / 100); return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+      const poly = (vals, color, dash, fill) => `<polygon points="${vals.map((v, i) => pt(i, v).join(',')).join(' ')}" fill="${fill || 'none'}" fill-opacity="0.12" stroke="${color}" stroke-width="2" ${dash ? 'stroke-dasharray="5 4"' : ''}/>`;
+      let g = [25, 50, 75, 100].map(k => `<polygon points="${axes.map((_, i) => pt(i, k).join(',')).join(' ')}" fill="none" stroke="#334155"/>`).join('');
+      g += axes.map((a, i) => { const [x, y] = pt(i, 100); return `<line x1="${C}" y1="${C}" x2="${x}" y2="${y}" stroke="#334155"/>`; }).join('');
+      axes.forEach((a, i) => {
+        const [x, y] = pt(i, 122);
+        const anchor = x < C - 8 ? 'end' : (x > C + 8 ? 'start' : 'middle');
+        g += `<text x="${x}" y="${y}" fill="#cbd5e1" font-size="10.5" text-anchor="${anchor}">${esc(a.axis + ' ' + a.name)}</text><text x="${x}" y="${y + 12}" fill="#64748b" font-size="9.5" text-anchor="${anchor}">${a.scored}/${a.controls} measured</text>`;
+      });
+      const s = PRV.series;
+      if (s.ideal) g += poly(axes.map(() => 100), '#94a3b8', true);
+      if (s.threshold && thresholdOn) g += poly(axes.map(a => a.threshold ?? 0), '#f87171', true);
+      if (s.declared) g += poly(axes.map(a => a.declared), '#a78bfa', false, '#a78bfa');
+      if (s.assured) g += poly(axes.map(a => a.assured), '#fbbf24', false, '#fbbf24');
+      if (s.observed) g += poly(axes.map(a => a.observed), '#34d399', false, '#34d399');
+      if (s.unit && unitAxes) g += poly(unitAxes.map(a => a.observed), '#38bdf8', false, '#38bdf8');
+      return `<svg viewBox="-90 0 ${S + 180} ${S}" width="100%" style="max-width:600px" role="img" aria-label="Privacy compliance radar">${g}</svg>`;
+    }
+    function prvRenderOverview() {
+      const sm = PRV.summary, rd = PRV.radar;
+      if (!sm || !rd) return;
+      const gt = sm.gate, tri = sm.triangulation;
+      const cls = gt.status === 'OPEN' ? 'okbox' : (gt.status === 'BLOCKED' ? 'block' : '');
+      $('prvGate').innerHTML = `<div class="prv-box ${cls}"><strong>Go-live gate: ${esc(gt.status)}</strong> · ${gt.blockers} blocker(s), ${gt.conditions} condition(s) · sign-off: ${esc(sm.signoff.state)} (${sm.signoff.signed}/${sm.signoff.total}), agreement <strong>${esc(sm.signoff.agreement)}</strong>
+        <p class="section-help" style="margin:0.3rem 0 0">${esc(gt.rule)}</p><div id="prvGateList"></div></div>`;
+      const card = (l, v, t) => `<div class="card" ${t ? `title="${esc(t)}"` : ''}><div class="label">${esc(l)}</div><div class="value">${esc(String(v ?? '—'))}</div></div>`;
+      const bs = sm.controls.by_state;
+      $('prvCards').innerHTML = [
+        card('Coverage', Math.round(tri.coverage * 100) + '%', `${tri.coverage_counts.scored} of ${tri.coverage_counts.total} controls have any evidence`),
+        card('Declared (avg)', tri.national_declared, 'what the workbook claims'),
+        card('Observed (avg)', tri.national_observed, 'over measured controls only'),
+        card('Assured (avg)', tri.national_assured, 'unmeasured counts as 0'),
+        card('Ambition gap', tri.ambition_gap, 'ideal minus declared'),
+        card('Assurance gap', tri.assurance_gap, tri.assurance_gap_note),
+        card('Evidence fresh', tri.evidence_freshness == null ? '—' : Math.round(tri.evidence_freshness * 100) + '%', 'attestations still in date'),
+        card('Equity spread', tri.equity_spread ? tri.equity_spread.spread + ' (axis ' + tri.equity_spread.axis + ')' : '—', 'max-min across units, needs 3+ units'),
+        card('Tail risk', tri.tail_risk ? tri.tail_risk.score : '—', tri.tail_risk ? 'worst unit: ' + tri.tail_risk.unit : 'needs units above the small-cell limit'),
+        card('Controls with data', (bs.verified || 0) + (bs.evidenced || 0) + (bs.attested || 0) + (bs.partial || 0) + (bs.gap || 0)),
+        card('No data', bs.no_data || 0),
+      ].join('');
+      const thrOn = rd.axes.some(a => a.threshold != null);
+      const ua = rd.unit && !rd.unit.suppressed ? rd.unit.axes : null;
+      $('prvRadar').innerHTML = prvRadarSvg(rd.axes, ua, thrOn);
+      const L = (k, color, label, extra) => `<label style="flex-direction:row;align-items:center;gap:0.4rem;color:var(--text)"><input type="checkbox" data-s="${k}" ${PRV.series[k] ? 'checked' : ''}><span><i style="border-color:${color}"></i>${label}</span>${extra || ''}</label>`;
+      const unitSel = `<select id="prvUnitSel"><option value="">— pick a unit —</option>${rd.units.map(u => `<option ${u === PRV.unit ? 'selected' : ''}>${esc(u)}</option>`).join('')}</select>`;
+      $('prvLegend').innerHTML = L('ideal', '#94a3b8', 'Ideal (100)') + L('declared', '#a78bfa', 'MBSSE declared (workbook)') + L('observed', '#34d399', 'National observed') + L('assured', '#fbbf24', 'National assured (unmeasured = 0)')
+        + (thrOn ? L('threshold', '#f87171', 'Go-live threshold') : '') + L('unit', '#38bdf8', 'Selected unit observed') + unitSel
+        + (PRV.unit && rd.unit && rd.unit.suppressed ? '<span class="empty">unit hidden: below the small-cell limit</span>' : '')
+        + '<span class="section-help">Axes with 0 measured controls plot at 0 on the observed/assured polygons: read the "measured" count, not the shape.</span>';
+      $('prvLegend').querySelectorAll('input[data-s]').forEach(cb => cb.addEventListener('change', () => { PRV.series[cb.dataset.s] = cb.checked; prvRenderOverview(); }));
+      $('prvUnitSel').addEventListener('change', async (ev) => { PRV.unit = ev.target.value; await prvLoadRadar(); prvRenderOverview(); });
+      $('prvAxes').innerHTML = prvTable([
+        { h: 'Axis', f: r => esc(r.axis + ' ' + r.name) }, { h: 'Declared', f: r => prvPct(r.declared) }, { h: 'Observed', f: r => prvPct(r.observed) },
+        { h: 'Assured', f: r => prvPct(r.assured) }, { h: 'Measured', f: r => `${r.scored}/${r.controls}` }, { h: 'Threshold', f: r => prvPct(r.threshold) },
+      ], rd.axes, '');
+      const dec = tri.declared_but_unevidenced || [];
+      $('prvTri').innerHTML = dec.length ? `<p class="msg err">Declared complete but no evidence: ${esc(dec.join(', '))}</p>` : '';
+      fetch(withAs(secUrl('/api/v1/privacy/gate'))).then(r => r.json()).then(g => {
+        const items = [...g.blockers.map(b => ['BLOCKER', b]), ...g.conditions.map(b => ['CONDITION', b])];
+        const el = $('prvGateList'); if (el) el.innerHTML = items.length ? '<ul style="margin:0.4rem 0 0 1.1rem;padding:0;font-size:0.82rem">' + items.slice(0, 14).map(([k, b]) => `<li><strong>${k}</strong> ${esc(b.ref)}: ${esc(b.message)}</li>`).join('') + '</ul>' : '';
+      }).catch(() => {});
+    }
+    async function prvLoadRadar() {
+      PRV.radar = await api(secUrl('/api/v1/privacy/radar', PRV.unit ? 'unit=' + encodeURIComponent(PRV.unit) : ''));
+    }
+
+    async function prvLoadControls() {
+      const ax = $('prvCtlAxis').value, stt = $('prvCtlState').value;
+      const q = [ax ? 'axis=' + ax : '', stt ? 'state=' + stt : ''].filter(Boolean).join('&');
+      const d = await api(secUrl('/api/v1/privacy/controls', q));
+      const sel = $('prvCtlAxis');
+      if (sel.options.length === 1) d.axes.forEach(a => sel.add(new Option(a.axis + ' ' + a.name, a.axis)));
+      const canAttest = !!(PRV.status && PRV.status.dpo.configured);
+      $('prvControls').innerHTML = prvTable([
+        { h: 'ID', f: r => `<strong>${esc(r.id)}</strong>` }, { h: 'Control', wrap: true, f: r => esc(r.question) },
+        { h: 'Declared', f: r => esc(r.declared_status) }, { h: 'Evidence state', f: r => prvSt(r.state) + (r.conflict ? ' <span class="st gap">conflict</span>' : '') + (r.expired ? ' <span class="st partial">expired</span>' : '') },
+        { h: 'Score', f: r => r.score == null ? '—' : r.score.toFixed(2) }, { h: 'Basis', f: r => esc(r.basis) },
+        { h: 'Detail / what is measured', wrap: true, f: r => esc(r.detail || r.measure) + `<br><span class="section-help">needs: ${esc(r.evidence)} · ${esc(r.automation)} · Bill ${esc(r.bill)}</span>` },
+        { h: '', f: r => (canAttest && !r.excluded && !['A37', 'A40'].includes(r.id)) ? `<button type="button" class="secondary" data-att="${esc(r.id)}">Attest</button>` : '' },
+      ], d.rows, 'No controls match.');
+      $('prvControls').querySelectorAll('button[data-att]').forEach(b => b.addEventListener('click', () => {
+        $('prvAttForm').hidden = false; $('prvAttId').value = b.dataset.att; $('prvAttTitle').textContent = 'Attest ' + b.dataset.att;
+        $('prvAttForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }));
+    }
+
+    function prvMatrix(rows) {
+      const cell = {};
+      rows.forEach(r => { const cred = r.credited && r.rL && r.rI; const L = cred ? r.rL : r.L, I = cred ? r.rI : r.I; if (L && I) (cell[L + ',' + I] = cell[L + ',' + I] || []).push(r.id); });
+      let h = '<table class="prv-mx"><tr><td style="background:none;color:var(--muted)">L \\ I</td>' + [1, 2, 3, 4, 5].map(i => `<td style="background:none;color:var(--muted)">${i}</td>`).join('') + '</tr>';
+      for (let L = 5; L >= 1; L--) {
+        h += `<tr><td style="background:none;color:var(--muted)">${L}</td>`;
+        for (let I = 1; I <= 5; I++) {
+          const s = L * I, b = s >= 16 ? 'Critical' : s >= 10 ? 'High' : s >= 5 ? 'Medium' : 'Low';
+          h += `<td style="background:${prvBandColor(b)}" title="score ${s}">${esc((cell[L + ',' + I] || []).join(' '))}</td>`;
+        }
+        h += '</tr>';
+      }
+      return h + '</table><p class="section-help">Risks plotted at their <strong>evidence-adjusted</strong> position (inherent unless linked actions are complete and the linked controls are evidenced).</p>';
+    }
+    async function prvLoadRisks() {
+      const d = await api(secUrl('/api/v1/privacy/risks'));
+      $('prvMatrix').innerHTML = prvMatrix(d.rows);
+      const sup = PRV.status && PRV.status.superadmin;
+      const bandChip = (sc, b) => `<span class="chip" style="border-color:${prvBandColor(b)}"><span class="chip-val" style="color:${prvBandColor(b)}">${esc(sc ?? '—')} ${esc(b || '')}</span></span>`;
+      $('prvRisks').innerHTML = prvTable([
+        { h: 'Risk', f: r => `<strong>${esc(r.id)}</strong>` }, { h: 'Description', wrap: true, f: r => esc((r.description || '').slice(0, 130)) + ((r.description || '').length > 130 ? '…' : '') },
+        { h: 'Inherent', f: r => bandChip(r.inherent, r.inherent_band) }, { h: 'Declared residual', f: r => bandChip(r.residual, r.residual_band) },
+        { h: 'On evidence', f: r => bandChip(r.adjusted, r.adjusted_band) },
+        { h: 'Why no credit', wrap: true, f: r => esc(r.credited ? 'credited' : r.why_not_credited.join('; ')) + (r.flag ? `<br><span class="st gap">${esc(r.flag)}</span>` : '') },
+        { h: 'Accepted', f: r => r.accepted ? `<span class="st evidenced">until ${esc(r.acceptance.review_by)}</span>` : '—' },
+        { h: '', f: r => sup ? `<button type="button" class="secondary" data-acc="${esc(r.id)}" data-rev="${r.acceptance ? 1 : ''}">${r.acceptance ? 'Revoke' : 'Accept'}</button>` : '' },
+      ], d.rows, 'No risks.');
+      $('prvRisks').querySelectorAll('button[data-acc]').forEach(b => b.addEventListener('click', async () => {
+        try {
+          if (b.dataset.rev) { await prvSend('/api/v1/privacy/risk-acceptance', { risk_id: b.dataset.acc, note: 'revoked', review_by: '2099-01-01', revoke: true }); }
+          else {
+            const note = prompt('Why is ' + b.dataset.acc + ' formally accepted? (who decided, on what basis)'); if (!note) return;
+            const rb = prompt('Review by (YYYY-MM-DD). Acceptance lapses on this date.'); if (!rb) return;
+            await prvSend('/api/v1/privacy/risk-acceptance', { risk_id: b.dataset.acc, note, review_by: rb });
+          }
+          await prvLoadRisks(); await prvLoadSummary(); prvRenderOverview();
+        } catch (e) { prvErr(e); }
+      }));
+    }
+
+    async function prvLoadTracker() {
+      const d = await api('/api/v1/privacy/workbook');
+      const sup = PRV.status && PRV.status.superadmin;
+      const sel = (opts, cur, id) => `<select data-f="status" data-id="${esc(id)}">${opts.map(o => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('')}${opts.includes(cur) ? '' : `<option selected>${esc(cur)}</option>`}</select>`;
+      $('prvActions').innerHTML = prvTable([
+        { h: 'ID', f: r => `<strong>${esc(r.id)}</strong>` }, { h: 'Action', wrap: true, f: r => esc(r.action) }, { h: 'Risks', f: r => esc(r.risks.join(', ')) },
+        { h: 'Owner', f: r => esc(r.owner) }, { h: 'Priority', f: r => esc(r.priority) },
+        { h: 'Status', f: r => sup ? sel(['Not started', 'In progress', 'Completed'], r.status, r.id) : esc(r.status) },
+        { h: 'Target', f: r => sup ? `<input type="date" data-f="target_date" data-id="${esc(r.id)}" value="${esc((r.target || '').slice(0, 10))}">` : esc(r.target || 'undated') },
+        { h: '', f: r => (r.overdue ? '<span class="st gap">overdue</span> ' : '') + (r.undated ? '<span class="st partial">undated</span> ' : '') + (sup ? `<button type="button" class="secondary" data-save-act="${esc(r.id)}">Save</button>` : '') },
+      ], d.actions, 'No actions.');
+      $('prvActions').querySelectorAll('button[data-save-act]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.dataset.saveAct, q = (f) => $('prvActions').querySelector(`[data-f="${f}"][data-id="${id}"]`);
+        try { await prvSend('/api/v1/privacy/tracker', { kind: 'action', id, status: q('status').value, target_date: q('target_date').value || undefined }); toast(id + ' saved', 'ok'); await prvLoadSummary(); }
+        catch (e) { prvErr(e); }
+      }));
+      $('prvStake').innerHTML = prvTable([
+        { h: 'Stakeholder', wrap: true, f: r => esc(r.name) }, { h: 'Required', f: r => esc(r.required) }, { h: 'Method', wrap: true, f: r => esc(r.method) },
+        { h: 'Status', f: r => sup ? sel(['Not started', 'Scheduled', 'In progress', 'Completed'], r.status, r.id) : esc(r.status) },
+        { h: 'Notes', wrap: true, f: r => esc(r.note || '') }, { h: '', f: r => (r.critical_path ? '<span class="st gap">not started</span> ' : '') + (sup ? `<button type="button" class="secondary" data-save-stk="${esc(r.id)}">Save</button>` : '') },
+      ], d.stakeholders, 'No stakeholders.');
+      $('prvStake').querySelectorAll('button[data-save-stk]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.dataset.saveStk;
+        try { await prvSend('/api/v1/privacy/tracker', { kind: 'stakeholder', id, status: $('prvStake').querySelector(`[data-f="status"][data-id="${id}"]`).value }); toast(id + ' saved', 'ok'); }
+        catch (e) { prvErr(e); }
+      }));
+      $('prvDefects').innerHTML = prvTable([
+        { h: 'Severity', f: r => `<span class="st ${r.severity === 'high' ? 'gap' : (r.severity === 'medium' ? 'partial' : 'no_data')}">${esc(r.severity)}</span>` },
+        { h: 'Where', f: r => esc(r.where) }, { h: 'Finding', wrap: true, f: r => esc(r.message) },
+      ], d.defects, 'No data-quality findings.');
+    }
+
+    async function prvLoadHeat() {
+      const d = await api(secUrl('/api/v1/privacy/heatmap'));
+      const head = '<th>Unit</th><th>Accounts</th><th>Overall</th>' + d.axes.map(a => `<th title="${esc(a.name)}">${a.axis}</th>`).join('');
+      const body = d.rows.map(u => `<tr><td>${esc(u.unit)}</td><td>${u.suppressed ? '<span class="st partial">&lt; ' + d.k_min + '</span>' : esc(u.accounts)}</td>${(() => { const v = u.overall; return v == null ? '<td class="cell none">—</td>' : `<td class="cell" style="background:${prvHue(v)}">${v}</td>`; })()}`
+        + u.axes.map(a => a.observed == null ? '<td class="cell none">—</td>' : `<td class="cell" style="background:${prvHue(a.observed)}" title="coverage ${Math.round(a.coverage * 100)}%">${Math.round(a.observed)}</td>`).join('') + '</tr>').join('');
+      $('prvHeat').innerHTML = d.rows.length ? `<table class="prv-heat"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table><p class="section-help">${esc(d.note)} Axis numbers: ${d.axes.map(a => a.axis + '=' + esc(a.name)).join(' · ')}.</p>` : '<p class="empty">No units in scope (users_full not cached?).</p>';
+    }
+
+    async function prvLoadSignoff() {
+      const d = await api('/api/v1/privacy/signoff');
+      const sup = PRV.status && PRV.status.superadmin;
+      $('prvSignoff').innerHTML = `<div class="prv-box ${d.agreement === 'evidenced' ? 'okbox' : 'block'}"><strong>${esc(d.state)}</strong> · ${d.signed}/${d.total} signatories · agreement <strong>${esc(d.agreement)}</strong>${d.decision && d.decision.value ? ' · decision: ' + esc(d.decision.value) : ''}</div>`
+        + prvTable([
+          { h: 'Role', wrap: true, f: r => esc(r.role) },
+          { h: 'Name', f: r => sup ? `<input type="text" data-so="name" data-role="${esc(r.role)}" value="${esc(r.name)}" maxlength="160">` : esc(r.name || '—') },
+          { h: 'Date', f: r => sup ? `<input type="date" data-so="date" data-role="${esc(r.role)}" value="${esc(r.date)}">` : esc(r.date || '—') },
+          { h: 'Evidence link', f: r => sup ? `<input type="text" data-so="evidence_ref" data-role="${esc(r.role)}" value="${esc(r.evidence_ref)}" maxlength="500">` : esc(r.evidence_ref || '—') },
+          { h: '', f: r => (r.signed ? '<span class="st evidenced">signed</span> ' : '') + (sup ? `<button type="button" class="secondary" data-so-save="${esc(r.role)}">Save</button>` : '') },
+        ], d.rows, 'No sign-off roles in the workbook.')
+        + (sup ? `<div class="prv-row"><label>Overall decision <select id="prvSoDec"><option value="">—</option><option>Proceed</option><option>Proceed with conditions</option><option>Do not proceed</option></select></label>
+          <label style="flex:1">Conditions / follow-up <textarea id="prvSoCond" rows="2" maxlength="4000">${esc(d.conditions || '')}</textarea></label><button type="button" id="prvSoDecSave">Save decision</button></div>` : '');
+      $('prvSignoff').querySelectorAll('button[data-so-save]').forEach(b => b.addEventListener('click', async () => {
+        const role = b.dataset.soSave, v = (f) => $('prvSignoff').querySelector(`[data-so="${f}"][data-role="${CSS.escape(role)}"]`).value;
+        try { await prvSend('/api/v1/privacy/signoff', { role, name: v('name'), date: v('date') || undefined, evidence_ref: v('evidence_ref') }); await prvLoadSignoff(); await prvLoadSummary(); }
+        catch (e) { prvErr(e); }
+      }));
+      const ds = $('prvSoDecSave'); if (ds) ds.addEventListener('click', async () => {
+        try { await prvSend('/api/v1/privacy/signoff', { overall_decision: $('prvSoDec').value || undefined, conditions: $('prvSoCond').value }); await prvLoadSignoff(); await prvLoadSummary(); }
+        catch (e) { prvErr(e); }
+      });
+    }
+
+    async function prvLoadSettings() {
+      const d = await api('/api/v1/privacy/settings');
+      const s = d.settings, can = d.can_edit, dis = can ? '' : 'disabled';
+      const num = (id, label, v, min, max, step) => `<label>${label}<input type="number" id="${id}" value="${esc(v)}" min="${min}" max="${max}" step="${step}" style="width:6.5rem" ${dis}></label>`;
+      const w = s.weights;
+      $('prvSettings').innerHTML = `<div class="prv-box"><strong>Scoring and thresholds</strong> <span class="section-help">(defaults are proposals; they need MBSSE sign-off)</span>
+        <div class="prv-row">${num('prvSKmin', 'Small-cell limit (accounts)', s.k_min, 1, 1000, 1)}${num('prvSMet', 'Measured "met" at ≥', s.met_threshold, 0.5, 1, 0.01)}${num('prvSValid', 'Evidence valid (days)', s.evidence_valid_days, 30, 1825, 1)}${num('prvSTol', 'Risk credit tolerance', s.risk_tolerance, 0.1, 1, 0.05)}</div>
+        <div class="prv-row">${num('prvWv', 'Weight verified', w.verified, 0, 1, 0.05)}${num('prvWe', 'evidenced', w.evidenced, 0, 1, 0.05)}${num('prvWa', 'attested', w.attested, 0, 1, 0.05)}${num('prvWp', 'partial cap', w.partial_cap, 0, 1, 0.05)}${num('prvWx', 'expired factor', w.expired_factor, 0, 1, 0.05)}</div>
+        <div class="prv-row"><label>Bill status<select id="prvSLeg" ${dis}>${['Bill', 'Assented', 'Commenced'].map(o => `<option ${o === s.legal_status.status ? 'selected' : ''}>${o}</option>`).join('')}</select></label>
+          <label>Date<input type="date" id="prvSLegD" value="${esc(s.legal_status.date || '')}" ${dis}></label><label>Source<input type="text" id="prvSLegS" value="${esc(s.legal_status.source || '')}" maxlength="300" ${dis}></label></div>
+        <div class="prv-row">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => num('prvT' + n, 'Go-live min axis ' + n, s.go_live_threshold[String(n)] ?? '', 0, 100, 1)).join('')}</div>
+        <label class="prv-wide">Excluded controls (one per line: <code>A15 = reason</code>)<textarea id="prvSExc" rows="2" ${dis}>${esc(Object.entries(s.excluded_controls).map(([k, v]) => k + ' = ' + v).join('\n'))}</textarea></label>
+        ${can ? '<div class="prv-row"><button type="button" id="prvSSave">Save settings</button></div>' : '<p class="empty">Only a super-admin can change settings.</p>'}</div>
+        <div class="prv-box"><strong>Workbook, snapshots and report</strong>
+        <div class="prv-row">${can ? '<label>Import a newer PIA workbook (.xlsx)<input type="file" id="prvImp" accept=".xlsx"></label><button type="button" class="secondary" id="prvImpGo">Import</button><button type="button" class="secondary" id="prvSnap">Save trend snapshot</button>' : ''}
+        <a href="${esc(withAs(secUrl('/api/v1/privacy/report')))}" target="_blank" rel="noopener">Download Markdown report</a></div><div id="prvImpOut"></div><div id="prvTrend"></div></div>`;
+      const sv = $('prvSSave'); if (sv) sv.addEventListener('click', async () => {
+        const n = (id) => $(id).value === '' ? undefined : Number($(id).value);
+        const thr = {}; for (let i = 1; i <= 10; i++) { const v = $('prvT' + i).value; if (v !== '') thr[String(i)] = Number(v); }
+        const exc = {}; $('prvSExc').value.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => { const [k, ...r] = l.split('='); exc[k.trim().toUpperCase()] = (r.join('=').trim() || 'excluded'); });
+        try {
+          await prvSend('/api/v1/privacy/settings', { k_min: n('prvSKmin'), met_threshold: n('prvSMet'), evidence_valid_days: n('prvSValid'), risk_tolerance: n('prvSTol'),
+            weights: { verified: n('prvWv'), evidenced: n('prvWe'), attested: n('prvWa'), partial_cap: n('prvWp'), expired_factor: n('prvWx') },
+            legal_status: { status: $('prvSLeg').value, date: $('prvSLegD').value || null, source: $('prvSLegS').value || null }, go_live_threshold: thr, excluded_controls: exc }, 'PUT');
+          toast('Settings saved', 'ok'); await prvLoadSummary(); await prvLoadRadar(); prvRenderOverview();
+        } catch (e) { prvErr(e); }
+      });
+      const ig = $('prvImpGo'); if (ig) ig.addEventListener('click', async () => {
+        const f = $('prvImp').files[0]; if (!f) { prvMsg('Choose an .xlsx file first.', 'err'); return; }
+        try {
+          const r = await api('/api/v1/privacy/import', { method: 'POST', body: await f.arrayBuffer(), headers: { 'Content-Type': 'application/octet-stream' } });
+          $('prvImpOut').innerHTML = `<p class="msg ok">Imported ${r.controls} controls, ${r.risks} risks, ${r.actions} actions (version ${esc(r.version)}). ${r.defects.length} data-quality finding(s) listed under Actions &amp; stakeholders.</p>`;
+          await prvLoadSummary(); await prvLoadRadar(); prvRenderOverview();
+        } catch (e) { prvErr(e); }
+      });
+      const sn = $('prvSnap'); if (sn) sn.addEventListener('click', async () => { try { await prvSend('/api/v1/privacy/snapshot' + domainQuery()); toast('Snapshot saved', 'ok'); prvLoadSettings(); } catch (e) { prvErr(e); } });
+      api('/api/v1/privacy/trend?limit=12').then(t => { $('prvTrend').innerHTML = t.rows.length ? prvTable([{ h: 'Snapshot', f: r => esc(r.at) }, { h: 'Gate', f: r => esc(r.gate) }, { h: 'Coverage', f: r => Math.round(r.coverage * 100) + '%' },
+        { h: 'Observed by axis', f: r => esc(Object.values(r.axes).map(a => a.observed ?? '–').join(' / ')) }], t.rows.slice().reverse(), '') : '<p class="empty">No snapshots yet.</p>'; }).catch(() => {});
+    }
+
+    async function prvLoadFeedback() {
+      const el = $('prvFbList');
+      if (!(PRV.status && PRV.status.superadmin)) { el.innerHTML = ''; return; }
+      const d = await api('/api/v1/privacy/feedback');
+      el.innerHTML = '<h3 class="prv-h">Feedback received</h3>' + prvTable([{ h: 'When', f: r => esc(r.at) }, { h: 'From', f: r => esc(r.by) }, { h: 'Type', f: r => esc(r.category) },
+        { h: 'Ref', f: r => esc(r.control_id || '') }, { h: '★', f: r => esc(r.rating || '') }, { h: 'Text', wrap: true, f: r => esc(r.text) }], d.rows.slice().reverse(), 'No feedback yet.');
+    }
+
+    async function prvLoadSummary() { PRV.summary = await api(secUrl('/api/v1/privacy/summary')); }
+    const PRV_TAB_LOADERS = { controls: prvLoadControls, risks: prvLoadRisks, tracker: prvLoadTracker, units: prvLoadHeat, signoff: prvLoadSignoff, settings: prvLoadSettings, feedback: prvLoadFeedback };
+    function prvShowTab(name) {
+      document.querySelectorAll('#prvTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+      document.querySelectorAll('#secPrivacy .prv-pane').forEach(p => { p.hidden = p.dataset.pane !== name; });
+      const ld = PRV_TAB_LOADERS[name];
+      if (ld) ld().catch(prvErr);
+    }
+    async function loadPrivacy() {
+      const spin = $('prvSpin'); spin.hidden = false; prvMsg('');
+      try {
+        PRV.status = await api('/api/v1/privacy/status');
+        if (PRV.status.dpo.configured) { await prvLoadSummary(); await prvLoadRadar(); }
+        prvRenderDpo(PRV.status);
+        if (PRV.status.dpo.configured) {
+          prvRenderOverview();
+          const act = document.querySelector('#prvTabs button.on');
+          if (act && act.dataset.tab !== 'overview') prvShowTab(act.dataset.tab);
+          const srcBad = Object.entries(PRV.summary.sources || {}).filter(([, v]) => v.status !== 'ok').map(([k]) => k);
+          prvMsg(`Experimental. As of ${PRV.summary.as_of}. Workbook: ${PRV.summary.workbook.source}${srcBad.length ? '. Reports not cached (run under GAM reports): ' + srcBad.join(', ') : ''}.`);
+        }
+      } catch (e) { prvErr(e); }
+      finally { spin.hidden = true; }
+    }
+    $('btnPrvReload').addEventListener('click', loadPrivacy);
+    $('prvTabs').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-tab]'); if (b) prvShowTab(b.dataset.tab); });
+    $('prvCtlAxis').addEventListener('change', () => prvLoadControls().catch(prvErr));
+    $('prvCtlState').addEventListener('change', () => prvLoadControls().catch(prvErr));
+    $('prvAttCancel').addEventListener('click', () => { $('prvAttForm').hidden = true; });
+    $('prvAttForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const body = { control_id: $('prvAttId').value, state: $('prvAttState').value, evidence_ref: $('prvAttRef').value, note: $('prvAttNote').value };
+      if (body.state === 'partial') body.pct = Number($('prvAttPct').value);
+      if ($('prvAttUntil').value) body.valid_until = $('prvAttUntil').value;
+      if ($('prvAttUnit').value.trim()) body.unit = $('prvAttUnit').value.trim();
+      try {
+        const r = await prvSend('/api/v1/privacy/attestations', body);
+        toast('Saved as ' + r.tier + (r.tier === 'attested' ? ' (add an evidence link to raise its weight)' : ''), 'ok');
+        $('prvAttForm').hidden = true; await prvLoadSummary(); await prvLoadRadar(); await prvLoadControls(); prvRenderOverview();
+      } catch (e) { prvErr(e); }
+    });
+    $('prvFbForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const body = { category: $('prvFbCat').value, text: $('prvFbText').value };
+      if ($('prvFbRef').value.trim()) body.control_id = $('prvFbRef').value.trim().toUpperCase();
+      if ($('prvFbRate').value) body.rating = Number($('prvFbRate').value);
+      try { await prvSend('/api/v1/privacy/feedback', body); toast('Thank you: feedback recorded', 'ok'); $('prvFbText').value = ''; prvLoadFeedback().catch(() => {}); }
+      catch (e) { prvErr(e); }
+    });
+
     /* ---- 0.4.18 Drive Doc / Sheet exports ---- */
     function domainQueryForExport() {
       // Reuse domainQuery() (?domain=a&domain=b); empty = all domains

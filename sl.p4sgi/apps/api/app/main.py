@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.18"
+APP_VERSION = "0.4.20"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -5895,3 +5895,53 @@ _NO_CACHE_HEADERS = {
 @app.get("/index.html")
 def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html", headers=_NO_CACHE_HEADERS)
+
+
+# 0.4.19 security audit (GAT-style, READ-ONLY). Isolated module: any failure here must never stop the API.
+# Disable with SECURITY_AUDIT_ENABLED=0. See docs/SECURITY_AUDIT.md.
+if os.getenv("SECURITY_AUDIT_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import security_audit as _secaudit
+
+        app.include_router(
+            _secaudit.build_router(
+                _secaudit.Helpers(
+                    insight_scope=_insight_scope,
+                    load_sources=_load_sources,
+                    build_device_rows=_build_device_rows,
+                    row_email=_row_email,
+                    in_scope=_in_scope,
+                    request_scope=_request_scope,
+                    is_superadmin=is_superadmin,
+                    data_dir=DATA_DIR,
+                    app_version=APP_VERSION,
+                )
+            )
+        )
+    except Exception as _sec_exc:  # noqa: BLE001
+        print(f"[security_audit] disabled: {_sec_exc!r}", flush=True)
+
+
+# 0.4.20 privacy / PIA compliance monitor (EXPERIMENTAL, own JSON state, no schema change). Isolated module:
+# any failure here must never stop the API. Disable with PRIVACY_MONITOR_ENABLED=0.
+if os.getenv("PRIVACY_MONITOR_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import privacy_monitor as _privacy
+
+        app.include_router(
+            _privacy.build_router(
+                _privacy.Helpers(
+                    insight_scope=_insight_scope,
+                    load_sources=_load_sources,
+                    build_device_rows=_build_device_rows,
+                    row_email=_row_email,
+                    in_scope=_in_scope,
+                    request_scope=_request_scope,
+                    is_superadmin=is_superadmin,
+                    data_dir=DATA_DIR,
+                    app_version=APP_VERSION,
+                )
+            )
+        )
+    except Exception as _priv_exc:  # noqa: BLE001
+        print(f"[privacy_monitor] disabled: {_priv_exc!r}", flush=True)

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.20" />
+  <meta name="p4sgi-ui-version" content="0.4.21" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -258,6 +258,12 @@
       padding: 0.45rem 0.75rem; margin: 0 0 0.75rem;
     }
     #exportAllBar .label { color: var(--muted); font-size: 0.8rem; margin-right: 0.25rem; }
+    #secChat .prv-box { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 0.85rem; margin: 0.6rem 0; }
+    #secChat .prv-box.block { border-color: var(--bad); }
+    #secChat .prv-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: flex-end; margin: 0.5rem 0; }
+    #secChat label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.78rem; color: var(--muted); }
+    #secChat textarea { background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; }
+    #chatOut { overflow-x: auto; max-width: 100%; }
     /* 0.4.20 privacy monitor (scoped) */
     #secPrivacy .prv-box { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 0.85rem; margin: 0.6rem 0; }
     #secPrivacy .prv-box.block { border-color: var(--bad); }
@@ -293,7 +299,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.20</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.21</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -771,6 +777,36 @@
       </div>
     </section>
 
+    <section id="secChat">
+      <h2>
+        <button type="button" class="section-toggle" data-section="secChat" aria-expanded="false" aria-controls="secChatBody">
+          <span class="chevron" aria-hidden="true">▸</span> Ask the data (AI) <span class="chip warn" style="margin-left:0.4rem"><span class="chip-val">EXPERIMENTAL</span></span>
+        </button>
+        <button type="button" class="secondary" id="btnChatReload">Check status</button>
+        <span class="spin" id="chatSpin" hidden><span class="spinner"></span></span>
+      </h2>
+      <div class="section-body" id="secChatBody" hidden>
+        <details class="help-collapse" data-help="secChatHelp">
+          <summary>Show help</summary>
+          <p class="section-help">Ask questions in plain language. <strong>Database questions</strong> (super-admin) are turned into one read-only SELECT over curated <code>chat_*</code> views that contain <em>no names, serials, SIM or WhatsApp numbers</em>; the SQL is shown so you can check it. <strong>Docs questions</strong> search the PIA workbook and docs (pgvector similarity, full-text fallback). Runs on <strong>local Ollama</strong> by default; Grok / ChatGPT / Claude / Gemini are off until enabled in <code>.env</code>, and even then never receive result rows. Every question is logged without results. GAM report data is not queryable here yet.</p>
+        </details>
+        <p class="msg" id="chatMsg"></p>
+        <div class="prv-row" id="chatCtl">
+          <label>Provider <select id="chatProv"><option value="ollama">Ollama (local)</option></select></label>
+          <label>Model <select id="chatModel"></select></label>
+          <label>Ask about <select id="chatMode"><option value="auto">Auto</option><option value="sql">Database (super-admin)</option><option value="docs">PIA / docs</option></select></label>
+          <button type="button" class="secondary" id="chatSetup" hidden>Set up database objects</button>
+          <button type="button" class="secondary" id="chatReindex" hidden>Reindex knowledge</button>
+        </div>
+        <form id="chatForm" class="prv-row" style="align-items:flex-start">
+          <label style="flex:1;min-width:16rem">Question <textarea id="chatQ" rows="2" maxlength="1000" required placeholder="e.g. How many tablets have not synced in 30 days, by district?"></textarea></label>
+          <button type="submit" id="chatAsk">Ask</button>
+        </form>
+        <div class="section-chips" id="chatEx"></div>
+        <div id="chatOut"></div>
+      </div>
+    </section>
+
   </main>
 
   <div class="modal-backdrop" id="gamModal" role="dialog" aria-modal="true" aria-labelledby="gamModalTitle">
@@ -790,7 +826,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.20';
+    const UI_VERSION = '0.4.21';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -824,6 +860,7 @@
       fleetDevices: false,
       secSecurity: false,
       secPrivacy: false,
+      secChat: false,
     };
 
     const DEV_DEFAULT_COLS = [
@@ -2881,6 +2918,50 @@
       if ($('prvFbRate').value) body.rating = Number($('prvFbRate').value);
       try { await prvSend('/api/v1/privacy/feedback', body); toast('Thank you: feedback recorded', 'ok'); $('prvFbText').value = ''; prvLoadFeedback().catch(() => {}); }
       catch (e) { prvErr(e); }
+    });
+
+    /* ---- 0.4.21 Ask the data (experimental) ---- */
+    const CHAT = { status: null };
+    const CHAT_EXAMPLES = ['How many schools are registered per district?', 'How many tablets have not synced in the last 30 days?', 'Average attendance confirmed vs detected by district this month', 'Which control covers breach notification in the PIA?', 'What does risk R16 say and what action addresses it?'];
+    function chatMsg(t, k) { const m = $('chatMsg'); m.className = 'msg' + (k ? ' ' + k : ''); m.textContent = t || ''; }
+    function chatErr(e) { let t = e.message || String(e); try { const j = JSON.parse(t); t = j.message || j.error || t; } catch { /* plain */ } chatMsg(t, 'err'); toast(t, 'err'); }
+    async function loadChat() {
+      $('chatSpin').hidden = false; chatMsg('');
+      try {
+        const st = await api('/api/v1/chat/status'); CHAT.status = st;
+        const o = st.ollama, models = o.models.length ? o.models : [st.default_model];
+        $('chatModel').innerHTML = models.map(m => `<option ${m === st.default_model ? 'selected' : ''}>${esc(m)}</option>`).join('');
+        $('chatProv').innerHTML = '<option value="ollama">Ollama (local)</option>' + Object.entries(st.cloud).map(([k, v]) => `<option value="${esc(k)}" ${v.available ? '' : 'disabled'}>${esc(v.label)}${v.available ? '' : ' (off)'}</option>`).join('');
+        $('chatSetup').hidden = $('chatReindex').hidden = !st.superadmin;
+        const bits = [o.reachable ? 'Ollama reachable (' + o.models.length + ' models)' : 'Ollama NOT reachable: ' + (o.hint || ''), st.database.setup_done ? (st.database.pgvector ? 'pgvector on' : 'pgvector missing: full-text search only') : 'database objects not set up yet (use the button, or ask a question)', o.reachable && !st.embed_model_installed ? 'run: ollama pull ' + st.embed_model : ''];
+        chatMsg(bits.filter(Boolean).join(' · '), o.reachable ? '' : 'err');
+        $('chatEx').innerHTML = CHAT_EXAMPLES.map(q => `<button type="button" class="secondary" data-ex="${esc(q)}">${esc(q)}</button>`).join('');
+        $('chatEx').querySelectorAll('button[data-ex]').forEach(b => b.addEventListener('click', () => { $('chatQ').value = b.dataset.ex; }));
+      } catch (e) { chatErr(e); } finally { $('chatSpin').hidden = true; }
+    }
+    $('btnChatReload').addEventListener('click', loadChat);
+    $('chatSetup').addEventListener('click', async () => { try { const r = await api('/api/v1/chat/setup', { method: 'POST' }); toast('Set up. pgvector: ' + (r.pgvector ? 'yes' : 'no'), 'ok'); loadChat(); } catch (e) { chatErr(e); } });
+    $('chatReindex').addEventListener('click', async () => {
+      $('chatSpin').hidden = false; chatMsg('Indexing PIA and docs with the local embedding model…');
+      try { const r = await api('/api/v1/chat/reindex', { method: 'POST', timeoutMs: 360000 }); chatMsg(`Indexed ${r.chunks} chunks (${r.vectors ? 'with vectors' : 'full-text only'})${r.warning ? ' · ' + r.warning : ''}.`, 'ok'); }
+      catch (e) { chatErr(e); } finally { $('chatSpin').hidden = true; }
+    });
+    $('chatForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const out = $('chatOut'), btn = $('chatAsk'); btn.disabled = true; $('chatSpin').hidden = false;
+      out.innerHTML = '<p class="empty">Thinking… a local 14B model can take up to a minute.</p>';
+      try {
+        const r = await api('/api/v1/chat/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000,
+          body: JSON.stringify({ question: $('chatQ').value, provider: $('chatProv').value, model: $('chatProv').value === 'ollama' ? $('chatModel').value : undefined, mode: $('chatMode').value }) });
+        let h = `<div class="prv-box ${r.error ? 'block' : ''}"><div style="white-space:pre-wrap">${esc(r.answer)}</div>
+          <p class="section-help" style="margin:0.4rem 0 0">${esc(r.mode)} mode · ${esc(r.provider)} / ${esc(r.model)} · ${(r.elapsed_ms / 1000).toFixed(1)}s${r.retrieval ? ' · retrieval: ' + esc(r.retrieval) : ''}${(r.warnings || []).length ? ' · ' + esc(r.warnings.join(' ')) : ''}</p></div>`;
+        if (r.sql) h += `<details open><summary>SQL that was run (read-only, curated views)</summary><pre class="view">${esc(r.sql)}</pre></details>`;
+        if (r.columns && r.columns.length) {
+          h += secTable(r.columns.map((c, i) => ({ h: c, f: row => esc(row[i] ?? '—') })), r.rows, 'No rows.') + (r.truncated ? `<p class="section-help">Showing the first ${r.rows.length} of ${r.row_count}+ rows.</p>` : '');
+        }
+        if ((r.sources || []).length) h += '<details><summary>Sources</summary>' + r.sources.map(s => `<p class="section-help"><strong>[${s.n}]</strong> ${esc(s.source)} ${esc(s.ref)} (score ${s.score}): ${esc(s.snippet)}</p>`).join('') + '</details>';
+        out.innerHTML = h;
+      } catch (e) { out.innerHTML = ''; chatErr(e); } finally { btn.disabled = false; $('chatSpin').hidden = true; }
     });
 
     /* ---- 0.4.18 Drive Doc / Sheet exports ---- */

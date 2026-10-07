@@ -21,6 +21,7 @@ services:
       DATA_DIR: /data
       APP_ENV: ${APP_ENV:-development}
       PUBLISH_AUDIT_TOKEN: ${PUBLISH_AUDIT_TOKEN:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       HOME: /home/george
       GAMCFGDIR: /home/george/.gam
       GAM_BIN: /home/george/bin/gam7/gam
@@ -33,6 +34,9 @@ services:
       # Optional dedicated GAM config (uncomment after George signs in as geb in gam-geb):
       # GAMCFGDIR: ${GAMCFGDIR:-/mnt/drive_14tb/stacks/sl.p4sgi/gam-geb}
       PATH: /home/george/bin/gam7:/usr/local/bin:/usr/bin:/bin
+    # 0.4.21: lets the container reach Ollama on the host (Ollama must listen on 0.0.0.0).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${APP_PORT:-8088}:8000"
     volumes:
@@ -42,6 +46,7 @@ services:
       - ../../docker-data/sl.p4sgi/attendance:/data/attendance
       - ../../docker-data/sl.p4sgi/exports:/data/exports
       - ./scripts:/scripts:ro
+      - ./docs:/knowledge/docs:ro
       - /home/george/bin/gam7:/home/george/bin/gam7:ro
       # Default: host ~/.gam (already oauth as geb@p4sgi.com / primary p4sgi.com).
       - /home/george/.gam:/home/george/.gam
@@ -59,7 +64,10 @@ services:
       start_period: 20s
 
   db:
-    image: postgres:16-alpine
+    # 0.4.21: same postgres:16-alpine + pgvector (deploy/db/Dockerfile). Data dir unchanged.
+    build:
+      context: ./deploy/db
+    image: sl-p4sgi-db:pg16-pgvector
     container_name: sl-p4sgi-db
     restart: unless-stopped
     environment:

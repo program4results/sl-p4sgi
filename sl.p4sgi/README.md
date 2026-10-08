@@ -2,6 +2,10 @@
 
 Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school-config publish, publish audit, and (later) read-only warehouse assistance.
 
+**0.4.26 (experimental):** **RUSTAiDMIN** section after the Domain filter: RustDesk server settings/console link and an allowlisted, super-admin-only ADB helper (off by default). Optional `--profile rustdesk` compose services use upstream images. Kill switch `RUSTADMIN_ENABLED=0`. See [docs/RUSTAIDMIN.md](docs/RUSTAIDMIN.md).
+
+**0.4.25:** AIdmin checkbox column stays visible (pinned at the right edge), tables scroll inside their section.
+
 **0.4.24:** **AIdmin** button in every section (GAM reports, raw exports, jobs, publish events, fleet, security) plus a general one by the Domain filter; tick rows then press AIdmin. Explain-only, whitelisted facts. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
 
 **0.4.23:** Admin assist is faster (instant first answer), help is a 73-guide library looked up in pgvector, editable email drafts (optional SMTP send), sample prompts, green Admin assist button. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).

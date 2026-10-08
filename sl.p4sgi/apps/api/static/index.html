@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.25" />
+  <meta name="p4sgi-ui-version" content="0.4.26" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -350,6 +350,17 @@
     td.ai-cell button { margin-left: 0.4rem; padding: 0.15rem 0.5rem; font-size: 0.72rem; border-radius: 6px; border: 1px solid #22c55e; background: #4ade80; color: #052e16; font-weight: 700; cursor: pointer; }
     tr.ai-picked td { background: rgba(74,222,128,0.10); }
     #btnAiGlobal { margin-left: 0.6rem; }
+    /* 0.4.26 RUSTAiDMIN */
+    #rustAidmin .ra-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 0.75rem; }
+    #rustAidmin .ra-card { border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; background: #0f172a; min-width: 0; }
+    #rustAidmin .ra-card h3 { margin: 0 0 0.4rem; font-size: 0.9rem; }
+    #rustAidmin input[type=text], #rustAidmin select { background: #0b1220; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; max-width: 100%; box-sizing: border-box; }
+    #rustAidmin select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+    #rustAidmin .ra-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.35rem 0; min-width: 0; }
+    #rustAidmin .ra-row > select, #rustAidmin .ra-row > input[type=text] { flex: 1 1 12rem; min-width: 0; }
+    #rustAidmin pre { background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.78rem; margin: 0.4rem 0 0; }
+    #rustAidmin .risk-read { color: var(--ok); } #rustAidmin .risk-change { color: var(--warn); } #rustAidmin .risk-danger { color: #f87171; font-weight: 700; }
+    #rustAidmin .ra-note { font-size: 0.78rem; color: var(--muted); }
     /* 0.4.25: tables scroll sideways inside their section, and the AIdmin column stays pinned at the right edge so it is always visible */
     #runsTable, #rawTable, #jobsTable, #eventsTable, #devicesTable { overflow-x: auto; max-width: 100%; }
     td.ai-cell, th.ai-cell { position: sticky; right: 0; background: var(--panel, #1e293b); box-shadow: -8px 0 8px -8px rgba(0,0,0,0.7); z-index: 2; }
@@ -363,7 +374,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.25</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.26</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -394,6 +405,39 @@
           <label><input type="checkbox" id="domAll" checked /> All</label>
           <span class="spinner" id="domSpin" hidden></span>
         </div>
+      </div>
+    </section>
+
+    <section id="rustAidmin">
+      <h2>
+        <button type="button" class="section-toggle" data-section="rustAidmin" aria-expanded="false" aria-controls="rustAidminBody">
+          <span class="chevron" aria-hidden="true">▸</span> RUST<b class="ai-red">AI</b>DMIN <span class="filter-summary" id="raSummary">remote desktop &amp; ADB for field tablets</span>
+        </button>
+        <button type="button" class="btn-assist hdr" id="raReload" title="Re-read RUSTAiDMIN status">Reload</button>
+      </h2>
+      <div id="rustAidminBody" hidden>
+        <p class="ra-note" style="margin-top:0">RustDesk gives you the tablet's screen. ADB (optional, super-admin) gives you diagnostics. Nothing here changes a device unless an administrator turns that on in the server settings. See Help &gt; RUSTAiDMIN.</p>
+        <div class="ra-grid">
+          <div class="ra-card">
+            <h3>1. Remote desktop (RustDesk)</h3>
+            <div id="raRdStatus" class="ra-note">Not loaded.</div>
+            <pre id="raRdConfig" hidden></pre>
+            <div class="ra-row"><button type="button" id="raCopyCfg" hidden>Copy tablet settings</button><a id="raConsole" href="#" target="_blank" rel="noopener" hidden>Open admin console</a></div>
+            <div class="ra-row"><input type="text" id="raRdId" placeholder="Tablet RustDesk ID" size="16" inputmode="numeric" /><button type="button" id="raRdOpen">Connect</button></div>
+            <div class="ra-note" id="raRdNote"></div>
+          </div>
+          <div class="ra-card">
+            <h3>2. ADB diagnostics</h3>
+            <div id="raAdbStatus" class="ra-note">Not loaded.</div>
+            <div class="ra-row"><input type="text" id="raTarget" placeholder="Tablet IP:port, e.g. 100.64.1.20:5555" size="26" /></div>
+            <div class="ra-row"><select id="raCmd"></select></div>
+            <div id="raArgs" class="ra-row"></div>
+            <div class="ra-row" id="raConfirmRow" hidden><input type="text" id="raConfirm" placeholder="Type the target again to confirm" size="26" /></div>
+            <div class="ra-row"><button type="button" class="btn-assist" id="raRun">Run</button><label class="ra-note"><input type="checkbox" id="raDry" /> plan only</label></div>
+            <div class="ra-note" id="raCmdNote"></div>
+          </div>
+        </div>
+        <pre id="raOut" hidden></pre>
       </div>
     </section>
 
@@ -941,7 +985,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.25';
+    const UI_VERSION = '0.4.26';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -961,6 +1005,7 @@
     /* Defaults: Schools + GAM expanded; Devices/Active/Raw/others collapsed; help collapsed */
     const SECTION_DEFAULTS = {
       domainFilter: false,
+      rustAidmin: false,
       uiSettings: true,
       secHealth: false,
       secSchools: true,
@@ -3510,6 +3555,61 @@
       });
     }
 
+
+    /* 0.4.26 RUSTAiDMIN (additive; any failure stays inside this block) */
+    (function raInit() {
+      try {
+        let CAT = null, ST = null;
+        const g = (id) => document.getElementById(id);
+        const out = (t) => { const o = g('raOut'); if (o) { o.hidden = false; o.textContent = t; } };
+        function curCmd() { const id = g('raCmd').value; if (!CAT) return null; for (const k of Object.keys(CAT.categories)) for (const c of CAT.categories[k]) if (c.id === id) return c; return null; }
+        function drawCmd() {
+          const c = curCmd(); const box = g('raArgs'); box.innerHTML = '';
+          if (!c) return;
+          (c.args || []).forEach(a => { const i = document.createElement('input'); i.type = 'text'; i.placeholder = a; i.dataset.arg = a; i.size = 18; box.appendChild(i); });
+          g('raConfirmRow').hidden = c.risk === 'read';
+          g('raCmdNote').innerHTML = '<span class="risk-' + esc(c.risk) + '">' + esc(c.risk.toUpperCase()) + '</span> ' + esc(c.note || '');
+        }
+        async function load() {
+          try {
+            ST = await api('/api/v1/rustadmin/status');
+            CAT = await api('/api/v1/rustadmin/adb/catalog');
+          } catch (e) { g('raRdStatus').textContent = 'RUSTAiDMIN is not available on this server (' + (e.message || e) + ').'; return; }
+          const rd = ST.rustdesk, ab = ST.adb;
+          g('raSummary').textContent = rd.configured ? (rd.key_found ? 'server configured' : 'server set, key not found') : 'server not configured';
+          g('raRdStatus').textContent = rd.configured ? ('Server: ' + rd.config.host + (rd.key_found ? ' · public key found' : ' · public key NOT found yet')) : 'No RustDesk server configured. Start it with: docker compose --profile rustdesk up -d and set RUSTDESK_HOST in .env.';
+          const pre = g('raRdConfig'); pre.hidden = !rd.configured; if (rd.configured) pre.textContent = rd.config.text;
+          g('raCopyCfg').hidden = !rd.configured;
+          const a = g('raConsole'); a.hidden = !rd.console_url; if (rd.console_url) a.href = rd.console_url;
+          g('raRdNote').textContent = rd.client_note;
+          g('raAdbStatus').textContent = (ab.enabled ? 'ADB on' : 'ADB off') + ' · adb binary ' + (ab.binary_found ? 'found' : 'missing') + ' · changes ' + (ab.allow_changes ? 'allowed (typed confirm)' : 'plan-only') + (ST.is_super ? '' : ' · super-admin only');
+          const sel = g('raCmd'); sel.innerHTML = '';
+          Object.keys(CAT.categories).forEach(k => { const og = document.createElement('optgroup'); og.label = k; CAT.categories[k].forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.risk === 'read' ? '' : '[' + c.risk + '] ') + c.label; og.appendChild(o); }); sel.appendChild(og); });
+          drawCmd();
+        }
+        g('raCmd').addEventListener('change', drawCmd);
+        g('raReload').addEventListener('click', (e) => { e.stopPropagation(); load(); });
+        g('raCopyCfg').addEventListener('click', () => { try { navigator.clipboard.writeText(ST.rustdesk.config.text); toast('Settings copied', 'ok'); } catch (e) { toast('Copy failed', 'err'); } });
+        g('raRdOpen').addEventListener('click', () => {
+          const id = (g('raRdId').value || '').replace(/\s+/g, '');
+          if (!/^[0-9]{6,12}$/.test(id)) { toast('Enter the tablet RustDesk ID (digits)', 'err'); return; }
+          window.location.href = 'rustdesk://connection/new/' + id;
+        });
+        g('raRun').addEventListener('click', async () => {
+          const c = curCmd(); if (!c) return;
+          const args = {}; document.querySelectorAll('#raArgs input').forEach(i => { args[i.dataset.arg] = i.value; });
+          g('raRun').disabled = true;
+          try {
+            const r = await api('/api/v1/rustadmin/adb/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: g('raTarget').value, command: c.id, args, confirm: g('raConfirm').value, dry_run: g('raDry').checked }), timeoutMs: 60000 });
+            out('$ ' + r.shown + '\n' + (r.executed ? ('[exit ' + r.rc + (r.truncated ? ', truncated' : '') + ']\n' + r.output) : ('NOT RUN: ' + r.reason)));
+          } catch (e) { out('Error: ' + (e.message || e)); }
+          finally { g('raRun').disabled = false; }
+        });
+        const tgl = document.querySelector('.section-toggle[data-section="rustAidmin"]');
+        let loaded = false; if (tgl) tgl.addEventListener('click', () => { if (!loaded) { loaded = true; load(); } });
+        if (tgl && tgl.getAttribute('aria-expanded') === 'true') { loaded = true; load(); }
+      } catch (e) { console.error('RUSTAiDMIN init failed', e); }
+    })();
 </script>
 </body>
 </html>

@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.25"
+APP_VERSION = "0.4.26"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -6003,3 +6003,28 @@ if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", 
         )
     except Exception as _assist_exc:  # noqa: BLE001
         print(f"[admin_assist] disabled: {_assist_exc!r}", flush=True)
+
+# 0.4.26 RUSTAiDMIN: RustDesk status/config helper + allowlisted ADB helper. EXPERIMENTAL, additive, own JSON state.
+# Reads only the server's public key file; ADB is off by default. Isolated module. Disable with RUSTADMIN_ENABLED=0.
+if os.getenv("RUSTADMIN_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import rustadmin as _rustadmin
+        from . import security_audit as _secaudit3
+
+        app.include_router(
+            _rustadmin.build_router(
+                _secaudit3.Helpers(
+                    insight_scope=_insight_scope,
+                    load_sources=_load_sources,
+                    build_device_rows=_build_device_rows,
+                    row_email=_row_email,
+                    in_scope=_in_scope,
+                    request_scope=_request_scope,
+                    is_superadmin=is_superadmin,
+                    data_dir=DATA_DIR,
+                    app_version=APP_VERSION,
+                )
+            )
+        )
+    except Exception as _rustadmin_exc:  # noqa: BLE001
+        print(f"[rustadmin] disabled: {_rustadmin_exc!r}", flush=True)

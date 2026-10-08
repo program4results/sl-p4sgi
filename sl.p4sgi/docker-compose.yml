@@ -8,6 +8,8 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+      args:
+        INSTALL_ADB: ${INSTALL_ADB:-0}
     container_name: sl-p4sgi-web
     restart: unless-stopped
     env_file:
@@ -36,6 +38,14 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      # 0.4.26 RUSTAiDMIN (all off/empty by default; see docs/RUSTAIDMIN.md).
+      RUSTADMIN_ENABLED: ${RUSTADMIN_ENABLED:-1}
+      RUSTDESK_HOST: ${RUSTDESK_HOST:-}
+      RUSTDESK_RELAY: ${RUSTDESK_RELAY:-}
+      RUSTDESK_CONSOLE_URL: ${RUSTDESK_CONSOLE_URL:-}
+      RUSTADMIN_ADB_ENABLED: ${RUSTADMIN_ADB_ENABLED:-0}
+      RUSTADMIN_ADB_ALLOW_CHANGES: ${RUSTADMIN_ADB_ALLOW_CHANGES:-0}
+      RUSTADMIN_ADB_NETS: ${RUSTADMIN_ADB_NETS:-}
       HOME: /home/george
       GAMCFGDIR: /home/george/.gam
       GAM_BIN: /home/george/bin/gam7/gam
@@ -60,6 +70,8 @@ services:
       - ../../docker-data/sl.p4sgi/attendance:/data/attendance
       - ../../docker-data/sl.p4sgi/exports:/data/exports
       - ./scripts:/scripts:ro
+      # 0.4.26: RustDesk server dir (public key file id_ed25519.pub is read; nothing is written)
+      - ../../docker-data/sl.p4sgi/rustdesk:/data/rustdesk:ro
       - ./docs:/knowledge/docs:ro
       - /home/george/bin/gam7:/home/george/bin/gam7:ro
       # Default: host ~/.gam (already oauth as geb@p4sgi.com / primary p4sgi.com).
@@ -76,6 +88,46 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  # ---- 0.4.26 RUSTAiDMIN: optional RustDesk server + admin console (docker compose --profile rustdesk up -d).
+  # Upstream images, not forks: `docker compose --profile rustdesk pull && docker compose --profile rustdesk up -d` takes upstream fixes.
+  # Pin a tag instead of :latest if you want to control when updates land. Nothing here starts without the profile.
+  rustdesk-hbbs:
+    profiles: ["rustdesk"]
+    image: rustdesk/rustdesk-server:${RUSTDESK_SERVER_TAG:-latest}
+    container_name: sl-p4sgi-hbbs
+    command: hbbs -r ${RUSTDESK_HOST:-localhost}:21117
+    restart: unless-stopped
+    ports:
+      - "21115:21115"
+      - "21116:21116"
+      - "21116:21116/udp"
+    volumes:
+      - ../../docker-data/sl.p4sgi/rustdesk:/root
+    depends_on:
+      - rustdesk-hbbr
+
+  rustdesk-hbbr:
+    profiles: ["rustdesk"]
+    image: rustdesk/rustdesk-server:${RUSTDESK_SERVER_TAG:-latest}
+    container_name: sl-p4sgi-hbbr
+    command: hbbr
+    restart: unless-stopped
+    ports:
+      - "21117:21117"
+    volumes:
+      - ../../docker-data/sl.p4sgi/rustdesk:/root
+
+  # Optional community admin console (MIT licence, github.com/lejianwen/rustdesk-api). Web admin: http://HOST:21114/_admin/
+  rustdesk-console:
+    profiles: ["rustdesk"]
+    image: lejianwen/rustdesk-api:${RUSTDESK_CONSOLE_TAG:-latest}
+    container_name: sl-p4sgi-rdconsole
+    restart: unless-stopped
+    ports:
+      - "21114:21114"
+    volumes:
+      - ../../docker-data/sl.p4sgi/rustdesk-console:/app/data
 
   db:
     # 0.4.21: same postgres:16-alpine + pgvector (deploy/db/Dockerfile). Data dir unchanged.

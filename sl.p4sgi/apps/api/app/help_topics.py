@@ -246,3 +246,27 @@ HELP_TOPICS: list[dict[str, object]] = [
        "Encryption: scrambling stored data so it is unreadable without the screen lock. Patch: a security update. Sideloading: installing apps from outside the official store. "
        "Wipe: erasing data remotely. Super-admin: the highest Google Workspace administrator. OU: an organisational unit, a folder of accounts used to apply different settings."),
 ]
+
+HELP_TOPICS += [
+    _a("rustadmin-what", "Remote support", "What RUSTAiDMIN is and what it does not do",
+       "rustdesk,remote,desktop,adb,tablet,support",
+       "RUSTAiDMIN is a section near the top of the dashboard. It shows the settings tablets need to reach your RustDesk server, links to the admin console, and (optionally) runs a short list of ADB diagnostics. "
+       "RustDesk shows and controls the tablet screen. ADB is a separate tool that reads technical information. RustDesk does not carry ADB: the computer running ADB needs its own route to the tablet (USB, the same network, or a VPN). "
+       "Nothing changes a tablet unless a super-admin turns that on in the server settings."),
+    _a("rustadmin-server", "Remote support", "Setting up the RustDesk server (hbbs and hbbr)",
+       "rustdesk,hbbs,hbbr,server,docker,key,ports",
+       "Start the optional services with: docker compose --profile rustdesk up -d. Set RUSTDESK_HOST in .env to the public name or IP of the server. The server creates a key pair; the PUBLIC key (id_ed25519.pub) is what tablets need. "
+       "Open TCP 21115-21117 and UDP 21116 on the firewall. To take upstream fixes later: docker compose --profile rustdesk pull, then up -d. Pin RUSTDESK_SERVER_TAG if you want to choose when updates land."),
+    _a("rustadmin-old-client", "Remote support", "The 120 tablets run RustDesk 1.2.3 (October 2023): what to check",
+       "rustdesk,1.2.3,old,client,update,security",
+       "Newer RustDesk servers are expected to accept older clients, but test one tablet before changing all 120: enter the ID server, relay and key in the tablet's network settings and connect from a computer. "
+       "Version 1.2.3 may lack later security fixes (check the RustDesk release notes), so plan to update the tablets when you can, and keep the server reachable only on the ports it needs. Do not assume the old client is safe because the server is new."),
+    _a("rustadmin-adb", "Remote support", "Using the ADB diagnostics safely",
+       "adb,debugging,commands,logcat,dumpsys,wireless",
+       "ADB needs USB or wireless debugging switched on in the tablet's developer options, and the server must be allowed to run it (RUSTADMIN_ADB_ENABLED=1, adb installed in the web image with INSTALL_ADB=1). "
+       "Only super-admins can run commands. Read-only diagnostics (properties, packages, permissions, settings, logs, network) run directly. Commands that change a tablet are plan-only unless RUSTADMIN_ADB_ALLOW_CHANGES=1, and then you must type the target to confirm. Every run is written to an audit log. "
+       "Leaving wireless debugging open on a school network is a security risk: use a VPN and switch it off afterwards."),
+    _a("rustadmin-privacy", "Remote support", "Privacy: what ADB diagnostics can expose",
+       "adb,privacy,usagestats,accounts,pia",
+       "Some diagnostics (app usage statistics, accounts on the device, logs, screenshots) contain personal data about the pupil or teacher using the tablet. Run them only for a support reason, do not copy the output elsewhere, and record why in your support ticket."),
+]

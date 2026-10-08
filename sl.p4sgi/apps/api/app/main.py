@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.22"
+APP_VERSION = "0.4.26"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -5970,6 +5970,21 @@ if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", 
         from . import admin_assist as _assist
         from . import security_audit as _secaudit2
 
+        def _assist_fetch(kind: str, request: Request, allowed: set[str] | None) -> list[dict[str, Any]]:
+            """Re-read rows for Admin assist with the caller's domain scope (same functions the tables use)."""
+            dom = ",".join(sorted(allowed)) if allowed else None
+            if kind == "gam_runs":
+                return list_gam_reports(domain=None, domains=dom)["runs"]
+            if kind == "jobs":
+                return list_jobs(domain=None, domains=dom)["jobs"]
+            if kind == "events":
+                return list_publish_events(emis=None, kind=None, domain=None, domains=dom)["events"]
+            if kind == "fleet":
+                return list_devices(domain=None, domains=dom, emis=None, limit=500)["devices"]
+            if kind == "raw_exports":
+                return list_raw_exports(request)["files"]
+            return []
+
         app.include_router(
             _assist.build_router(
                 _secaudit2.Helpers(
@@ -5982,8 +5997,34 @@ if os.getenv("ASSIST_ENABLED", "1").strip().lower() not in ("0", "false", "no", 
                     is_superadmin=is_superadmin,
                     data_dir=DATA_DIR,
                     app_version=APP_VERSION,
-                )
+                ),
+                _assist_fetch,
             )
         )
     except Exception as _assist_exc:  # noqa: BLE001
         print(f"[admin_assist] disabled: {_assist_exc!r}", flush=True)
+
+# 0.4.26 RUSTAiDMIN: RustDesk status/config helper + allowlisted ADB helper. EXPERIMENTAL, additive, own JSON state.
+# Reads only the server's public key file; ADB is off by default. Isolated module. Disable with RUSTADMIN_ENABLED=0.
+if os.getenv("RUSTADMIN_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off"):
+    try:
+        from . import rustadmin as _rustadmin
+        from . import security_audit as _secaudit3
+
+        app.include_router(
+            _rustadmin.build_router(
+                _secaudit3.Helpers(
+                    insight_scope=_insight_scope,
+                    load_sources=_load_sources,
+                    build_device_rows=_build_device_rows,
+                    row_email=_row_email,
+                    in_scope=_in_scope,
+                    request_scope=_request_scope,
+                    is_superadmin=is_superadmin,
+                    data_dir=DATA_DIR,
+                    app_version=APP_VERSION,
+                )
+            )
+        )
+    except Exception as _rustadmin_exc:  # noqa: BLE001
+        print(f"[rustadmin] disabled: {_rustadmin_exc!r}", flush=True)

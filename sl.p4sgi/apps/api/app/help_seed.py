@@ -59,7 +59,7 @@ HELP_SEED: list[dict[str, object]] = [
              "Lost or retired: block it and wipe the school account data from it (a wipe is irreversible, so confirm first). Admin assist prepares the GAM steps; you need the device's GAM resourceId."},
     {"id": "admin-assist", "category": "Admin assist", "title": "How Admin assist works and what it can and cannot do",
      "tags": ["admin assist", "ai", "gemini", "help"],
-     "body": "Tick one or more rows and press Admin assist, or press Assist at the end of a row. The assistant explains the issue in plain language and offers next steps as buttons: "
+     "body": "Tick one or more rows and press the green AIdmin button (it is in every section: GAM reports, Raw exports, Provisioning jobs, Publish events, Fleet / devices and Security audit), or press the small AIdmin button at the end of a row. The AIdmin button next to the Domain filter opens a general chat that is not tied to any rows. The assistant explains the issue in plain language and offers next steps as buttons: "
              "approve an app, prepare a revoke or offboarding plan, draft an email to the person, or ask a follow-up. "
              "It can only act on the rows you selected, can only offer a fixed list of steps, and never runs anything: plans are text for you to copy and emails open in your mail app as a draft. "
              "Privacy: the AI is not sent email addresses, names or serial numbers. People are replaced by labels like U1, and the real names are put back only on your screen."},
@@ -70,7 +70,8 @@ HELP_SEED: list[dict[str, object]] = [
              "If Gemini is not configured the local Ollama model on this server is used and nothing leaves the building. Use a paid or Vertex Gemini key, not a free consumer key, because free tiers may use prompts to improve the product."},
     {"id": "email-draft", "category": "Admin assist", "title": "Emailing a user from the dashboard",
      "tags": ["email", "draft", "mailto"],
-     "body": "The dashboard has no mail server and sends nothing. 'Draft an email' opens a ready-written message in your own mail program (mailto link) and shows the text to copy. You review and press send."},
+     "body": "By default the dashboard sends nothing. 'Draft an email' shows the recipients, subject and text (all editable) and opens a ready-written message in your own mail program (mailto link), so you review it and press send there. "
+             "If the server administrator has set up SMTP (SMTP_HOST and SMTP_FROM), a super-admin also gets a 'Send from the dashboard' button; it can only send to the people on the rows you selected, at most 30 emails an hour, and every send is logged."},
     {"id": "pia", "category": "Privacy (PIA)", "title": "What the Privacy compliance (PIA) panel measures",
      "tags": ["pia", "privacy", "dpo", "compliance"],
      "body": "It tracks the Sierra Leone ULID Privacy Impact Assessment (40 controls, 18 risks) against evidence, not against what the workbook claims. A Data Protection Officer email must be entered first. "

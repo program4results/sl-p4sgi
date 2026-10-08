@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="p4sgi-ui-version" content="0.4.22" />
+  <meta name="p4sgi-ui-version" content="0.4.26" />
   <link rel="icon" href="data:," />
   <title>p4sgi</title>
   <style>
@@ -320,6 +320,52 @@
     #secHelp input[type=text], #secHelp textarea { background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; }
     #secHelp .hl-cat { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0.8rem 0 0.2rem; }
     #secApproved { overflow-x: auto; max-width: 100%; }
+    /* 0.4.23: readable "Why" column, bright green Admin assist on the left */
+    .sel-tbl td, .sel-tbl th { vertical-align: top; }
+    .sel-tbl td.wrap { white-space: normal; min-width: 20rem; max-width: 36rem; line-height: 1.4; text-align: left; }
+    .sel-tbl td.wrap .why-i { display: block; padding-left: 0.9rem; text-indent: -0.9rem; margin: 0 0 0.15rem; }
+    .sel-tbl td.wrap .why-i::before { content: "• "; color: var(--muted); }
+    .sel-tbl td.wrap .why-i:last-child { margin-bottom: 0; }
+    .sel-tbl .mono { word-break: break-all; white-space: normal; min-width: 8rem; }
+    .btn-assist { background: #22c55e; color: #052e16; border: 1px solid #4ade80; font-weight: 800; padding: 0.4rem 0.9rem; font-size: 0.88rem; border-radius: 8px;
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.6), 0 0 14px rgba(34,197,94,0.55); cursor: pointer; }
+    .btn-assist:hover:not(:disabled) { background: #4ade80; }
+    .btn-assist:disabled { background: #14532d; color: #86efac; border-color: #166534; box-shadow: none; cursor: not-allowed; opacity: 0.85; }
+    .sel-tbl button.assist.go { background: #22c55e; color: #052e16; border-color: #4ade80; font-weight: 700; }
+    .sel-bar .btn-assist { order: -1; }
+    #aaSamples { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; }
+    #aaSamples button { font-size: 0.74rem; padding: 0.2rem 0.55rem; border-radius: 999px; }
+    .aa-card input[type=text] { background: #020617; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.3rem 0.5rem; font: inherit; width: 100%; box-sizing: border-box; margin: 0.15rem 0 0.35rem; }
+    .aa-card label.inl { display: flex; gap: 0.4rem; align-items: center; font-size: 0.78rem; color: var(--muted); margin: 0.2rem 0; }
+    .aa-enh { color: var(--ok); font-size: 0.78rem; }
+    /* 0.4.24: AIdmin everywhere (AI in red bold) */
+    .ai-red { color: #ff4d5e; font-weight: 900; }
+    .btn-assist .ai-red, .sel-tbl button.assist.go .ai-red, td.ai-cell button .ai-red { color: #a0001a; }
+    .btn-assist { background: #4ade80; }
+    .btn-assist:disabled .ai-red { color: #fca5a5; }
+    .btn-assist.hdr { padding: 0.2rem 0.7rem; font-size: 0.8rem; margin-left: 0.35rem; }
+    .sel-tbl button.assist.go { background: #4ade80; }
+    td.ai-cell, th.ai-cell { white-space: nowrap; text-align: left; }
+    td.ai-cell input { width: 1.05rem; height: 1.05rem; vertical-align: middle; cursor: pointer; }
+    td.ai-cell button { margin-left: 0.4rem; padding: 0.15rem 0.5rem; font-size: 0.72rem; border-radius: 6px; border: 1px solid #22c55e; background: #4ade80; color: #052e16; font-weight: 700; cursor: pointer; }
+    tr.ai-picked td { background: rgba(74,222,128,0.10); }
+    #btnAiGlobal { margin-left: 0.6rem; }
+    /* 0.4.26 RUSTAiDMIN */
+    #rustAidmin .ra-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 0.75rem; }
+    #rustAidmin .ra-card { border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; background: #0f172a; min-width: 0; }
+    #rustAidmin .ra-card h3 { margin: 0 0 0.4rem; font-size: 0.9rem; }
+    #rustAidmin input[type=text], #rustAidmin select { background: #0b1220; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 0.35rem 0.5rem; font: inherit; max-width: 100%; box-sizing: border-box; }
+    #rustAidmin select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+    #rustAidmin .ra-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.35rem 0; min-width: 0; }
+    #rustAidmin .ra-row > select, #rustAidmin .ra-row > input[type=text] { flex: 1 1 12rem; min-width: 0; }
+    #rustAidmin pre { background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.78rem; margin: 0.4rem 0 0; }
+    #rustAidmin .risk-read { color: var(--ok); } #rustAidmin .risk-change { color: var(--warn); } #rustAidmin .risk-danger { color: #f87171; font-weight: 700; }
+    #rustAidmin .ra-note { font-size: 0.78rem; color: var(--muted); }
+    /* 0.4.25: tables scroll sideways inside their section, and the AIdmin column stays pinned at the right edge so it is always visible */
+    #runsTable, #rawTable, #jobsTable, #eventsTable, #devicesTable { overflow-x: auto; max-width: 100%; }
+    td.ai-cell, th.ai-cell { position: sticky; right: 0; background: var(--panel, #1e293b); box-shadow: -8px 0 8px -8px rgba(0,0,0,0.7); z-index: 2; }
+    tr.ai-picked td.ai-cell { background: #1d3b2c; }
+    .sel-bar[hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -328,7 +374,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.22</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.26</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -351,6 +397,7 @@
           <span class="chevron" id="domainChevron" aria-hidden="true">▸</span> Domain filter
         </button>
         <span class="filter-summary" id="domainSummary">All domains</span>
+        <button type="button" class="btn-assist hdr" id="btnAiGlobal" title="Ask AIdmin anything about this dashboard"><b class="ai-red">AI</b>dmin</button>
       </h2>
       <div id="domainFilterBody" hidden>
         <p style="margin-top:0">Filters GAM runs, schools, jobs, publish events, devices, and telemetry. Persisted in <code>localStorage</code>.</p>
@@ -358,6 +405,39 @@
           <label><input type="checkbox" id="domAll" checked /> All</label>
           <span class="spinner" id="domSpin" hidden></span>
         </div>
+      </div>
+    </section>
+
+    <section id="rustAidmin">
+      <h2>
+        <button type="button" class="section-toggle" data-section="rustAidmin" aria-expanded="false" aria-controls="rustAidminBody">
+          <span class="chevron" aria-hidden="true">▸</span> RUST<b class="ai-red">AI</b>DMIN <span class="filter-summary" id="raSummary">remote desktop &amp; ADB for field tablets</span>
+        </button>
+        <button type="button" class="btn-assist hdr" id="raReload" title="Re-read RUSTAiDMIN status">Reload</button>
+      </h2>
+      <div id="rustAidminBody" hidden>
+        <p class="ra-note" style="margin-top:0">RustDesk gives you the tablet's screen. ADB (optional, super-admin) gives you diagnostics. Nothing here changes a device unless an administrator turns that on in the server settings. See Help &gt; RUSTAiDMIN.</p>
+        <div class="ra-grid">
+          <div class="ra-card">
+            <h3>1. Remote desktop (RustDesk)</h3>
+            <div id="raRdStatus" class="ra-note">Not loaded.</div>
+            <pre id="raRdConfig" hidden></pre>
+            <div class="ra-row"><button type="button" id="raCopyCfg" hidden>Copy tablet settings</button><a id="raConsole" href="#" target="_blank" rel="noopener" hidden>Open admin console</a></div>
+            <div class="ra-row"><input type="text" id="raRdId" placeholder="Tablet RustDesk ID" size="16" inputmode="numeric" /><button type="button" id="raRdOpen">Connect</button></div>
+            <div class="ra-note" id="raRdNote"></div>
+          </div>
+          <div class="ra-card">
+            <h3>2. ADB diagnostics</h3>
+            <div id="raAdbStatus" class="ra-note">Not loaded.</div>
+            <div class="ra-row"><input type="text" id="raTarget" placeholder="Tablet IP:port, e.g. 100.64.1.20:5555" size="26" /></div>
+            <div class="ra-row"><select id="raCmd"></select></div>
+            <div id="raArgs" class="ra-row"></div>
+            <div class="ra-row" id="raConfirmRow" hidden><input type="text" id="raConfirm" placeholder="Type the target again to confirm" size="26" /></div>
+            <div class="ra-row"><button type="button" class="btn-assist" id="raRun">Run</button><label class="ra-note"><input type="checkbox" id="raDry" /> plan only</label></div>
+            <div class="ra-note" id="raCmdNote"></div>
+          </div>
+        </div>
+        <pre id="raOut" hidden></pre>
       </div>
     </section>
 
@@ -425,6 +505,7 @@
           <span class="chevron" aria-hidden="true">▾</span> GAM reports
         </button>
         <button type="button" class="secondary" id="btnReloadRuns">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="gam_runs" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <button type="button" class="secondary" id="btnReloadGamSummary">Summary</button>
         <span class="spin" id="runsSpin" hidden><span class="spinner"></span></span>
         <span class="spin" id="gamSumSpin" hidden><span class="spinner"></span></span>
@@ -577,6 +658,7 @@
         </button>
         <span class="badge kind" title="IMEIs / MAC addresses / serials — super-admin only">super-admin</span>
         <button type="button" class="secondary" id="btnRawReload" title="Re-list CSV files under gam-out (no GAM call)">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="raw_exports" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="rawSpin" hidden><span class="spinner"></span></span>
       
         <span class="export-btns" data-export="raw_exports">
@@ -606,6 +688,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Provisioning jobs
         </button>
         <button type="button" class="secondary" id="btnReloadJobs">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="jobs" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="jobsSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secJobsBody" hidden>
@@ -624,6 +707,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Recent publish events
         </button>
         <button type="button" class="secondary" id="btnReloadEvents">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="events" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="eventsSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secEventsBody" hidden>
@@ -676,6 +760,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Fleet / devices
         </button>
         <button type="button" class="secondary" id="btnReloadDevices">Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="fleet" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="devicesSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="fleetDevicesBody" hidden>
@@ -693,6 +778,7 @@
           <span class="chevron" aria-hidden="true">▸</span> Security audit
         </button>
         <button type="button" class="secondary" id="btnSecReload">Load / Reload</button>
+        <button type="button" class="btn-assist hdr" data-ai-hdr="oauth,users,devices" title="Tick rows below, then press AIdmin for plain-language help"><b class="ai-red">AI</b>dmin <span data-ai-n></span></button>
         <span class="spin" id="secSpin" hidden><span class="spinner"></span></span>
       </h2>
       <div class="section-body" id="secSecurityBody" hidden>
@@ -702,7 +788,7 @@
         </details>
         <p class="msg" id="secMsg"></p>
         <div class="cards" id="secCards"><p class="empty">Click <em>Load / Reload</em>.</p></div>
-        <p class="section-help" style="margin:0.5rem 0 0">New: tick rows (or use <em>Select all</em>) and press <strong>Admin assist</strong>, or press <strong>Assist</strong> at the end of a row. The assistant explains the issue in plain words and offers next steps. It never changes anything by itself.</p>
+        <p class="section-help" style="margin:0.5rem 0 0">New: tick rows (or use <em>Select all</em>) and press <strong><b class="ai-red">AI</b>dmin</strong>, or press the small <strong><b class="ai-red">AI</b>dmin</strong> button at the end of a row. The assistant explains the issue in plain words and offers next steps. It never changes anything by itself.</p>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">Known &amp; approved apps</h3>
         <div id="secApproved"><p class="empty">Click <em>Load / Reload</em>.</p></div>
         <h3 style="font-size:0.85rem;margin:0.9rem 0 0.3rem">OAuth apps (30 d)</h3>
@@ -850,10 +936,12 @@
       <div class="section-body" id="secHelpBody" hidden>
         <p class="section-help">Plain-language guides for this dashboard. Questions asked in <strong>Admin assist</strong> and here are saved (without names or email addresses) as <em>drafts</em>; a super-admin reviews them, and approved ones become part of the help and the Ask-the-data knowledge. Nothing here changes Google Workspace.</p>
         <p class="msg" id="helpMsg"></p>
+        <p class="section-help" id="helpIdx"></p>
         <form id="helpForm" class="hl-row">
           <input type="text" id="helpQ" maxlength="600" minlength="3" required placeholder="Ask anything, e.g. What does CRITICAL mean for an app?" style="flex:1;min-width:16rem">
-          <button type="submit">Ask</button>
+          <button type="submit">Ask (instant)</button>
           <button type="button" class="secondary" id="helpSearchBtn">Search guides</button>
+          <button type="button" class="secondary" id="helpAiBtn" title="Let the AI phrase the answer from the guides (slower)">Ask with AI</button>
         </form>
         <div id="helpAnswer"></div>
         <div id="helpList"></div>
@@ -867,12 +955,13 @@
   <div class="modal-backdrop" id="aaModal" role="dialog" aria-modal="true" aria-labelledby="aaTitle">
     <div class="modal">
       <header>
-        <h2 id="aaTitle" style="margin:0;font-size:1rem;">Admin assist</h2>
+        <h2 id="aaTitle" style="margin:0;font-size:1rem;"><b class="ai-red">AI</b>dmin</h2>
         <span class="chip" id="aaEngine" title="Which AI answers"><span class="chip-val">…</span></span>
         <button type="button" class="secondary" id="aaClose">Close</button>
       </header>
       <div class="body"><div id="aaBody"></div></div>
       <div class="foot">
+        <div id="aaSamples" aria-label="Sample questions"></div>
         <form id="aaForm"><input type="text" id="aaText" maxlength="600" placeholder="Or type your own question about these items…" autocomplete="off"><button type="submit" id="aaSend">Send</button></form>
         <span class="aa-small" style="width:100%">The AI sees labels (U1, A1, D1), risk flags and counts only: no email addresses, names or serial numbers. It cannot run anything.</span>
       </div>
@@ -896,7 +985,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const UI_VERSION = '0.4.22';
+    const UI_VERSION = '0.4.26';
     // 0.4.15: a missing element used to throw inside every GAM handler before its fetch ran,
     // leaving "Loading…" and the spinner forever. Never let that be silent again.
     const _NULL_EL = { textContent: '', className: '', innerHTML: '', hidden: true, style: {} };
@@ -916,6 +1005,7 @@
     /* Defaults: Schools + GAM expanded; Devices/Active/Raw/others collapsed; help collapsed */
     const SECTION_DEFAULTS = {
       domainFilter: false,
+      rustAidmin: false,
       uiSettings: true,
       secHealth: false,
       secSchools: true,
@@ -1673,7 +1763,7 @@
           $('runsTable').innerHTML = '<p class="empty">No runs match. Click a report button above (or clear domain filter).</p>';
           return;
         }
-        const rows = runs.map(r => `<tr>
+        const rows = runs.map(r => `<tr data-aikey="${esc(r.id)}">
           <td class="mono">${esc(r.id)}</td>
           <td>${kindBadge(r.report)}</td>
           <td>${badge(r.status || 'ok')}</td>
@@ -1879,7 +1969,7 @@
           const id = j.id;
           const open = expandedJobId === id;
           const summary = j.payload_summary || {};
-          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}">
+          return `<tr class="clickable ${open ? 'expanded' : ''}" data-job="${esc(id)}" data-aikey="${esc(id)}">
             <td class="mono">${esc(id.slice(0, 8))}…</td>
             <td>${badge(j.status)}</td>
             <td>${esc(j.emis || '—')}</td>
@@ -2120,7 +2210,7 @@
           $('eventsTable').innerHTML = '<p class="empty">No publish events match. If you just republished the Google Site, that does not land here — see the note above.</p>';
           return;
         }
-        const rows = events.map(e => `<tr>
+        const rows = events.map(e => `<tr data-aikey="${esc(e.id)}">
           <td class="mono">${esc((e.id || '').slice(0, 8))}…</td>
           <td>${kindBadge(e.kind)}</td>
           <td>${badge(e.status || (e.config_path ? 'ok' : ''))}</td>
@@ -2198,7 +2288,7 @@
             </table>`;
           return;
         }
-        const rows = devices.map(d => `<tr>
+        const rows = devices.map(d => `<tr data-aikey="${esc(d.id)}">
           <td class="mono">${esc(d.emis || '—')}</td>
           <td>${esc(d.school_name || '—')}</td>
           <td class="mono">${esc(d.serial || (d.id || '').slice(0, 8) || '—')}</td>
@@ -2490,7 +2580,7 @@
         $('rawTable').innerHTML = '<p class="empty">No CSV files match.</p>';
         return;
       }
-      const rows = files.map(f => `<tr>
+      const rows = files.map(f => `<tr data-aikey="${esc(f.path)}">
           <td class="mono">${esc(f.folder)}</td>
           <td class="mono">${esc(f.name)}${f.err ? ` <span class="badge" title="${esc(f.err)}">.err</span>` : ''}</td>
           <td data-sort="${f.size_bytes}">${esc(fmtBytes(f.size_bytes))}</td>
@@ -2620,21 +2710,21 @@
         msg.textContent = notes.filter(Boolean).join(' ');
         secSelRender('oauth', 'secOauth', [
           { h: 'App', f: r => esc(r.app_name) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) + ' ' + esc(r.risk_score ?? '—') },
-          { h: 'Users', f: r => esc(r.user_count) }, { h: 'Last seen', f: r => esc(r.last_seen || '—') },
+          { h: 'Users', f: r => esc(r.user_count) }, { h: 'Last seen', f: r => esc(String(r.last_seen || '—').slice(0, 10)) },
           { h: 'Why', wrap: true, f: r => r.approved
               ? `<span class="aa-small">Approved by ${esc(r.approved.approved_by)} until ${esc(String(r.approved.review_by).slice(0, 10))}: ${esc(r.approved.note)} (real level ${esc(r.risk_level_raw)})</span>`
-              : esc((r.reasons || []).join('; ')) + (r.approval_stale ? ` <span class="chip warn"><span class="chip-val">${esc(r.approval_stale)}</span></span>` : '') },
+              : whyList(r.reasons) + (r.approval_stale ? ` <span class="chip warn"><span class="chip-val">${esc(r.approval_stale)}</span></span>` : '') },
           { h: 'Client ID', f: r => `<span class="mono">${esc(r.client_id || '—')}</span>` },
         ], oa.rows, 'No OAuth apps in scope (or token_activity not cached).');
         secSelRender('users', 'secUsers', [
           { h: 'User', f: r => esc(r.email) }, { h: 'Risk', f: r => secLevelChip(r.risk_level) },
-          { h: 'Flags', f: r => esc(r.flags.join(', ')) }, { h: 'Days idle', f: r => esc(r.days_since_login ?? '—') },
+          { h: 'Flags', wrap: true, f: r => whyList(r.flags) }, { h: 'Days idle', f: r => esc(r.days_since_login ?? '—') },
           { h: '2SV', f: r => r.two_sv_enrolled === null ? '—' : (r.two_sv_enrolled ? 'yes' : 'no') }, { h: 'Failed 7d', f: r => esc(r.failed_logins_7d) },
         ], us.rows, 'No flagged users in scope (or users_full not cached).');
         secSelRender('devices', 'secDevices', [
           { h: 'User', f: r => esc(r.email) }, { h: 'Model', f: r => esc(r.model || '—') }, { h: 'OS', f: r => esc(r.os || '—') },
           { h: 'Status', f: r => secLevelChip(r.compliance_status) + ' ' + esc(r.compliance_score) },
-          { h: 'Flags', wrap: true, f: r => esc(r.flags.join(', ') || '—') }, { h: 'Last sync', f: r => esc(r.last_sync || '—') },
+          { h: 'Flags', wrap: true, f: r => whyList(r.flags) }, { h: 'Last sync', f: r => esc(String(r.last_sync || '—').slice(0, 10)) },
         ], dv.rows, 'No devices in scope (or device reports not cached).');
         secLoadApproved();
       } catch (e) {
@@ -3017,9 +3107,10 @@
     $('btnChatReload').addEventListener('click', loadChat);
 
     /* ---- 0.4.22 row selection, Admin assist pop-up, approved apps, Help ---- */
+    const whyList = (arr) => (arr && arr.length ? arr.map(x => `<span class="why-i">${esc(x)}</span>`).join('') : '—');
     const SEL = { oauth: new Set(), users: new Set(), devices: new Set() };
     const SEC_KEY = { oauth: r => r.client_id || r.app_name, users: r => r.email, devices: r => r.device_id };
-    const SEC_NOUN = { oauth: 'app', users: 'user', devices: 'device' };
+    const SEC_NOUN = { oauth: 'app', users: 'user', devices: 'device', gam_runs: 'report run', raw_exports: 'file', jobs: 'job', events: 'event', fleet: 'tablet', general: 'dashboard' };
     function secSelRender(kind, boxId, cols, rows, empty) {
       const box = $(boxId); SEL[kind].clear();
       if (!rows.length) { box.innerHTML = `<p class="empty">${esc(empty)}</p>`; return; }
@@ -3027,15 +3118,17 @@
       const head = `<th class="chk"><input type="checkbox" data-all aria-label="Select all rows"></th>` + cols.map(c => `<th>${esc(c.h)}</th>`).join('') + '<th></th>';
       const body = keyed.map(({ r, k }) => `<tr data-k="${esc(k)}"><td class="chk"><input type="checkbox" class="selrow" data-k="${esc(k)}" aria-label="Select this row"></td>`
         + cols.map(c => `<td${c.wrap ? ' class="wrap"' : ''}>${c.f(r)}</td>`).join('')
-        + `<td><button type="button" class="secondary assist" data-assist-row="${esc(k)}" title="Get plain-language help with this row">Assist</button></td></tr>`).join('');
-      box.innerHTML = `<div class="sel-bar"><button type="button" class="secondary" data-selall>Select all</button><button type="button" class="secondary" data-selnone>Select none</button>
-        <span data-selcount>0 selected</span><button type="button" data-assist-sel disabled>Admin assist (0)</button></div>
+        + `<td><button type="button" class="secondary assist go" data-assist-row="${esc(k)}" title="Get plain-language help with this row"><b class="ai-red">AI</b>dmin</button></td></tr>`).join('');
+      box.innerHTML = `<div class="sel-bar"><button type="button" class="btn-assist" data-assist-sel disabled title="Get plain-language help with the ticked rows"><b class="ai-red">AI</b>dmin (0)</button>
+        <button type="button" class="secondary" data-selall>Select all</button><button type="button" class="secondary" data-selnone>Select none</button>
+        <span data-selcount>0 selected</span></div>
         <div class="sel-tbl"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
       const refresh = () => {
         const n = SEL[kind].size, tot = keyed.length;
         box.querySelector('[data-selcount]').textContent = n + ' selected';
-        const b = box.querySelector('[data-assist-sel]'); b.disabled = !n; b.textContent = `Admin assist (${n})`;
+        const b = box.querySelector('[data-assist-sel]'); b.disabled = !n; b.innerHTML = `<b class="ai-red">AI</b>dmin (${n})`;
         const all = box.querySelector('input[data-all]'); all.checked = n > 0 && n === tot; all.indeterminate = n > 0 && n < tot;
+        if (typeof aiHdrRefresh === 'function') aiHdrRefresh();
         box.querySelectorAll('tr[data-k]').forEach(tr => tr.classList.toggle('picked', SEL[kind].has(tr.dataset.k)));
       };
       const setAll = (on) => { box.querySelectorAll('input.selrow').forEach(cb => { cb.checked = on; on ? SEL[kind].add(cb.dataset.k) : SEL[kind].delete(cb.dataset.k); }); refresh(); };
@@ -3081,7 +3174,8 @@
       try { const j = JSON.parse(t); t = j.detail || j.message || j.error || t; } catch { /* plain */ }
       return typeof t === 'string' ? t : JSON.stringify(t);
     }
-    function aaAdd(html) { const b = $('aaBody'); b.insertAdjacentHTML('beforeend', html); b.parentElement.scrollTop = b.parentElement.scrollHeight; }
+    function aaAdd(html, target) { const b = $('aaBody'); (target || b).insertAdjacentHTML('beforeend', html); b.parentElement.scrollTop = b.parentElement.scrollHeight; }
+    function aaAddrs() { return ($('aaTo').value || '').split(/[,;\s]+/).map(x => x.trim()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)); }
     function aaBusy(on) { AA.busy = on; $('aaSend').disabled = on; $('aaText').disabled = on; document.querySelectorAll('#aaBody .aa-opts button').forEach(b => { b.disabled = on; }); }
     function aaCopy(text) {
       const done = () => toast('Copied', 'ok');
@@ -3099,10 +3193,17 @@
           ${res.alternative ? `<p class="aa-small">${esc(res.alternative)}</p>` : ''}<p class="aa-small">${esc(res.note || '')}</p></div>`;
       }
       if (res.type === 'email') {
-        const href = /^mailto:/.test(res.mailto || '') ? res.mailto : '#';
-        return `<div class="aa-card"><strong>Email draft</strong><div class="aa-small">To: ${esc((res.to || []).join(', '))}</div><div><strong>${esc(res.subject)}</strong></div><pre>${esc(res.body)}</pre>
-          <a href="${esc(href)}" class="aa-open"><button type="button">Open in my mail program</button></a> <button type="button" class="secondary assist" data-copy="${esc(res.body)}">Copy text</button>
-          <p class="aa-small">${esc(res.note || '')}</p></div>`;
+        const sm = res.smtp || {};
+        return `<div class="aa-card" data-email>
+          <strong>Email draft</strong> <span class="aa-small">(${(res.to || []).length} recipient${(res.to || []).length === 1 ? '' : 's'}; you can edit everything)</span>
+          <label class="aa-small">To (separate with commas)</label><input type="text" id="aaTo" value="${esc((res.to || []).join(', '))}">
+          <label class="aa-small">Subject</label><input type="text" id="aaSubj" value="${esc(res.subject)}">
+          <label class="aa-small">Message</label><textarea id="aaBodyTxt" rows="9">${esc(res.body)}</textarea>
+          <label class="inl"><input type="checkbox" id="aaBcc"> Hide recipients from each other (put them in Bcc)</label>
+          <div class="aa-opts"><button type="button" id="aaOpenMail">Open in my mail program</button>
+            <button type="button" class="secondary" data-copyfrom="aaTo">Copy addresses</button><button type="button" class="secondary" data-copyfrom="aaBodyTxt">Copy message</button>
+            ${sm.can_send ? `<button type="button" class="btn-assist" id="aaSendSmtp" data-allowed="${esc((res.to || []).join(','))}">Send from the dashboard</button>` : ''}</div>
+          <p class="aa-small">${esc(res.note || '')}${sm.configured ? '' : ' Sending from the dashboard is not set up on this server (SMTP_HOST / SMTP_FROM), so use your mail program.'}${sm.configured && !sm.can_send ? ' Only super-admins can send from the dashboard.' : ''}</p></div>`;
       }
       if (res.type === 'confirm') {
         return `<div class="aa-card" data-confirm="${esc(res.option_id || '')}"><p>${esc(res.text)}</p><textarea id="aaNote" rows="2" maxlength="500" placeholder="Reason (for example: used by the IT team for mail)"></textarea>
@@ -3111,18 +3212,19 @@
       if (res.text) return `<div class="aa-card">${esc(res.text)}</div>`;
       return '';
     }
-    function aaRender(r) {
+    function aaRender(r, target) {
+      const add = (h) => aaAdd(h, target);
       if (r.engine) { const e = $('aaEngine'); e.querySelector('.chip-val').textContent = r.engine.label; e.className = r.engine.cloud ? 'chip warn' : 'chip ok'; }
-      if (r.result && r.result.type === 'confirm') { aaAdd(aaResultCard(r.result)); return; }
-      if (r.message) aaAdd(`<div class="aa-bubble bot">${esc(r.message)}</div>`);
-      if (r.result) aaAdd(aaResultCard(r.result));
-      (r.warnings || []).forEach(w => aaAdd(`<div class="aa-small">${esc(w)}</div>`));
-      if ((r.options || []).length) aaAdd('<div class="aa-opts">' + r.options.map(o => `<button type="button" class="${o.danger ? 'secondary danger' : 'secondary'}" data-opt="${esc(o.id)}">${esc(o.label)}</button>`).join('') + '</div>');
+      if (r.result && r.result.type === 'confirm') { add(aaResultCard(r.result)); return; }
+      if (r.message) add(`<div class="aa-bubble bot">${esc(r.message)}</div>`);
+      if (r.result) add(aaResultCard(r.result));
+      (r.warnings || []).forEach(w => add(`<div class="aa-small">${esc(w)}</div>`));
+      if ((r.options || []).length) add('<div class="aa-opts">' + r.options.map(o => `<button type="button" class="${o.danger ? 'secondary danger' : 'secondary'}" data-opt="${esc(o.id)}">${esc(o.label)}</button>`).join('') + '</div>');
     }
     async function aaPost(body, echo) {
       if (AA.busy) return;
       if (echo) aaAdd(`<div class="aa-bubble me">${esc(echo)}</div>`);
-      document.querySelectorAll('#aaBody .aa-opts').forEach(el => el.remove());
+      document.querySelectorAll('#aaBody .aa-opts').forEach(el => el.remove()); const en = $('aaEnh'); if (en) en.remove();
       aaBusy(true); aaAdd('<div class="aa-small" id="aaThink">Thinking… a local model can take up to a minute.</div>');
       try {
         const r = await api('/api/v1/assist/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ session_id: AA.sid, ...body }) });
@@ -3131,27 +3233,60 @@
       } catch (e) { const t = $('aaThink'); if (t) t.remove(); aaAdd(`<div class="aa-card">${esc(aaText(e))}</div>`); }
       finally { aaBusy(false); }
     }
+    function aaSamples(list) {
+      $('aaSamples').innerHTML = (list || []).map(q => `<button type="button" class="secondary" data-sample="${esc(q)}">${esc(q)}</button>`).join('');
+    }
     async function aaOpen(kind, keys) {
       if (!keys.length) return;
-      AA.sid = null; AA.kind = kind;
-      $('aaBody').innerHTML = ''; $('aaModal').classList.add('open'); $('aaEngine').className = 'chip'; $('aaEngine').querySelector('.chip-val').textContent = '…';
-      aaAdd(`<div class="aa-small">Looking at ${keys.length} ${SEC_NOUN[kind]}${keys.length > 1 ? 's' : ''}…</div><div class="aa-small" id="aaThink">Thinking… a local model can take up to a minute.</div>`);
+      AA.sid = null; AA.kind = kind; AA.epoch = (AA.epoch || 0) + 1; const my = AA.epoch;
+      $('aaBody').innerHTML = ''; $('aaModal').classList.add('open'); $('aaEngine').className = 'chip'; $('aaEngine').querySelector('.chip-val').textContent = '…'; aaSamples([]);
+      aaAdd(`<div class="aa-small" id="aaThink">Looking at ${keys.length} ${SEC_NOUN[kind]}${keys.length > 1 ? 's' : ''}…</div>`);
       aaBusy(true);
       try {
-        const r = await api('/api/v1/assist/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ kind, keys: keys.slice(0, 25) }) });
+        const r = await api('/api/v1/assist/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, keys: keys.slice(0, 25) }) });
         AA.sid = r.session_id;
         const t = $('aaThink'); if (t) t.remove();
         aaAdd(`<div class="aa-card"><strong>Selected:</strong> ${r.items.map(i => esc(i.label)).join(' · ')}${r.skipped.length ? `<div class="aa-small">${r.skipped.length} row(s) were not found (reload the table).</div>` : ''}${keys.length > 25 ? '<div class="aa-small">Only the first 25 rows are used.</div>' : ''}</div>`);
-        aaRender(r);
-      } catch (e) { const t = $('aaThink'); if (t) t.remove(); aaAdd(`<div class="aa-card">${esc(aaText(e))}</div>`); }
-      finally { aaBusy(false); $('aaText').focus(); }
+        aaSamples(r.samples);
+        const mark = document.createElement('div'); mark.id = 'aaBase'; $('aaBody').appendChild(mark);
+        aaRender(r, mark);  // instant built-in answer, inside a wrapper so the AI answer can replace it
+        aaBusy(false); $('aaText').focus();
+        if (r.ai_pending) {
+          const note = document.createElement('div'); note.className = 'aa-enh'; note.id = 'aaEnh'; note.textContent = '✨ The AI is writing a fuller explanation… you can already use the buttons below.'; $('aaBody').appendChild(note);
+          try {
+            const e = await api('/api/v1/assist/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ session_id: AA.sid }) });
+            const n = $('aaEnh'); if (n) n.remove();
+            if (!e.skipped && AA.epoch === my && AA.sid === r.session_id) { mark.innerHTML = ''; aaRender(e, mark); }
+          } catch (err) { const n = $('aaEnh'); if (n) n.textContent = 'The AI did not answer; the built-in explanation above is still correct.'; }
+        }
+      } catch (e) { const t = $('aaThink'); if (t) t.remove(); aaAdd(`<div class="aa-card">${esc(aaText(e))}</div>`); aaBusy(false); }
     }
     function aaClose() { $('aaModal').classList.remove('open'); AA.sid = null; }
     $('aaClose').addEventListener('click', aaClose);
+    $('aaSamples').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-sample]'); if (b && AA.sid) aaPost({ text: b.dataset.sample }, b.dataset.sample); });
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('aaModal').classList.contains('open')) aaClose(); });
     $('aaForm').addEventListener('submit', (ev) => { ev.preventDefault(); const t = $('aaText').value.trim(); if (!t || !AA.sid) return; $('aaText').value = ''; aaPost({ text: t }, t); });
     $('aaBody').addEventListener('click', (ev) => {
       const c = ev.target.closest('button[data-copy]'); if (c) { aaCopy(c.dataset.copy); return; }
+      const cf = ev.target.closest('button[data-copyfrom]'); if (cf) { aaCopy($(cf.dataset.copyfrom).value); return; }
+      if (ev.target.id === 'aaOpenMail') {
+        const to = aaAddrs(), subj = $('aaSubj').value, text = $('aaBodyTxt').value;
+        if (!to.length) { toast('Add at least one email address', 'err'); return; }
+        const first = $('aaBcc').checked ? '' : to.join(',');
+        let url = 'mailto:' + first + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(text) + ($('aaBcc').checked ? '&bcc=' + encodeURIComponent(to.join(',')) : '');
+        if (url.length > 1900) { toast('The message is long for a mail link: copy the text instead', 'err'); return; }
+        window.location.href = url; return;
+      }
+      if (ev.target.id === 'aaSendSmtp') {
+        const to = aaAddrs(), allowed = (ev.target.dataset.allowed || '').split(',');
+        if (!to.length || to.some(a => !allowed.includes(a))) { toast('You can only send to the people on the selected rows', 'err'); return; }
+        if (!confirm(`Send this email now to ${to.length} recipient(s)?\n\n${to.join('\n')}`)) return;
+        ev.target.disabled = true;
+        api('/api/v1/assist/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 120000, body: JSON.stringify({ session_id: AA.sid, to, subject: $('aaSubj').value, body: $('aaBodyTxt').value }) })
+          .then(r => { aaAdd(`<div class="aa-card">Sent ${r.sent}, failed ${r.failed}.${r.results.filter(x => !x.ok).map(x => `<div class="aa-small">${esc(x.to)}: ${esc(x.error)}</div>`).join('')}</div>`); })
+          .catch(e => { ev.target.disabled = false; toast(aaText(e), 'err'); });
+        return;
+      }
       const o = ev.target.closest('button[data-opt]'); if (o && AA.sid) { aaPost({ option_id: o.dataset.opt }, o.textContent); return; }
       if (ev.target.id === 'aaCancelApprove') { const card = ev.target.closest('.aa-card'); if (card) card.remove(); aaAdd('<div class="aa-small">Cancelled. Nothing was changed.</div>'); return; }
       if (ev.target.id === 'aaDoApprove') {
@@ -3160,6 +3295,73 @@
         card.remove(); aaPost({ option_id: oid, confirm: true, note }, 'Yes, approve it: ' + note);
       }
     });
+
+
+    /* ---- 0.4.24 AIdmin on every section: tick rows, press AIdmin ---- */
+    const AIREG = { gam_runs: { box: 'runsTable' }, raw_exports: { box: 'rawTable' }, jobs: { box: 'jobsTable' }, events: { box: 'eventsTable' }, fleet: { box: 'devicesTable' } };
+    const aiBtnHtml = (n) => `<b class="ai-red">AI</b>dmin${n ? ' (' + n + ')' : ''}`;
+    function aiHdrRefresh() {
+      document.querySelectorAll('button[data-ai-hdr]').forEach(b => {
+        const n = b.dataset.aiHdr.split(',').reduce((t, k) => t + (SEL[k] ? SEL[k].size : 0), 0);
+        b.querySelector('[data-ai-n]').textContent = n ? '(' + n + ')' : '';
+      });
+    }
+    function aiRefresh(kind) {
+      const c = AIREG[kind], box = $(c.box), n = SEL[kind].size;
+      const rows = [...box.querySelectorAll('tr[data-aikey]')];
+      rows.forEach(tr => { const on = SEL[kind].has(tr.dataset.aikey); tr.classList.toggle('ai-picked', on); const cb = tr.querySelector('input.ai-chk'); if (cb) cb.checked = on; });
+      const all = box.querySelector('input.ai-all'); if (all) { all.checked = n > 0 && n === rows.length; all.indeterminate = n > 0 && n < rows.length; }
+      c.bar.querySelector('[data-a=count]').textContent = n + ' selected';
+      const go = c.bar.querySelector('[data-a=go]'); go.disabled = !n; go.innerHTML = aiBtnHtml(n || 0);
+      aiHdrRefresh();
+    }
+    function aiDecorate(kind) {
+      const c = AIREG[kind], box = $(c.box), table = box.querySelector('table');
+      const rows = table ? [...table.querySelectorAll('tbody tr[data-aikey]')] : [];
+      SEL[kind].clear();
+      c.bar.hidden = !rows.length;
+      if (!rows.length) { aiHdrRefresh(); return; }
+      if (!table.dataset.aiDone) {
+        table.dataset.aiDone = '1';
+        const hr = table.tHead && table.tHead.rows[0];
+        if (hr) { const th = document.createElement('th'); th.className = 'ai-cell'; th.setAttribute('data-nosort', ''); th.innerHTML = '<input type="checkbox" class="ai-all" aria-label="Select all rows"> ' + aiBtnHtml(0).replace(/ \(0\)/, ''); hr.appendChild(th);
+          th.querySelector('input').addEventListener('change', (ev) => { rows.forEach(tr => ev.target.checked ? SEL[kind].add(tr.dataset.aikey) : SEL[kind].delete(tr.dataset.aikey)); aiRefresh(kind); }); }
+        rows.forEach(tr => {
+          const td = document.createElement('td'); td.className = 'ai-cell';
+          const key = tr.dataset.aikey;
+          td.innerHTML = '<input type="checkbox" class="ai-chk" aria-label="Select this row"><button type="button" title="Get plain-language help with this row">' + aiBtnHtml(0).replace(/ \(0\)/, '') + '</button>';
+          td.addEventListener('click', (ev) => ev.stopPropagation());  // rows may be clickable (jobs): do not toggle them
+          td.querySelector('input').addEventListener('change', (ev) => { ev.target.checked ? SEL[kind].add(key) : SEL[kind].delete(key); aiRefresh(kind); });
+          td.querySelector('button').addEventListener('click', () => aaOpen(kind, [key]));
+          tr.appendChild(td);
+        });
+      }
+      aiRefresh(kind);
+    }
+    Object.keys(AIREG).forEach(kind => { try {
+      const c = AIREG[kind], box = $(c.box); SEL[kind] = new Set();
+      const bar = document.createElement('div'); bar.className = 'sel-bar'; bar.hidden = true;
+      bar.innerHTML = `<button type="button" class="btn-assist" data-a="go" disabled>${aiBtnHtml(0)}</button><button type="button" class="secondary" data-a="all">Select all</button><button type="button" class="secondary" data-a="none">Select none</button><span data-a="count">0 selected</span>`;
+      box.parentNode.insertBefore(bar, box); c.bar = bar;
+      bar.addEventListener('click', (ev) => {
+        const b = ev.target.closest('button[data-a]'); if (!b) return;
+        const rows = [...box.querySelectorAll('tr[data-aikey]')];
+        if (b.dataset.a === 'all') rows.forEach(tr => SEL[kind].add(tr.dataset.aikey));
+        else if (b.dataset.a === 'none') SEL[kind].clear();
+        else if (b.dataset.a === 'go' && SEL[kind].size) { aaOpen(kind, [...SEL[kind]]); return; }
+        aiRefresh(kind);
+      });
+      new MutationObserver(() => { try { aiDecorate(kind); } catch (e) { console.error('AIdmin decorate failed', e); } }).observe(box, { childList: true });
+      aiDecorate(kind);
+    } catch (e) { console.error('AIdmin init failed for ' + kind, e); } });
+    // header buttons (next to Reload) and the one near the Domain filter
+    document.querySelectorAll('button[data-ai-hdr]').forEach(b => b.addEventListener('click', () => {
+      const withSel = b.dataset.aiHdr.split(',').filter(k => SEL[k] && SEL[k].size);
+      if (!withSel.length) { toast('Tick one or more rows in this section first (or use Select all), then press AIdmin.', 'err'); return; }
+      if (withSel.length > 1) { toast('Select rows in one table at a time, then press AIdmin.', 'err'); return; }
+      aaOpen(withSel[0], [...SEL[withSel[0]]]);
+    }));
+    try { $('btnAiGlobal').addEventListener('click', (ev) => { ev.stopPropagation(); aaOpen('general', ['*']); }); } catch (e) { console.error('AIdmin global button failed', e); }
 
     /* Help & guides */
     const HELP = { loaded: false, admin: false };
@@ -3181,7 +3383,7 @@
       $('helpSpin').hidden = false; helpMsg('');
       try {
         const d = await api('/api/v1/help/articles'); HELP.admin = d.can_edit; HELP.data = d; HELP.loaded = true;
-        helpRender(d);
+        helpRender(d); helpIndexStatus();
         const drafts = d.rows.filter(a => a.status === 'draft').length;
         helpMsg(`${d.total} guides${HELP.admin && drafts ? ' · ' + drafts + ' draft(s) from admin questions are waiting for your review' : ''}.`);
         $('helpAdmin').innerHTML = HELP.admin ? `<details class="hl-art"><summary>Write a new guide (super-admin)</summary>
@@ -3205,17 +3407,35 @@
     });
     $('helpSearchBtn').addEventListener('click', async () => {
       const q = $('helpQ').value.trim(); if (q.length < 2) { if (HELP.data) helpRender(HELP.data); return; }
-      try { const r = await api('/api/v1/help/search?q=' + encodeURIComponent(q)); const d = HELP.data || { rows: [] }; helpRender(d, r.rows.map(x => ({ ...x, source: (d.rows.find(a => a.id === x.id) || {}).source, asked: (d.rows.find(a => a.id === x.id) || {}).asked }))); }
+      try { const r = await api('/api/v1/help/search?q=' + encodeURIComponent(q)); const d = HELP.data || { rows: [] }; helpMsg(`${r.rows.length} guide(s) found · lookup: ${r.mode}`); helpRender(d, r.rows.map(x => ({ ...x, source: (d.rows.find(a => a.id === x.id) || {}).source, asked: (d.rows.find(a => a.id === x.id) || {}).asked }))); }
       catch (e) { helpMsg(aaText(e), 'err'); }
     });
-    $('helpForm').addEventListener('submit', async (ev) => {
-      ev.preventDefault(); $('helpSpin').hidden = false; $('helpAnswer').innerHTML = '<p class="empty">Thinking… a local model can take up to a minute.</p>';
+    async function helpAsk(ai) {
+      const q = $('helpQ').value.trim(); if (q.length < 3) { helpMsg('Type a question first.', 'err'); return; }
+      $('helpSpin').hidden = false; $('helpAnswer').innerHTML = `<p class="empty">${ai ? 'Thinking… a local model can take up to a minute.' : 'Looking it up…'}</p>`;
       try {
-        const r = await api('/api/v1/help/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ question: $('helpQ').value }) });
+        const r = await api('/api/v1/help/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 330000, body: JSON.stringify({ question: q, ai }) });
         $('helpAnswer').innerHTML = `<div class="aa-card"><div style="white-space:pre-wrap">${esc(r.answer)}</div>
-          <p class="aa-small">${esc(r.engine)}${r.sources.length ? ' · from: ' + r.sources.map(s => esc(s.title)).join(' | ') : ''}${(r.warnings || []).length ? ' · ' + esc(r.warnings.join(' ')) : ''}${r.new_question ? ' · your question was saved for the administrators' : ''}</p></div>`;
+          <p class="aa-small">${esc(r.engine)} · lookup: ${esc(r.mode)}${r.sources.length ? ' · from: ' + r.sources.map(s => esc(s.title)).join(' | ') : ''}${(r.warnings || []).length ? ' · ' + esc(r.warnings.join(' ')) : ''}${r.new_question ? ' · your question was saved for the administrators' : ''}</p>
+          ${!r.ai && r.sources.length ? '<button type="button" class="secondary assist" id="helpAiMore">Explain with AI</button>' : ''}</div>`;
+        const more = $('helpAiMore'); if (more) more.onclick = () => helpAsk(true);
       } catch (e) { $('helpAnswer').innerHTML = `<p class="msg err">${esc(aaText(e))}</p>`; } finally { $('helpSpin').hidden = true; }
-    });
+    }
+    $('helpForm').addEventListener('submit', (ev) => { ev.preventDefault(); helpAsk(false); });
+    $('helpAiBtn').addEventListener('click', () => helpAsk(true));
+    async function helpIndexStatus() {
+      try {
+        const d = await api('/api/v1/help/status');
+        const ok = d.in_db >= d.expected && d.expected > 0;
+        $('helpIdx').innerHTML = `Lookup index (pgvector): <strong>${esc(d.in_db)}</strong> of ${esc(d.expected)} guides loaded${d.with_vectors ? ', ' + esc(d.with_vectors) + ' with meaning vectors' : (d.pgvector ? ', no vectors yet (is nomic-embed-text installed?)' : ', pgvector not available: keyword search only')}.`
+          + (d.can_edit ? ` <button type="button" class="${ok ? 'secondary' : ''} assist" id="helpReindex">${ok ? 'Reload help into pgvector' : 'Load help into pgvector'}</button>` : (ok ? '' : ' Ask a super-admin to load the guides.'));
+        const b = $('helpReindex'); if (b) b.onclick = async () => {
+          b.disabled = true; $('helpSpin').hidden = false;
+          try { const r = await api('/api/v1/help/reindex', { method: 'POST', timeoutMs: 360000 }); toast(`Indexed ${r.indexed} guides (${r.vectors} with vectors)${r.warning ? ': ' + r.warning : ''}`, r.warning ? 'err' : 'ok'); }
+          catch (e) { helpMsg(aaText(e), 'err'); } finally { $('helpSpin').hidden = true; helpIndexStatus(); }
+        };
+      } catch (e) { $('helpIdx').textContent = ''; }
+    }
     // load guides / model list automatically the first time a panel is opened (no extra click)
     document.querySelector('.section-toggle[data-section="secHelp"]').addEventListener('click', () => setTimeout(() => { if (!HELP.loaded && sectionOpen.secHelp) loadHelp(); }, 0));
     document.querySelector('.section-toggle[data-section="secChat"]').addEventListener('click', () => setTimeout(() => { if (!CHAT.status && sectionOpen.secChat) loadChat(); }, 0));
@@ -3335,6 +3555,61 @@
       });
     }
 
+
+    /* 0.4.26 RUSTAiDMIN (additive; any failure stays inside this block) */
+    (function raInit() {
+      try {
+        let CAT = null, ST = null;
+        const g = (id) => document.getElementById(id);
+        const out = (t) => { const o = g('raOut'); if (o) { o.hidden = false; o.textContent = t; } };
+        function curCmd() { const id = g('raCmd').value; if (!CAT) return null; for (const k of Object.keys(CAT.categories)) for (const c of CAT.categories[k]) if (c.id === id) return c; return null; }
+        function drawCmd() {
+          const c = curCmd(); const box = g('raArgs'); box.innerHTML = '';
+          if (!c) return;
+          (c.args || []).forEach(a => { const i = document.createElement('input'); i.type = 'text'; i.placeholder = a; i.dataset.arg = a; i.size = 18; box.appendChild(i); });
+          g('raConfirmRow').hidden = c.risk === 'read';
+          g('raCmdNote').innerHTML = '<span class="risk-' + esc(c.risk) + '">' + esc(c.risk.toUpperCase()) + '</span> ' + esc(c.note || '');
+        }
+        async function load() {
+          try {
+            ST = await api('/api/v1/rustadmin/status');
+            CAT = await api('/api/v1/rustadmin/adb/catalog');
+          } catch (e) { g('raRdStatus').textContent = 'RUSTAiDMIN is not available on this server (' + (e.message || e) + ').'; return; }
+          const rd = ST.rustdesk, ab = ST.adb;
+          g('raSummary').textContent = rd.configured ? (rd.key_found ? 'server configured' : 'server set, key not found') : 'server not configured';
+          g('raRdStatus').textContent = rd.configured ? ('Server: ' + rd.config.host + (rd.key_found ? ' · public key found' : ' · public key NOT found yet')) : 'No RustDesk server configured. Start it with: docker compose --profile rustdesk up -d and set RUSTDESK_HOST in .env.';
+          const pre = g('raRdConfig'); pre.hidden = !rd.configured; if (rd.configured) pre.textContent = rd.config.text;
+          g('raCopyCfg').hidden = !rd.configured;
+          const a = g('raConsole'); a.hidden = !rd.console_url; if (rd.console_url) a.href = rd.console_url;
+          g('raRdNote').textContent = rd.client_note;
+          g('raAdbStatus').textContent = (ab.enabled ? 'ADB on' : 'ADB off') + ' · adb binary ' + (ab.binary_found ? 'found' : 'missing') + ' · changes ' + (ab.allow_changes ? 'allowed (typed confirm)' : 'plan-only') + (ST.is_super ? '' : ' · super-admin only');
+          const sel = g('raCmd'); sel.innerHTML = '';
+          Object.keys(CAT.categories).forEach(k => { const og = document.createElement('optgroup'); og.label = k; CAT.categories[k].forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.risk === 'read' ? '' : '[' + c.risk + '] ') + c.label; og.appendChild(o); }); sel.appendChild(og); });
+          drawCmd();
+        }
+        g('raCmd').addEventListener('change', drawCmd);
+        g('raReload').addEventListener('click', (e) => { e.stopPropagation(); load(); });
+        g('raCopyCfg').addEventListener('click', () => { try { navigator.clipboard.writeText(ST.rustdesk.config.text); toast('Settings copied', 'ok'); } catch (e) { toast('Copy failed', 'err'); } });
+        g('raRdOpen').addEventListener('click', () => {
+          const id = (g('raRdId').value || '').replace(/\s+/g, '');
+          if (!/^[0-9]{6,12}$/.test(id)) { toast('Enter the tablet RustDesk ID (digits)', 'err'); return; }
+          window.location.href = 'rustdesk://connection/new/' + id;
+        });
+        g('raRun').addEventListener('click', async () => {
+          const c = curCmd(); if (!c) return;
+          const args = {}; document.querySelectorAll('#raArgs input').forEach(i => { args[i.dataset.arg] = i.value; });
+          g('raRun').disabled = true;
+          try {
+            const r = await api('/api/v1/rustadmin/adb/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: g('raTarget').value, command: c.id, args, confirm: g('raConfirm').value, dry_run: g('raDry').checked }), timeoutMs: 60000 });
+            out('$ ' + r.shown + '\n' + (r.executed ? ('[exit ' + r.rc + (r.truncated ? ', truncated' : '') + ']\n' + r.output) : ('NOT RUN: ' + r.reason)));
+          } catch (e) { out('Error: ' + (e.message || e)); }
+          finally { g('raRun').disabled = false; }
+        });
+        const tgl = document.querySelector('.section-toggle[data-section="rustAidmin"]');
+        let loaded = false; if (tgl) tgl.addEventListener('click', () => { if (!loaded) { loaded = true; load(); } });
+        if (tgl && tgl.getAttribute('aria-expanded') === 'true') { loaded = true; load(); }
+      } catch (e) { console.error('RUSTAiDMIN init failed', e); }
+    })();
 </script>
 </body>
 </html>

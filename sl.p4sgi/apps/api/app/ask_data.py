@@ -252,14 +252,17 @@ def ollama_models() -> tuple[bool, list[str], str | None]:
         return False, [], f"{type(exc).__name__}: {exc}"[:200]
 
 
-def llm(provider: str, model: str, system: str, user: str, json_mode: bool = False) -> str:
+def llm(provider: str, model: str, system: str, user: str, json_mode: bool = False, max_tokens: int | None = None) -> str:
     """One chat completion. Returns text. Raises RuntimeError with a short reason."""
     try:
         if provider == "ollama":
-            body: dict[str, Any] = {"model": model, "stream": False, "options": {"temperature": 0},
+            body: dict[str, Any] = {"model": model, "stream": False, "keep_alive": "30m", "options": {"temperature": 0},
                                     "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
             if json_mode:
                 body["format"] = "json"
+            if max_tokens:  # 0.4.22: short answers are much faster on a local model
+                body["options"]["num_predict"] = int(max_tokens)
+                body["think"] = False  # thinking models (qwen3...) otherwise spend most of the time "thinking"
             return _post_json(f"{OLLAMA_URL}/api/chat", body, timeout=300)["message"]["content"]
         key = os.getenv(CLOUD[provider][0], "")
         if provider in ("xai", "openai"):
@@ -366,8 +369,9 @@ def collect_knowledge(data_dir: Path) -> list[tuple[str, str, str]]:
         pass
     try:  # 0.4.22: built-in help articles + approved admin-assist articles (no personal data: generalised text only)
         from .help_seed import HELP_SEED
+        from .help_topics import HELP_TOPICS
 
-        for a in HELP_SEED:
+        for a in HELP_SEED + HELP_TOPICS:
             rows.append(("help", str(a["id"]), f"Help: {a['title']}. {a['body']}"))
         hp = data_dir / "help" / "articles.json"
         if hp.is_file():
@@ -462,7 +466,67 @@ def upsert_chunk(source: str, ref: str, content: str) -> bool:
         return False
 
 
-def search_chunks(question: str, k: int = 6) -> tuple[list[dict[str, Any]], str]:
+def upsert_chunks(rows: list[tuple[str, str, str]]) -> dict[str, Any]:
+    """Batch index (source, ref, content). Vectors if the embedding model answers, else full-text only. Never raises."""
+    out: dict[str, Any] = {"indexed": 0, "vectors": 0, "warning": None}
+    try:
+        st = ensure_setup()
+        if not st["ok"]:
+            out["warning"] = "database set-up failed: " + str(st.get("error"))[:120]
+            return out
+        vec_ok = bool(st["vector"])
+        for i in range(0, len(rows), 16):
+            batch = [(s, r, c[:1200]) for s, r, c in rows[i:i + 16]]
+            vecs = None
+            if vec_ok:
+                try:
+                    vecs = embed([c for _, _, c in batch])
+                except Exception as exc:  # noqa: BLE001
+                    vec_ok = False
+                    out["warning"] = f"embeddings unavailable ({str(exc)[:100]}); stored for full-text search only"
+            with db.get_conn() as conn:
+                for j, (s_, r_, c_) in enumerate(batch):
+                    if vecs:
+                        conn.execute(
+                            "INSERT INTO chat_chunks (source, ref, content, model, embedding) VALUES (%s,%s,%s,%s,%s::vector) "
+                            "ON CONFLICT (source, ref) DO UPDATE SET content=EXCLUDED.content, model=EXCLUDED.model, embedding=EXCLUDED.embedding, created_at=now()",
+                            (s_, r_, c_, EMBED_MODEL, _vec_literal(vecs[j])))
+                    else:  # no embedding column when pgvector is not installed
+                        conn.execute(
+                            "INSERT INTO chat_chunks (source, ref, content, model) VALUES (%s,%s,%s,%s) "
+                            "ON CONFLICT (source, ref) DO UPDATE SET content=EXCLUDED.content, model=EXCLUDED.model, created_at=now()",
+                            (s_, r_, c_, None))
+            out["indexed"] += len(batch)
+            out["vectors"] += len(batch) if vecs else 0
+    except Exception as exc:  # noqa: BLE001
+        out["warning"] = f"{type(exc).__name__}: {exc}"[:160]
+    return out
+
+
+def count_chunks(source: str) -> tuple[int, int]:
+    """(chunks, chunks with a vector) for a source. (0, 0) if the table does not exist or the DB is down."""
+    try:
+        with db.get_conn() as conn:
+            if _SETUP_DONE.get("vector"):
+                r = conn.execute("SELECT count(*) AS n, count(embedding) AS v FROM chat_chunks WHERE source=%s", (source,)).fetchone()
+                return int(r["n"]), int(r["v"])
+            r = conn.execute("SELECT count(*) AS n FROM chat_chunks WHERE source=%s", (source,)).fetchone()
+            return int(r["n"]), 0
+    except Exception:  # noqa: BLE001
+        return 0, 0
+
+
+def delete_chunk(source: str, ref: str) -> bool:
+    """Best-effort removal of one indexed chunk. Never raises."""
+    try:
+        with db.get_conn() as conn:
+            conn.execute("DELETE FROM chat_chunks WHERE source=%s AND ref=%s", (source, ref))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def search_chunks(question: str, k: int = 6, source: str | None = None) -> tuple[list[dict[str, Any]], str]:
     st = ensure_setup()
     if not st["ok"]:
         return [], "none"
@@ -472,8 +536,8 @@ def search_chunks(question: str, k: int = 6) -> tuple[list[dict[str, Any]], str]
             with db.get_conn() as conn:
                 rows = conn.execute(
                     "SELECT source, ref, content, 1 - (embedding <=> %s::vector) AS score FROM chat_chunks "
-                    "WHERE embedding IS NOT NULL ORDER BY embedding <=> %s::vector LIMIT %s",
-                    (_vec_literal(qv), _vec_literal(qv), k)).fetchall()
+                    "WHERE embedding IS NOT NULL AND (%s::text IS NULL OR source = %s) ORDER BY embedding <=> %s::vector LIMIT %s",
+                    (_vec_literal(qv), source, source, _vec_literal(qv), k)).fetchall()
             if rows:
                 return [dict(r) for r in rows], "vector"
         except Exception:  # noqa: BLE001
@@ -481,12 +545,12 @@ def search_chunks(question: str, k: int = 6) -> tuple[list[dict[str, Any]], str]
     with db.get_conn() as conn:
         rows = conn.execute(
             "SELECT source, ref, content, ts_rank(tsv, q) AS score FROM chat_chunks, plainto_tsquery('simple', %s) q "
-            "WHERE tsv @@ q ORDER BY score DESC LIMIT %s", (question, k)).fetchall()
+            "WHERE tsv @@ q AND (%s::text IS NULL OR source = %s) ORDER BY score DESC LIMIT %s", (question, source, source, k)).fetchall()
         if not rows:
             words = [w for w in re.findall(r"[A-Za-z0-9]{4,}", question)][:4]
             if words:
-                rows = conn.execute("SELECT source, ref, content, 0.0 AS score FROM chat_chunks WHERE " + " OR ".join(["content ILIKE %s"] * len(words)) + " LIMIT %s",
-                                    tuple(f"%{w}%" for w in words) + (k,)).fetchall()
+                rows = conn.execute("SELECT source, ref, content, 0.0 AS score FROM chat_chunks WHERE (" + " OR ".join(["content ILIKE %s"] * len(words)) + ") AND (%s::text IS NULL OR source = %s) LIMIT %s",
+                                    tuple(f"%{w}%" for w in words) + (source, source, k)).fetchall()
     return [dict(r) for r in rows], "fulltext"
 
 

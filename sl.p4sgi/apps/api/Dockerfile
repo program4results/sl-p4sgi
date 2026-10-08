@@ -6,6 +6,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# 0.4.26: optional adb client for RUSTAiDMIN (off by default; build with INSTALL_ADB=1)
+ARG INSTALL_ADB=0
+RUN if [ "$INSTALL_ADB" = "1" ]; then apt-get update && apt-get install -y --no-install-recommends adb && rm -rf /var/lib/apt/lists/*; fi
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

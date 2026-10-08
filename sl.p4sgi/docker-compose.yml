@@ -118,14 +118,19 @@ services:
     volumes:
       - ../../docker-data/sl.p4sgi/rustdesk:/root
 
-  # Optional community admin console (MIT licence, github.com/lejianwen/rustdesk-api). Web admin: http://HOST:21114/_admin/
+  # Optional community admin console (MIT licence, github.com/lejianwen/rustdesk-api). NOT started by `--profile rustdesk`:
+  # it is a third-party control plane (supply-chain risk), so it needs its own profile: `--profile rustdesk-console`.
+  # Bound to localhost only: reach it through a VPN or SSH tunnel / reverse proxy. Pin RUSTDESK_CONSOLE_TAG to a reviewed
+  # tag or digest, or build the image from source yourself. Registration is switched off (variable name per upstream docs: verify).
   rustdesk-console:
-    profiles: ["rustdesk"]
+    profiles: ["rustdesk-console"]
     image: lejianwen/rustdesk-api:${RUSTDESK_CONSOLE_TAG:-latest}
     container_name: sl-p4sgi-rdconsole
     restart: unless-stopped
+    environment:
+      RUSTDESK_API_APP_REGISTER: "false"
     ports:
-      - "21114:21114"
+      - "127.0.0.1:21114:21114"
     volumes:
       - ../../docker-data/sl.p4sgi/rustdesk-console:/app/data
 

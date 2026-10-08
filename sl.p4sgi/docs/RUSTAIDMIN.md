@@ -7,7 +7,7 @@ A collapsible section right after the **Domain filter**. Additive: its own modul
 
 * The dashboard does **not** contain a RustDesk server. Two optional compose services (`--profile rustdesk`) run the upstream
   server (`rustdesk/rustdesk-server`: `hbbs` ID/rendezvous + `hbbr` relay) and an optional community admin console
-  (`lejianwen/rustdesk-api`). The section shows the settings the tablets need (ID server, relay, **public** key), links to the
+  (`lejianwen/rustdesk-api`, separate profile, see below). The section shows the settings the tablets need (ID server, relay, **public** key), links to the
   console, and has a Connect box that opens the RustDesk desktop client (`rustdesk://` link; needs the desktop client installed).
 * ADB is a separate, optional, **super-admin-only** helper (below).
 
@@ -22,6 +22,16 @@ Facts checked on 2026-10-08 from the project pages: `rustdesk/rustdesk-server` i
 pulls); `lejianwen/rustdesk-api` is MIT (about 3.1k stars) and provides a web admin, address book, user management, logs and OAuth/LDAP.
 `marcpope/cortendesk` (AGPL-3.0, 12 stars) was looked at and not chosen. The RustDesk server's own web console is a Pro (paid) feature.
 Stars are popularity, not a security review: read each project's issues before exposing the console.
+
+## Console risk (reviewed after the first version)
+
+I had checked licence, stars and features of `lejianwen/rustdesk-api`, but not its supply-chain risk. A review you supplied (source and
+method unknown; I have not independently verified its claims, e.g. the DMCA removal of its `webclient2` or the admin-password behaviour,
+which the project pages describe inconsistently) rates it a high supply-chain and governance risk for a fleet with Accessibility control.
+Taking that seriously, the console is now **optional and separate**: `--profile rustdesk` starts only the official `hbbs`/`hbbr`;
+the console needs `--profile rustdesk-console`, listens on 127.0.0.1 only, has registration off, and should use a pinned tag or an image
+you build from source, behind a VPN, with MFA/OIDC for admins. If you do not need address books or OIDC, skip it.
+The dashboard works without it (`RUSTDESK_CONSOLE_URL` stays empty).
 
 ## The 120 tablets (RustDesk Android 1.2.3, 2023-10-13)
 
@@ -63,7 +73,8 @@ RUSTDESK_CONSOLE_URL=http://rd.example.org:21114/_admin/
 INSTALL_ADB=1                         # optional
 RUSTADMIN_ADB_ENABLED=1               # optional
 
-docker compose --profile rustdesk up -d      # server + console (optional)
+docker compose --profile rustdesk up -d      # official server only
+# docker compose --profile rustdesk-console up -d   # optional third-party console (read the risk section first)
 docker compose up -d --build web             # picks up the new section
 ```
 

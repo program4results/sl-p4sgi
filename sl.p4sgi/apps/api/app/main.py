@@ -32,7 +32,7 @@ from . import db
 from . import export_drive as _exdrive
 
 APP_TITLE = "p4sgi"
-APP_VERSION = "0.4.26"
+APP_VERSION = "0.4.27"
 APP_PHASE = 4
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
@@ -190,7 +190,7 @@ def _parse_domain_query(domain: str | None, domains: str | None) -> set[str]:
 
 # Pilot seed matching snapait edge-attendance docs (attendanceDocId per user task).
 TEST_PRIMARY_CONFIG: dict[str, Any] = {
-    "emis": "110101",
+    "emis": "5103-1-08837",
     "schoolName": "Test Primary School",
     "schoolEmail": "sl-test@sl.p4sgi.com",
     "attendanceDocId": "1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck",
@@ -201,8 +201,8 @@ TEST_PRIMARY_CONFIG: dict[str, Any] = {
     "googleRadarExecUrl": "",
     "siteAttendanceUrl": "https://sites.google.com/p4sgi.com/test-primary-school/home/attendance",
     # Local dash combined page — HQ preview only (Sites cannot iframe localhost).
-    "attendancePageUrl": "http://127.0.0.1:8088/school/110101/attendance?embed=1",
-    "radarPageUrl": "http://127.0.0.1:8088/radar/?emis=110101&embed=1",
+    "attendancePageUrl": "http://127.0.0.1:8088/school/5103-1-08837/attendance?embed=1",
+    "radarPageUrl": "http://127.0.0.1:8088/radar/?emis=5103-1-08837&embed=1",
     "driveFolderId": "",
     "configEndpoint": "",
     "_notes": (
@@ -212,14 +212,14 @@ TEST_PRIMARY_CONFIG: dict[str, Any] = {
         "Cloudflare / PUBLIC_BASE_URL not required for this pilot. "
         "attendancePageUrl / radarPageUrl stay localhost for HQ dash preview only. "
         "Tablets POST radar JSON to googleRadarExecUrl with emis; publishExecUrl optional Doc publisher. "
-        "Warehouse EMIS is 110101; optional Site/legacy ref 5103-1-08837 is NOT an EMIS."
+        "Warehouse EMIS is 5103-1-08837 (migrated from 110101 on 2026-10-14; it is also the ht.{emis} login convention)."
     ),
 }
 
 # Sample operational publish events (Test Primary Site success, 2026-09-28)
 SEED_PUBLISH_EVENTS: list[dict[str, Any]] = [
     {
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "kind": "daily_attendance_parents",
         "school_email": "sl-test@sl.p4sgi.com",
         "doc_id": "1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck",
@@ -238,7 +238,7 @@ SEED_PUBLISH_EVENTS: list[dict[str, Any]] = [
         },
     },
     {
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "kind": "radar_parents",
         "school_email": "sl-test@sl.p4sgi.com",
         "doc_id": "1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck",
@@ -248,7 +248,7 @@ SEED_PUBLISH_EVENTS: list[dict[str, Any]] = [
         "meta": {"class": "Nursery 3", "date": "2026-09-28", "seed": True},
     },
     {
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "kind": "sqao_summary",
         "school_email": "sl-test@sl.p4sgi.com",
         "doc_id": "12Gx23QvwXUBGZLz9osggOOCuHFKHRSdtV41SVQ0k9oU",
@@ -263,7 +263,7 @@ SEED_PUBLISH_EVENTS: list[dict[str, Any]] = [
 # Phase 4a — demo fleet tablets for Test Primary (Android/snapait untouched; stubs only)
 SEED_DEVICES: list[dict[str, Any]] = [
     {
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "school_email": "sl-test@sl.p4sgi.com",
         "tablet_android_id": "demo-android-tp-001",
         "serial": "R9ZY40MFF4T",
@@ -274,7 +274,7 @@ SEED_DEVICES: list[dict[str, Any]] = [
         "last_seen": "2026-09-30T10:15:00+00:00",
     },
     {
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "school_email": "sl-test@sl.p4sgi.com",
         "tablet_android_id": "demo-android-tp-002",
         "serial": None,
@@ -2745,7 +2745,7 @@ def _config_from_job(job: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(
             400,
             "Cannot approve: attendanceDocId is empty. "
-            "Include it in the job payload or use the Test Primary (110101) seed.",
+            "Include it in the job payload or use the Test Primary (5103-1-08837) seed.",
         )
     return config
 
@@ -3136,7 +3136,7 @@ def create_telemetry(body: TelemetryIn) -> dict:
 # Radar parents JSON (tiny series; spider drawn in static HTML — no PNG)
 # ---------------------------------------------------------------------------
 
-_DEMO_RADAR_PATH = STATIC_DIR / "radar" / "demo-110101.json"
+_DEMO_RADAR_PATH = STATIC_DIR / "radar" / "demo-5103-1-08837.json"
 
 
 def _public_base_is_local(base: str | None = None) -> bool:
@@ -3259,20 +3259,20 @@ def _normalize_radar(payload: dict[str, Any], emis: str) -> dict[str, Any]:
 def _seed_demo_radar() -> None:
     """Write Test Primary demo radar JSON once (known snap 4 / confirmed 4 / SEMIS 6)."""
     RADAR_DIR.mkdir(parents=True, exist_ok=True)
-    dest = RADAR_DIR / "110101.json"
+    dest = RADAR_DIR / "5103-1-08837.json"
     if dest.is_file():
         return
     if not _DEMO_RADAR_PATH.is_file():
         return
     raw = json.loads(_DEMO_RADAR_PATH.read_text(encoding="utf-8"))
-    doc = _normalize_radar(raw, "110101")
+    doc = _normalize_radar(raw, "5103-1-08837")
     dest.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-    audit = RADAR_AUDIT_DIR / "110101.jsonl"
+    audit = RADAR_AUDIT_DIR / "5103-1-08837.jsonl"
     audit.parent.mkdir(parents=True, exist_ok=True)
     rec = {
         "at": datetime.now(timezone.utc).isoformat(),
         "actor": "seed",
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "source": "demo",
         "bytes": dest.stat().st_size,
     }
@@ -3380,7 +3380,7 @@ def put_radar(emis: str, body: dict[str, Any]) -> dict:
 # Daily attendance parents JSON (tiny text digest for combined Site page — no PNG)
 # ---------------------------------------------------------------------------
 
-_DEMO_DAILY_PATH = STATIC_DIR / "school" / "demo-110101-daily.json"
+_DEMO_DAILY_PATH = STATIC_DIR / "school" / "demo-5103-1-08837-daily.json"
 
 
 def _attendance_path(emis: str) -> Path:
@@ -3493,20 +3493,20 @@ def _normalize_daily_attendance(payload: dict[str, Any], emis: str) -> dict[str,
 def _seed_demo_attendance() -> None:
     """Write Test Primary demo daily attendance JSON once (Nursery 3 scaffold)."""
     ATTENDANCE_DIR.mkdir(parents=True, exist_ok=True)
-    dest = ATTENDANCE_DIR / "110101.json"
+    dest = ATTENDANCE_DIR / "5103-1-08837.json"
     if dest.is_file():
         return
     if not _DEMO_DAILY_PATH.is_file():
         return
     raw = json.loads(_DEMO_DAILY_PATH.read_text(encoding="utf-8"))
-    doc = _normalize_daily_attendance(raw, "110101")
+    doc = _normalize_daily_attendance(raw, "5103-1-08837")
     dest.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-    audit = ATTENDANCE_AUDIT_DIR / "110101.jsonl"
+    audit = ATTENDANCE_AUDIT_DIR / "5103-1-08837.jsonl"
     audit.parent.mkdir(parents=True, exist_ok=True)
     rec = {
         "at": datetime.now(timezone.utc).isoformat(),
         "actor": "seed",
-        "emis": "110101",
+        "emis": "5103-1-08837",
         "source": "demo",
         "bytes": dest.stat().st_size,
     }
@@ -3714,8 +3714,8 @@ def attendance_ingest_schema() -> dict:
         "example": {
             "schema_version": "edge-attendance/1",
             "session_id": "7c2e9a1b-4f3d-4c8a-9e21-0a1b2c3d4e5f",
-            "emis_code": "110101",
-            "school_email": "ht.110101@sl.p4sgi.com",
+            "emis_code": "5103-1-08837",
+            "school_email": "ht.5103-1-08837@sl.p4sgi.com",
             "class_label": "P3-A",
             "attendance_date": "2026-09-26",
             "detected_count": 49,
@@ -6028,3 +6028,13 @@ if os.getenv("RUSTADMIN_ENABLED", "1").strip().lower() not in ("0", "false", "no
         )
     except Exception as _rustadmin_exc:  # noqa: BLE001
         print(f"[rustadmin] disabled: {_rustadmin_exc!r}", flush=True)
+
+# 0.4.27 School provisioning (GAM OU/user + Drive template copies), hosted /s/<emis> page,
+# /api/v1/school-config (Apps Script provision /exec compatible), tablet publish target. See app/school_provision.py.
+try:
+    import sys as _sys
+    from . import school_provision as _school_provision
+
+    app.include_router(_school_provision.build_router(_sys.modules[__name__]))
+except Exception as _sp_exc:  # noqa: BLE001
+    print(f"[school_provision] disabled: {_sp_exc!r}", flush=True)

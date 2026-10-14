@@ -374,7 +374,7 @@
   <header>
     <h1>p4sgi</h1>
     <div class="meta">
-      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.26</span> · <a href="/school/110101/attendance?embed=1">attendance</a> · <a href="/radar/?emis=110101">radar</a>
+      Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.26</span> · <a href="/school/5103-1-08837/attendance?embed=1">attendance</a> · <a href="/radar/?emis=5103-1-08837">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
       &nbsp;|&nbsp; <a href="/api/v1/meta" title="API meta">meta</a>
       &nbsp;|&nbsp; <span id="whoami" title="Identity from X-Goog-Authenticated-User-Email (local: super-admin; ?as=email to test)">…</span>
@@ -495,6 +495,21 @@
           <span class="export-status" hidden></span>
         </span></h2>
       <div class="section-body" id="secSchoolsBody">
+        <details id="provBox" class="help-collapse" open>
+          <summary><strong>Provision school</strong> (GAM OU + ht.{EMIS} account + Drive folder/Docs + school config)</summary>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:end;margin:.5rem 0">
+            <label>EMIS<br><input id="provEmis" placeholder="5103-1-08837" size="14"></label>
+            <label>School name<br><input id="provName" placeholder="Test Primary School" size="26"></label>
+            <label>Region / district<br><input id="provRegion" placeholder="western/western-rural" size="22"></label>
+            <label>Head teacher (optional)<br><input id="provHt" placeholder="First Last" size="18"></label>
+            <button type="button" id="btnProvPreview">Preview (dry run)</button>
+            <button type="button" class="danger" id="btnProvRun">Approve &amp; create</button>
+            <button type="button" class="secondary" id="btnProvTpl">Create templates</button>
+            <span class="msg" id="provMsg"></span>
+          </div>
+          <p class="section-help">Preview checks what already exists. <b>Approve &amp; create</b> (super-admin only) creates only what is missing, logs every step to <b>Provisioning jobs</b>, and saves the school config the tablet loads with <i>Load school config</i>. A temporary password for a new account is shown here <b>once</b> and is never stored. Optional manual step: copy the Google Site template and paste its Site ID.</p>
+          <div id="provOut"></div>
+        </details>
         <div id="schoolsTable"><p class="empty">Loading…</p></div>
       </div>
     </section>
@@ -3609,6 +3624,40 @@
         let loaded = false; if (tgl) tgl.addEventListener('click', () => { if (!loaded) { loaded = true; load(); } });
         if (tgl && tgl.getAttribute('aria-expanded') === 'true') { loaded = true; load(); }
       } catch (e) { console.error('RUSTAiDMIN init failed', e); }
+    })();
+
+    // 0.4.27 Provision school
+    (function () {
+      const el = (id) => document.getElementById(id);
+      const esc2 = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      function body() {
+        return JSON.stringify({ emis: el('provEmis').value.trim(), school_name: el('provName').value.trim(),
+          region: el('provRegion').value.trim(), head_teacher: el('provHt').value.trim() || null });
+      }
+      function show(d) {
+        const rows = (d.log || []).map((l) => '<tr><td>' + esc2(l.status) + '</td><td>' + esc2(l.action) + '</td><td><code>' + esc2(l.detail) + '</code></td></tr>').join('');
+        let html = '';
+        if (d.temp_password) html += '<p class="warn"><b>Temporary password for ' + esc2(d.ht_email) + ' (shown once, copy it now):</b> <code>' + esc2(d.temp_password) + '</code></p>';
+        if (d.school_page_url) html += '<p>School page: <a href="' + esc2(d.school_page_url) + '" target="_blank">' + esc2(d.school_page_url) + '</a></p>';
+        if (d.status) html += '<p>Job ' + esc2(d.job_id) + ': <b>' + esc2(d.status) + '</b>' + (d.error ? ' — ' + esc2(d.error) : '') + '</p>';
+        html += '<table><thead><tr><th>Status</th><th>Action</th><th>Detail</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        el('provOut').innerHTML = html;
+      }
+      async function go(path, method, withBody, label) {
+        el('provMsg').textContent = label + '…';
+        try {
+          const d = await api(path, { method, headers: { 'Content-Type': 'application/json' }, body: withBody ? body() : undefined, timeoutMs: 600000 });
+          el('provMsg').textContent = label + ' done';
+          show(d);
+          if (path.endsWith('/run')) { try { loadSchools(); loadJobs(); loadEvents(); } catch (e) {} }
+        } catch (e) { el('provMsg').textContent = label + ' failed: ' + e.message; }
+      }
+      el('btnProvPreview').addEventListener('click', () => go('/api/v1/school-provision/preview', 'POST', true, 'Preview'));
+      el('btnProvRun').addEventListener('click', () => {
+        if (!confirm('Create missing OU / account / Drive files for EMIS ' + el('provEmis').value + '?')) return;
+        go('/api/v1/school-provision/run', 'POST', true, 'Approve & create');
+      });
+      el('btnProvTpl').addEventListener('click', () => go('/api/v1/school-provision/templates', 'POST', false, 'Templates'));
     })();
 </script>
 </body>

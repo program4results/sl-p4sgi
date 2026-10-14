@@ -21,7 +21,7 @@ Scale / Site template + GAM provision: **[SCHOOL_SITE_TEMPLATE_PROVISION.md](./S
 2. Run `seedDemoRadar_` (Test Primary 4/4/6 Nursery 3)
 3. **Deploy → Web app → Anyone** → copy `/exec` URL
 4. Set school-config `googleRadarExecUrl` to that `/exec`
-5. Sites editor → Insert → Embed → By URL → `{googleRadarExecUrl}?emis=110101&embed=1`
+5. Sites editor → Insert → Embed → By URL → `{googleRadarExecUrl}?emis=5103-1-08837&embed=1`
 6. **Publish** → verify off-LAN / incognito
 7. Local dash (`:8088`) remains HQ preview only
 
@@ -90,7 +90,7 @@ Implemented in-app by `RadarChart.kt`. Grouped bars only when fewer than 3 axes.
 | `apps/api/static/school/attendance.html` | Combined HQ preview page |
 | `apps/api/static/radar/index.html` | Local SVG spider page |
 | `docs/radar_parents.schema.json` | Radar JSON schema v1 |
-| `school-configs/110101.json` | Includes `googleRadarExecUrl` placeholder |
+| `school-configs/5103-1-08837.json` | Includes `googleRadarExecUrl` placeholder |
 
 ## Gaps (honest)
 

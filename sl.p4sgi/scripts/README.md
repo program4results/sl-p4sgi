@@ -45,7 +45,7 @@ python3 scripts/ingest_gam_csv.py --approve
 | Column | Notes |
 |--------|--------|
 | `primaryEmail` / `email` / `schoolEmail` | School Workspace user |
-| `orgUnitPath` / `ou` | e.g. `/sl/pilot/school-110101` |
+| `orgUnitPath` / `ou` | e.g. `/sl/pilot/school-5103-1-08837` |
 | `emis` | Or inferred from `school-NNNNN` in OU path |
 | `schoolName` / `name` / `name.fullName` | Display name |
 | `attendanceDocId` | Required before Approve (non-pilot) |

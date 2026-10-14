@@ -6,7 +6,7 @@
  * What this does
  *   doGet  → serves SVG spiders from Script Properties JSON (radar_parents v1).
  *   doPost → accepts tiny radar_parents JSON (no PNG / no base64); stores per EMIS.
- *   Seed   → Test Primary EMIS 110101, Nursery 3, snap 4 / confirmed 4 / SEMIS 6.
+ *   Seed   → Test Primary EMIS 5103-1-08837, Nursery 3, snap 4 / confirmed 4 / SEMIS 6.
  *
  * HQ deploy (you must click these — agents cannot deploy for you)
  *   1. https://script.google.com → New project (or open existing radar project)
@@ -19,11 +19,11 @@
  *        Execute as: Me
  *        Who has access: Anyone
  *   7. Authorize → Copy the Web app URL ending in /exec
- *   8. Paste that URL into school-configs/110101.json → googleRadarExecUrl
+ *   8. Paste that URL into school-configs/5103-1-08837.json → googleRadarExecUrl
  *      (and optionally Site Embed — see docs/SITE_ATTENDANCE_EMBED.md)
  *
  * Parent Site embed URL example:
- *   https://script.google.com/macros/s/DEPLOYMENT_ID/exec?emis=110101&embed=1
+ *   https://script.google.com/macros/s/DEPLOYMENT_ID/exec?emis=5103-1-08837&embed=1
  *
  * Tablet / webhook POST: same /exec URL, Content-Type application/json,
  * body = radar_parents v1 (or { kind:"radar_parents", radar:{...} }).
@@ -32,7 +32,7 @@
 
 var PROP_PREFIX = "radar_";
 var PROP_DAILY_PREFIX = "daily_";
-var DEFAULT_EMIS = "110101";
+var DEFAULT_EMIS = "5103-1-08837";
 
 function doGet(e) {
   e = e || { parameter: {} };
@@ -130,7 +130,7 @@ function doPost(e) {
 
 /** Run once from the Apps Script editor to seed Test Primary demo (4/4/6 Nursery 3). */
 function seedDemoRadar_() {
-  var demo = demoRadar110101_();
+  var demo = demoRadar5103-1-08837_();
   saveRadar_(demo.emis, demo);
   saveDaily_(demo.emis, normalizeDaily_({
     emis: demo.emis,
@@ -152,7 +152,7 @@ function seedDemoRadar_() {
       "Confirmed: 4",
       "SEMIS enrollment: 6",
       "Gap vs SEMIS: 33.3%",
-      "Site/legacy ref: 5103-1-08837 (not EMIS; warehouse EMIS is 110101)",
+      "Site/legacy ref: 5103-1-08837 (not EMIS; warehouse EMIS is 5103-1-08837)",
     ],
   }, demo.emis, demo));
   Logger.log("Seeded radar+daily for EMIS " + demo.emis + " (" + demo.classLabel + " A/B/C=" +
@@ -170,7 +170,7 @@ function loadRadar_(emis) {
     }
   }
   if (emis === DEFAULT_EMIS) {
-    var demo = demoRadar110101_();
+    var demo = demoRadar5103-1-08837_();
     saveRadar_(emis, demo);
     return demo;
   }
@@ -257,7 +257,7 @@ function jsonOut_(obj) {
 }
 
 /** Known Test Primary Nursery 3 snapshot only — not extra SEMIS schools. */
-function demoRadar110101_() {
+function demoRadar5103-1-08837_() {
   function axes(labels) {
     return labels.map(function (label) {
       return { label: label, A: 4, B: 4, C: 6 };
@@ -266,7 +266,7 @@ function demoRadar110101_() {
   return {
     schemaVersion: "1",
     kind: "radar_parents",
-    emis: "110101",
+    emis: "5103-1-08837",
     schoolName: "Test Primary School",
     schoolEmail: "sl-test@sl.p4sgi.com",
     domain: "sl.p4sgi.com",

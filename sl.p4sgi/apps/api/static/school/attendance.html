@@ -130,7 +130,7 @@
   <script>
     const params = new URLSearchParams(location.search);
     const pathEmis = (location.pathname.match(/\/school\/([^/]+)\/attendance/) || [])[1];
-    const emis = (params.get("emis") || pathEmis || "110101").trim();
+    const emis = (params.get("emis") || pathEmis || "5103-1-08837").trim();
     if (params.get("embed") === "1") document.body.classList.add("embed");
 
     function esc(s) {

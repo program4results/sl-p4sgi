@@ -25,7 +25,7 @@ var PROP_MAX_CHARS = 8500; // Script Properties ~9KB soft cap per value
 function doGet(e) {
   e = e || { parameter: {} };
   var params = e.parameter || {};
-  var emis = String(params.emis || defaultEmis_() || "110101").trim();
+  var emis = String(params.emis || defaultEmis_() || "5103-1-08837").trim();
   var format = String(params.format || "").toLowerCase();
 
   if (format === "json") {
@@ -134,7 +134,7 @@ function doPost(e) {
 // ---------------------------------------------------------------------------
 
 function defaultEmis_() {
-  return (PropertiesService.getScriptProperties().getProperty("DEFAULT_EMIS") || "110101").toString().trim();
+  return (PropertiesService.getScriptProperties().getProperty("DEFAULT_EMIS") || "5103-1-08837").toString().trim();
 }
 
 function storeRadar_(emis, radarDoc, data) {
@@ -492,7 +492,7 @@ function jsonOut_(obj) {
 // ---------------------------------------------------------------------------
 
 function seedDemoTestPrimary() {
-  var emis = "110101";
+  var emis = "5103-1-08837";
   var radar = demoRadar_(emis);
   var daily = demoDaily_(emis, radar);
   storeRadar_(emis, radar, {});
@@ -551,7 +551,7 @@ function demoDaily_(emis, radar) {
     semis: 6,
     gapPct: 33.3,
     siteRef: "5103-1-08837",
-    siteRefNote: "Optional Site/legacy ref — not warehouse EMIS (110101)",
+    siteRefNote: "Optional Site/legacy ref — not warehouse EMIS (5103-1-08837)",
     headline: "Nursery 3 — 2026-09-28",
     bullets: [
       "Date: 2026-09-28",
@@ -560,7 +560,7 @@ function demoDaily_(emis, radar) {
       "Confirmed: 4",
       "SEMIS enrollment: 6",
       "Gap vs SEMIS: 33.3%",
-      "Site/legacy ref: 5103-1-08837 (not EMIS; warehouse EMIS is 110101)",
+      "Site/legacy ref: 5103-1-08837 (not EMIS; warehouse EMIS is 5103-1-08837)",
     ],
   };
 }
@@ -705,7 +705,7 @@ function testReplaceLocal() {
         kind: "daily_attendance_parents",
         targetDocId: PropertiesService.getScriptProperties().getProperty("ATTENDANCE_DOC_ID") || "PASTE_ATTENDANCE_DOC_ID_HERE",
         reportMarkdown: "# Daily attendance — test\n\n- **Class:** Nursery 3\n- **Present:** 4\n",
-        emis: "110101",
+        emis: "5103-1-08837",
         schoolName: "Test Primary School",
         classLabel: "Nursery 3",
         attendanceDate: "2026-09-28",
@@ -726,11 +726,11 @@ function testRadarParents() {
       contents: JSON.stringify({
         kind: "radar_parents",
         targetDocId: PropertiesService.getScriptProperties().getProperty("ATTENDANCE_DOC_ID") || "PASTE_ATTENDANCE_DOC_ID_HERE",
-        emis: "110101",
+        emis: "5103-1-08837",
         schoolName: "Test Primary School",
         classLabel: "Nursery 3",
         attendanceDate: "2026-09-28",
-        radar: demoRadar_("110101"),
+        radar: demoRadar_("5103-1-08837"),
       }),
     },
   });

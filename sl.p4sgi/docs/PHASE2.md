@@ -18,7 +18,7 @@ Phase 2 implements **GAM extract review → approve → publish school-config**,
   - [x] `GET /api/v1/publish-events`
 - [x] `scripts/ingest_gam_sample.py` — reads `docker-data/sl.p4sgi/gam-out` sample, creates a job
 - [x] Minimal UI: list jobs, Approve button
-- [x] Seed Test Primary (`emis=110101`, `attendanceDocId=1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck`)
+- [x] Seed Test Primary (`emis=5103-1-08837`, `attendanceDocId=1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck`)
 - [x] README updated; RBAC still stub comments only
 
 ## Out of scope (do not implement in Phase 2)
@@ -43,7 +43,7 @@ curl -sv http://127.0.0.1:8088/api/v1/health
 python3 scripts/ingest_gam_sample.py --approve
 
 # Confirm published file
-cat ../../docker-data/sl.p4sgi/school-configs/110101.json
+cat ../../docker-data/sl.p4sgi/school-configs/5103-1-08837.json
 
 # Or via UI
 xdg-open http://127.0.0.1:8088/

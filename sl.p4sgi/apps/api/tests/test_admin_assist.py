@@ -507,11 +507,11 @@ def test_send_smtp_builds_safe_message(monkeypatch):
 # ----------------------------------------------- AIdmin on every section (extra kinds) ---
 RUN = {"id": "20261007T080000Z_users", "report": "users", "status": "failed", "exit_code": 1, "size_bytes": 10, "created_at": "2026-10-07T08:00:00Z", "domains": ["sl.p4sgi.com"]}
 FILE = {"folder": "probe-1", "name": "users_a@sl.p4sgi.com.csv", "path": "probe-1/users_a@sl.p4sgi.com.csv", "size_bytes": 5, "rows": 3, "modified": "2026-10-07T08:00:00+00:00", "err": "bad row for b@sl.p4sgi.com"}
-JOB = {"id": "j-1111", "status": "pending", "emis": "110101", "school_name": "Test School", "source_format": "xlsx", "source_filename": "cfg_x@y.org.xlsx",
+JOB = {"id": "j-1111", "status": "pending", "emis": "5103-1-08837", "school_name": "Test School", "source_format": "xlsx", "source_filename": "cfg_x@y.org.xlsx",
        "created_at": "2026-10-01T00:00:00", "approved_by": "boss@p4sgi.com", "notes": "ask ht@sl.p4sgi.com", "payload_summary": {"row_count": 4, "fields": {"a": 1}}}
-EVENT = {"id": "e-2222", "kind": "radar_parents", "status": "ok", "emis": "110101", "created_at": "2026-10-02T00:00:00", "school_email": "ht@sl.p4sgi.com",
+EVENT = {"id": "e-2222", "kind": "radar_parents", "status": "ok", "emis": "5103-1-08837", "created_at": "2026-10-02T00:00:00", "school_email": "ht@sl.p4sgi.com",
          "payload_preview": "published for ht@sl.p4sgi.com", "site_attendance_url": "https://x"}
-TAB = {"id": "t-3333", "emis": "110101", "school_name": "Test School", "device_type": "tablet", "app_version": "1.2", "last_seen": None, "data_mb": 1.5,
+TAB = {"id": "t-3333", "emis": "5103-1-08837", "school_name": "Test School", "device_type": "tablet", "app_version": "1.2", "last_seen": None, "data_mb": 1.5,
        "serial": "SERIAL999", "sim": "+23277000000", "whatsapp": "+23277000001", "tablet_android_id": "ANDROIDID123", "school_email": "ht@sl.p4sgi.com"}
 EXTRA_ROWS = {"gam_runs": [RUN], "raw_exports": [FILE], "jobs": [JOB], "events": [EVENT], "fleet": [TAB]}
 

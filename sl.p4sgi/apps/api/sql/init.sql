@@ -93,7 +93,7 @@ ALTER TABLE publish_events ADD COLUMN IF NOT EXISTS payload_preview TEXT;
 
 -- Seed Test Primary school row (config file written on approve / seed script)
 INSERT INTO schools (emis, name, email, district, province)
-VALUES ('110101', 'Test Primary School', 'sl-test@sl.p4sgi.com', 'Pilot', 'Sierra Leone')
+VALUES ('5103-1-08837', 'Test Primary School', 'sl-test@sl.p4sgi.com', 'Pilot', 'Sierra Leone')
 ON CONFLICT (emis) DO NOTHING;
 
 -- Phase 4a: fleet device registry + telemetry stubs

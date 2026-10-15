@@ -9,7 +9,7 @@ Phase 3 operates the pilot dash: **publish audit ingest** + GAM path. **Phase 3.
 - [x] `POST /api/v1/publish-events` — ingest JSON: `emis`, `kind`, `school_email`, `doc_id`, `status`, `payload_preview`, `created_at`
 - [x] `GET /api/v1/publish-events?emis=&kind=&domain=` — filter (kind supports `sqao_*` prefix; domain multi)
 - [x] UI: Recent publish events (`daily_attendance_parents`, `radar_parents`, `sqao_*`, `school_config_publish`)
-- [x] Seed Test Primary Site success: `daily_attendance_parents`, emis `110101`, class Nursery 3 / site note `5103-1-08837`, date `2026-09-28`
+- [x] Seed Test Primary Site success: `daily_attendance_parents`, emis `5103-1-08837`, class Nursery 3 / site note `5103-1-08837`, date `2026-09-28`
 - [x] `scripts/ingest_gam_csv.py` — **legacy** CSV → `provisioning_jobs` (not primary)
 - [x] **Phase 3.1:** `POST/GET /api/v1/gam/reports` + `scripts/run_gam_report.sh` (allowlisted host `gam`)
 - [x] Optional `PUBLISH_AUDIT_TOKEN` in `.env.example`
@@ -70,5 +70,5 @@ docker-data/sl.p4sgi/
   postgres/pgdata/
   gam-out/runs/        On-demand GAM report CSVs ({timestamp}_{report}.csv)
   gam-out/             Legacy CSV drop (deprecated as primary path)
-  school-configs/      Published {emis}.json after Approve (siteAttendanceUrl seeded for 110101)
+  school-configs/      Published {emis}.json after Approve (siteAttendanceUrl seeded for 5103-1-08837)
 ```

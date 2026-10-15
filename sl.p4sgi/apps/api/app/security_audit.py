@@ -53,7 +53,9 @@ SOURCES_OAUTH = ["token_activity"]
 SOURCES_USERS = ["users_full", "login_activity", "admins"]
 SOURCES_DEVICES = ["devices_ci", "devices_mobile", "devices_cros", "users_full", "login_activity", "token_activity"]
 
-LEVEL_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "UNKNOWN": 0}
+_AUDIT_LOCK = threading.Lock()
+LEVEL_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "UNKNOWN": 0, "APPROVED": -1}
+APPROVAL_DEFAULT_DAYS = _env_int("SEC_APPROVAL_DAYS", 180)
 
 
 def level_for(score: int | None) -> str:
@@ -232,6 +234,67 @@ def analyse_oauth(
 
 
 # --------------------------------------------------------------------------
+# Known / approved apps (0.4.22). An approval is bound to the app's scope set: if the app later asks for
+# different permissions, or the review date passes, it stops being approved and shows its real risk again.
+# --------------------------------------------------------------------------
+def app_key(row: dict[str, Any]) -> str:
+    return str(row.get("client_id") or row.get("app_name") or "")
+
+
+def scope_fingerprint(scopes: list[str]) -> str:
+    import hashlib
+
+    return hashlib.sha256("\n".join(sorted(set(scopes))).encode()).hexdigest()[:16]
+
+
+def load_approvals(path: Path) -> dict[str, dict[str, Any]]:
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def apply_approvals(rows: list[dict[str, Any]], approvals: dict[str, dict[str, Any]], now: datetime) -> list[dict[str, Any]]:
+    """Mark approved apps. Never hides a row; keeps the raw level; flags stale approvals."""
+    for r in rows:
+        a = approvals.get(app_key(r))
+        if not a:
+            continue
+        review = parse_ts(a.get("review_by"))
+        if a.get("scope_fp") != scope_fingerprint(r.get("scopes") or []):
+            r["approval_stale"] = "permissions changed since this app was approved: review again"
+        elif review and review < now:
+            r["approval_stale"] = "approval expired on " + str(a.get("review_by"))[:10]
+        else:
+            r["risk_level_raw"] = r["risk_level"]
+            r["risk_level"] = "APPROVED"
+            r["approved"] = {k: a.get(k) for k in ("note", "approved_by", "approved_at", "review_by")}
+    rows.sort(key=lambda r: (-LEVEL_ORDER[r["risk_level"]], -(r["risk_score"] or 0), -r["user_count"]))
+    return rows
+
+
+def record_approval(approvals_path: Path, audit_dir: Path, key: str, row: dict[str, Any], note: str, who: str,
+                    review_days: int, now: datetime) -> dict[str, Any]:
+    """Persist an approval bound to the app's CURRENT scope set. Caller has already checked super-admin."""
+    rec = {"app_name": row["app_name"], "client_id": row["client_id"], "note": note, "approved_by": who,
+           "approved_at": now.isoformat(timespec="seconds"),
+           "review_by": (now + timedelta(days=review_days)).isoformat(timespec="seconds"),
+           "scope_fp": scope_fingerprint(row["scopes"]), "level_when_approved": row["risk_level"], "score_when_approved": row["risk_score"]}
+    with _AUDIT_LOCK:
+        cur = load_approvals(approvals_path)
+        cur[key] = rec
+        approvals_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = approvals_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
+        os.replace(tmp, approvals_path)
+        audit_dir.mkdir(parents=True, exist_ok=True)
+        with (audit_dir / "approvals.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"ts": now.isoformat(), "action": "approve", "key": key, **rec}) + "\n")
+    return rec
+
+
+# --------------------------------------------------------------------------
 # Module 3 — user activity / hygiene (users_full + login_activity + admins)
 # --------------------------------------------------------------------------
 # Single flags land where a reviewer would expect: no 2SV = MEDIUM, admin without 2SV = HIGH,
@@ -398,6 +461,12 @@ PLAN_NOTE = (
 )
 
 
+class ApproveAppIn(BaseModel):
+    key: str = Field(..., min_length=1, max_length=256, description="client_id (or app name when no client id)")
+    note: str = Field(..., min_length=3, max_length=500, description="why this app is approved")
+    review_days: int = Field(APPROVAL_DEFAULT_DAYS, ge=7, le=730)
+
+
 class ActionPlanIn(BaseModel):
     action: Literal["revoke_token", "offboard_user", "wipe_mobile_device"]
     email: str | None = Field(None, max_length=254)
@@ -461,12 +530,12 @@ class Helpers:
     app_version: str
 
 
-_AUDIT_LOCK = threading.Lock()
 
 
 def build_router(h: Helpers) -> APIRouter:
     router = APIRouter(prefix="/api/v1/security", tags=["security-audit"])
     audit_dir = h.data_dir / "security" / "audit"
+    approvals_path = h.data_dir / "security" / "approved_apps.json"
 
     def _now() -> datetime:
         return datetime.now(timezone.utc)
@@ -538,6 +607,7 @@ def build_router(h: Helpers) -> APIRouter:
         allowed, _ = h.insight_scope(request, domain, domains)
         data, src = _load(SOURCES_OAUTH, allowed)
         res = analyse_oauth(data.get("token_activity", []), _scope_fn(allowed), h.row_email)
+        apply_approvals(res["rows"], load_approvals(approvals_path), _now())
         rows = _min_level(res["rows"], min_level)
         return {
             "as_of": _now().isoformat(), "scope": sorted(allowed) if allowed else ["all"],
@@ -597,6 +667,7 @@ def build_router(h: Helpers) -> APIRouter:
         reports = sorted(set(SOURCES_OAUTH + SOURCES_USERS + SOURCES_DEVICES))
         data, src = _load(reports, allowed)
         o = analyse_oauth(data.get("token_activity", []), _scope_fn(allowed), h.row_email)
+        apply_approvals(o["rows"], load_approvals(approvals_path), _now())
         u = analyse_users(data.get("users_full", []), data.get("login_activity", []), data.get("admins", []),
                           _scope_fn(allowed), h.row_email, now)
         d = analyse_devices(h.build_device_rows(data, allowed), now)
@@ -611,6 +682,49 @@ def build_router(h: Helpers) -> APIRouter:
             "drive": {"available": False, "reason": "needs a new allowlisted read-only GAM report (see docs/SECURITY_AUDIT.md)"},
             "sources": src,
         }
+
+    @router.get("/approved-apps")
+    def approved_apps(request: Request) -> dict:
+        scope = h.request_scope(request)
+        a = load_approvals(approvals_path)
+        return {"can_edit": bool(scope.get("superadmin")), "default_review_days": APPROVAL_DEFAULT_DAYS,
+                "rows": [{"key": k, **v} for k, v in sorted(a.items())]}
+
+    @router.post("/approved-apps")
+    def approve_app(body: ApproveAppIn, request: Request) -> dict:
+        scope = h.request_scope(request)
+        if not scope.get("superadmin"):
+            raise HTTPException(403, {"error": "superadmin_only"})
+        allowed, _ = h.insight_scope(request, None, None)
+        data, _src = _load(SOURCES_OAUTH, allowed)
+        res = analyse_oauth(data.get("token_activity", []), _scope_fn(allowed), h.row_email)
+        row = next((r for r in res["rows"] if app_key(r) == body.key), None)
+        if not row:
+            raise HTTPException(404, {"error": "unknown_app", "detail": "app not seen in the cached token_activity report"})
+        if row["risk_level"] == "UNKNOWN":
+            raise HTTPException(422, {"error": "scopes_unknown", "detail": "cannot approve an app whose permissions are not visible in the data"})
+        who = str(scope.get("real_email") or scope.get("email") or "local")
+        rec = record_approval(approvals_path, audit_dir, body.key, row, body.note, who, body.review_days, _now())
+        return {"ok": True, "approved": {"key": body.key, **rec}}
+
+    @router.delete("/approved-apps")
+    def unapprove_app(request: Request, key: str = Query(..., min_length=1, max_length=256)) -> dict:
+        scope = h.request_scope(request)
+        if not scope.get("superadmin"):
+            raise HTTPException(403, {"error": "superadmin_only"})
+        with _AUDIT_LOCK:
+            cur = load_approvals(approvals_path)
+            if key not in cur:
+                raise HTTPException(404, {"error": "not_approved"})
+            cur.pop(key)
+            tmp = approvals_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(cur, indent=1, sort_keys=True), encoding="utf-8")
+            os.replace(tmp, approvals_path)
+            audit_dir.mkdir(parents=True, exist_ok=True)
+            with (audit_dir / "approvals.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"ts": _now().isoformat(), "action": "remove", "key": key,
+                                     "by": scope.get("real_email") or scope.get("email") or "local"}) + "\n")
+        return {"ok": True}
 
     @router.post("/actions/plan")
     def action_plan(body: ActionPlanIn, request: Request) -> dict:

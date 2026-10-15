@@ -62,11 +62,20 @@ when it was produced, or that it is missing and must be run from the GAM reports
    one account and check `gam help` first. `wipe_mobile_device` needs GAM's mobile `resourceId`
    (from `gam print mobile`), which differs from the `deviceId` shown in the dashboard.
 
+## Known & approved apps (0.4.22)
+
+A super-admin can mark an OAuth app as known and wanted (Admin assist > "approve", or `POST /api/v1/security/approved-apps`
+with a written reason). The row is **not hidden**: it is relabelled `APPROVED`, sorted last, and keeps its real level in
+`risk_level_raw`. An approval is bound to the app's exact permission set and to a review date (`SEC_APPROVAL_DAYS`, default 180):
+if the app asks for different permissions, or the date passes, it shows its real level again with an "approval stale" note.
+Apps whose permissions are not visible (UNKNOWN) cannot be approved. Stored in `DATA_DIR/security/approved_apps.json`; every
+change is appended to `DATA_DIR/security/audit/approvals.jsonl`. Approval changes only this dashboard's label, never Google.
+
 ## Tunables (optional `.env`, defaults shown)
 
 `SEC_INACTIVE_DAYS=90` `SEC_NEVER_LOGGED_IN_MIN_AGE_DAYS=30` `SEC_FAILED_LOGIN_7D=5`
 `SEC_DEVICE_STALE_DAYS=30` `SEC_PATCH_MAX_AGE_DAYS=365` `SEC_LEVEL_CRITICAL=85`
-`SEC_LEVEL_HIGH=60` `SEC_LEVEL_MEDIUM=40` `SECURITY_AUDIT_ENABLED=1`
+`SEC_APPROVAL_DAYS=180` `SEC_LEVEL_HIGH=60` `SEC_LEVEL_MEDIUM=40` `SECURITY_AUDIT_ENABLED=1`
 
 ## Deploy / verify / roll back
 

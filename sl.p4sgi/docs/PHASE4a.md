@@ -58,8 +58,8 @@ curl -s 'http://127.0.0.1:8088/api/v1/devices?domain=sl.p4sgi.com'
 
 | tablet_android_id | EMIS | Email | SIM / WhatsApp |
 |-------------------|------|-------|----------------|
-| `demo-android-tp-001` | 110101 | sl-test@sl.p4sgi.com | +23276110001 |
-| `demo-android-tp-002` | 110101 | sl-test@sl.p4sgi.com | +23276110002 |
+| `demo-android-tp-001` | 5103-1-08837 | sl-test@sl.p4sgi.com | +23276110001 |
+| `demo-android-tp-002` | 5103-1-08837 | sl-test@sl.p4sgi.com | +23276110002 |
 
 ## APK outbox JSON contract (for later tablet / snapait work)
 
@@ -162,7 +162,7 @@ xdg-open http://127.0.0.1:8088/
 Tablet must not upload chart PNGs. Dash stores tiny `radar_parents` JSON per EMIS and serves a static HTML page that draws progressive spiders (pure SVG) in the browser.
 
 - Schema: `docs/radar_parents.schema.json` (periods Daily/Weekly/Monthly/Termly/Annual; series A snap / B confirmed / C SEMIS).
-- Page: `GET /radar/?emis=110101` → `apps/api/static/radar/index.html`.
+- Page: `GET /radar/?emis=5103-1-08837` → `apps/api/static/radar/index.html`.
 - API: `GET /api/v1/radar/{emis}.json`, `POST /api/v1/radar/{emis}` (audit jsonl + `publish_events`). Files under docker-data `radar/`.
 - School-config field `radarPageUrl` (Test Primary seeded).
 - Demo JSON repeats the known Nursery 3 snapshot snap 4 / confirmed 4 / SEMIS 6 on every axis so each period can draw a spider. Not extra schools.
@@ -171,8 +171,8 @@ Tablet must not upload chart PNGs. Dash stores tiny `radar_parents` JSON per EMI
 ```bash
 curl -s http://127.0.0.1:8088/api/v1/health
 # expect version 0.4.5
-curl -s http://127.0.0.1:8088/api/v1/radar/110101.json
-# open http://127.0.0.1:8088/radar/?emis=110101
+curl -s http://127.0.0.1:8088/api/v1/radar/5103-1-08837.json
+# open http://127.0.0.1:8088/radar/?emis=5103-1-08837
 ```
 
 
@@ -185,7 +185,7 @@ curl -s http://127.0.0.1:8088/api/v1/radar/110101.json
 
 ## 0.4.8 — Google-hosted HtmlService charts (Cloudflare abandoned for pilot)
 
-- Prefer `googleRadarExecUrl` (`script.google.com/…/exec?emis=110101&embed=1`) for Site embed.
+- Prefer `googleRadarExecUrl` (`script.google.com/…/exec?emis=5103-1-08837&embed=1`) for Site embed.
 - Apps Script: `docs/apps-script-radar-html.gs` — `doGet` HtmlService SVG spiders from Script Properties; `doPost` accepts tiny `radar_parents` JSON (no PNG); seed Test Primary 4/4/6 Nursery 3.
 - Optional stub: `docs/apps-script-radar.html` (not required — HTML is embedded in the `.gs`).
 - Doc publisher remains separate: `docs/apps-script-publish-attendance.gs`.
@@ -214,7 +214,7 @@ curl -sS http://127.0.0.1:8088/api/v1/health
 Docs / schema notes only for fleet Site rollout (rebuild if `APP_VERSION` bumped in image):
 
 - HQ runbook: [SCHOOL_SITE_TEMPLATE_PROVISION.md](./SCHOOL_SITE_TEMPLATE_PROVISION.md) — **one** HtmlService `/exec` for all schools; Site template iframe `…/exec?emis={{EMIS}}&embed=1`; copy template per school; GAM Directory → `school-config.json` (`googleRadarExecUrl` shared, `siteAttendanceUrl` / `attendanceDocId` per school); tablet POSTs JSON to same `/exec` with `emis`.
-- Example + notes: `docker-data/sl.p4sgi/school-configs/110101.example.json`, `110101.json` `_notes`.
+- Example + notes: `docker-data/sl.p4sgi/school-configs/5103-1-08837.example.json`, `5103-1-08837.json` `_notes`.
 - Stub outline: `scripts/provision_school_site_template.stub.sh` (no invented SEMIS; Cloudflare not required).
 - Links from README, [SITE_ATTENDANCE_EMBED.md](./SITE_ATTENDANCE_EMBED.md), [RADAR_VS_SITE.md](./RADAR_VS_SITE.md).
 
@@ -234,6 +234,6 @@ curl -sS http://127.0.0.1:8088/api/v1/health
 ```bash
 curl -sS http://127.0.0.1:8088/api/v1/health
 # expect version 0.4.11 after image rebuild
-xdg-open 'http://127.0.0.1:8088/radar/?emis=110101&embed=1'
+xdg-open 'http://127.0.0.1:8088/radar/?emis=5103-1-08837&embed=1'
 ```
 

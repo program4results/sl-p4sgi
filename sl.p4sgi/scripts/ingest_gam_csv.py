@@ -50,7 +50,7 @@ DEFAULT_GAM_OUT = DEFAULT_DATA / "gam-out"
 # Written if gam-out has no CSVs
 SAMPLE_NAME = "sample_gam_users.csv"
 SAMPLE_CSV = """primaryEmail,name.fullName,orgUnitPath,emis,schoolName,attendanceDocId,websitePackDocId,googleSiteId
-sl-test@sl.p4sgi.com,Test Primary School,/sl/pilot/school-110101,110101,Test Primary School,1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck,12Gx23QvwXUBGZLz9osggOOCuHFKHRSdtV41SVQ0k9oU,17Tr6txpL2F0WfNAklhtcsWfQHKVYBl2v
+sl-test@sl.p4sgi.com,Test Primary School,/sl/pilot/school-5103-1-08837,5103-1-08837,Test Primary School,1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck,12Gx23QvwXUBGZLz9osggOOCuHFKHRSdtV41SVQ0k9oU,17Tr6txpL2F0WfNAklhtcsWfQHKVYBl2v
 """
 
 

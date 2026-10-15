@@ -37,9 +37,9 @@ Parents should see **progressive SVG spider charts** (Snap blue / Confirmed yell
 1. In the function dropdown, choose **`seedDemoRadar_`**.
 2. Click **Run**.
 3. Authorize when prompted (Review permissions → Allow).
-4. Confirm Execution log: seeded EMIS `110101`, Nursery 3, A/B/C = 4/4/6.
+4. Confirm Execution log: seeded EMIS `5103-1-08837`, Nursery 3, A/B/C = 4/4/6.
 
-(`doGet` also auto-seeds 110101 on first view if Script Properties are empty.)
+(`doGet` also auto-seeds 5103-1-08837 on first view if Script Properties are empty.)
 
 ### 4) Deploy Web app — Anyone
 
@@ -58,7 +58,7 @@ Parents should see **progressive SVG spider charts** (Snap blue / Confirmed yell
 
 Edit (or let seed merge fill the key):
 
-`/home/george/drive_14tb/docker-data/sl.p4sgi/school-configs/110101.json`
+`/home/george/drive_14tb/docker-data/sl.p4sgi/school-configs/5103-1-08837.json`
 
 Set:
 
@@ -69,7 +69,7 @@ Set:
 Leave `""` until step 4 is done. Parent Site embed URL with query:
 
 ```text
-https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?emis=110101&embed=1
+https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?emis=5103-1-08837&embed=1
 ```
 
 **Do not** require `PUBLIC_BASE_URL` for parent delivery. Localhost `attendancePageUrl` / `radarPageUrl` stay HQ preview only.
@@ -85,10 +85,10 @@ https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?emis=110101&embed=1
 5. Paste:
 
    ```text
-   https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?emis=110101&embed=1
+   https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?emis=5103-1-08837&embed=1
    ```
 
-   (Use the real `/exec` from step 4 + `?emis=110101&embed=1`.)
+   (Use the real `/exec` from step 4 + `?emis=5103-1-08837&embed=1`.)
 
 6. **Insert**. Resize for compact single viewport (~650–720 px).
 7. Optional: keep the existing Attendance Doc embed (`attendanceDocId` `1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck`) above or below for daily text.
@@ -103,7 +103,7 @@ https://sites.google.com/p4sgi.com/test-primary-school/home/attendance
 
 1. Open the published Attendance page in **incognito** (or a phone off this LAN).
 2. Expect: school name, Nursery 3, A/B/C 4/4/6, period chips, SVG spiders.
-3. If blank: wrong `/exec`, deployment not “Anyone”, page not Published, or query missing `emis=110101`.
+3. If blank: wrong `/exec`, deployment not “Anyone”, page not Published, or query missing `emis=5103-1-08837`.
 
 ---
 
@@ -115,8 +115,8 @@ On the dash host only:
 curl -sS http://127.0.0.1:8088/api/v1/health
 # expect: "version":"0.4.11", "status":"ok"
 
-xdg-open 'http://127.0.0.1:8088/school/110101/attendance?embed=1'
-xdg-open 'http://127.0.0.1:8088/radar/?emis=110101&embed=1'
+xdg-open 'http://127.0.0.1:8088/school/5103-1-08837/attendance?embed=1'
+xdg-open 'http://127.0.0.1:8088/radar/?emis=5103-1-08837&embed=1'
 ```
 
 **Never** paste `http://127.0.0.1:8088/...` into Sites Embed — parents get a blank iframe.
@@ -130,7 +130,7 @@ Tablet / webhook / curl can POST tiny `radar_parents` JSON (no PNG) to the same 
 ```bash
 curl -sS -X POST 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec' \
   -H 'Content-Type: application/json' \
-  -d @/home/george/drive_14tb/stacks/sl.p4sgi/apps/api/static/radar/demo-110101.json
+  -d @/home/george/drive_14tb/stacks/sl.p4sgi/apps/api/static/radar/demo-5103-1-08837.json
 ```
 
 Body may also be `{ "kind":"radar_parents", "radar": { … } }`. PNG / base64 chart fields are rejected.
@@ -157,7 +157,7 @@ George **rejected Cloudflare** for this pilot. Do **not** block parent delivery 
 - **Do not** embed `http://127.0.0.1` or LAN IPs on Sites.
 - **Do not** invent DNS or require Cloudflare before parents can see spiders.
 - **Do not** upload chart PNGs — HtmlService draws SVG from JSON.
-- **Do not** replace warehouse EMIS `110101` with Site/legacy ref `5103-1-08837`.
+- **Do not** replace warehouse EMIS `5103-1-08837` with Site/legacy ref `5103-1-08837`.
 
 ---
 
@@ -165,10 +165,10 @@ George **rejected Cloudflare** for this pilot. Do **not** block parent delivery 
 
 | Role | URL |
 |------|-----|
-| **Parent Site embed (preferred)** | `{googleRadarExecUrl}?emis=110101&embed=1` |
+| **Parent Site embed (preferred)** | `{googleRadarExecUrl}?emis=5103-1-08837&embed=1` |
 | Google Site (parents) | https://sites.google.com/p4sgi.com/test-primary-school/home/attendance |
-| HQ local combined preview | `http://127.0.0.1:8088/school/110101/attendance?embed=1` |
-| HQ local radar preview | `http://127.0.0.1:8088/radar/?emis=110101&embed=1` |
+| HQ local combined preview | `http://127.0.0.1:8088/school/5103-1-08837/attendance?embed=1` |
+| HQ local radar preview | `http://127.0.0.1:8088/radar/?emis=5103-1-08837&embed=1` |
 | Stack Apps Script | `docs/apps-script-radar-html.gs` |
 | Attendance Doc publisher (separate) | `docs/apps-script-publish-attendance.gs` |
 

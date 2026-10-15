@@ -2,6 +2,18 @@
 
 Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school-config publish, publish audit, and (later) read-only warehouse assistance.
 
+**0.4.26 (experimental):** **RUSTAiDMIN** section after the Domain filter: RustDesk server settings/console link and an allowlisted, super-admin-only ADB helper (off by default). Optional `--profile rustdesk` compose services use upstream images. Kill switch `RUSTADMIN_ENABLED=0`. See [docs/RUSTAIDMIN.md](docs/RUSTAIDMIN.md).
+
+**0.4.25:** AIdmin checkbox column stays visible (pinned at the right edge), tables scroll inside their section.
+
+**0.4.24:** **AIdmin** button in every section (GAM reports, raw exports, jobs, publish events, fleet, security) plus a general one by the Domain filter; tick rows then press AIdmin. Explain-only, whitelisted facts. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
+
+**0.4.23:** Admin assist is faster (instant first answer), help is a 73-guide library looked up in pgvector, editable email drafts (optional SMTP send), sample prompts, green Admin assist button. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
+
+**0.4.22 (experimental):** **Admin assist** (tick rows in the Security audit, get plain-language help, guided next steps, dry-run plans and email drafts), a **known & approved apps** list, and a growing **Help & guides** database. No DB change; kill switch `ASSIST_ENABLED=0`. See [docs/ADMIN_ASSIST.md](docs/ADMIN_ASSIST.md).
+
+**0.4.21 (experimental):** **Ask the data** chat (local Ollama, read-only curated views, pgvector knowledge base). The db image gains pgvector (same Alpine base). Kill switch `ASK_DATA_ENABLED=0`. See [docs/ASK_DATA.md](docs/ASK_DATA.md).
+
 **0.4.20 (experimental):** **Privacy compliance (PIA) monitor** with a required DPO email, evidence-based radar and go-live gate. Own JSON state, no DB change; kill switch `PRIVACY_MONITOR_ENABLED=0`. See [docs/PRIVACY_MONITOR.md](docs/PRIVACY_MONITOR.md).
 
 **0.4.19:** Read-only **Security audit** (OAuth app risk, user hygiene, device compliance) over cached GAM CSVs + dry-run fix plans. No DB change; kill switch `SECURITY_AUDIT_ENABLED=0`. See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
@@ -22,6 +34,7 @@ Administrative dashboard for the SEMIS / p4sgi pilot: GAM extract review, school
 | Phase 4 fleet ops | [docs/PHASE4-fleet-ops.md](docs/PHASE4-fleet-ops.md) |
 | **Security audit (0.4.19)** | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) |
 | **Privacy monitor (0.4.20, experimental)** | [docs/PRIVACY_MONITOR.md](docs/PRIVACY_MONITOR.md) |
+| **Ask the data chat (0.4.21, experimental)** | [docs/ASK_DATA.md](docs/ASK_DATA.md) |
 | Radar vs Site | [docs/RADAR_VS_SITE.md](docs/RADAR_VS_SITE.md) |
 | **Site attendance embed (HQ runbook)** | [docs/SITE_ATTENDANCE_EMBED.md](docs/SITE_ATTENDANCE_EMBED.md) |
 | **Site template + GAM provision (~100 schools)** | [docs/SCHOOL_SITE_TEMPLATE_PROVISION.md](docs/SCHOOL_SITE_TEMPLATE_PROVISION.md) |

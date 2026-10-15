@@ -126,8 +126,43 @@
     details.dom-collapse > summary::-webkit-details-marker { display: none; }
     details.dom-collapse > summary::before { content: "▸ "; color: var(--muted); }
     details.dom-collapse[open] > summary::before { content: "▾ "; }
-    /* Author display:flex must not override the closed-<details> UA hide. */
+    /* Closed <details> must not paint over the next section.
+       Chrome sizes ::details-content to height 0 with overflow:visible, so a
+       table inside a collapsed panel (Google sources) still draws on top of
+       the data table below. Author display values also beat the old UA
+       display:none, which is why .dom-list needed an explicit hide. */
+    details:not([open])::details-content {
+      display: none !important;
+      overflow: hidden !important;
+    }
+    details:not([open]) > :not(summary) { display: none !important; }
     details.dom-collapse:not([open]) > .dom-list { display: none !important; }
+    details.sources-panel {
+      display: block;
+      margin: 0.35rem 0 0.15rem;
+      padding: 0.35rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0f172a;
+      max-width: 100%;
+    }
+    details.sources-panel > summary {
+      cursor: pointer;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+    details.sources-panel .sources-body {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+    }
+    .insight-table {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 0.65rem;
+      clear: both;
+    }
     details.dom-collapse[open] > .dom-list {
       margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 28rem;
     }
@@ -501,8 +536,11 @@
         </details>
         <div class="row"><input type="search" id="devSearch" placeholder="Search devices (email, EMIS, model, OS, serial…)" style="min-width:22rem" /> <span class="msg" id="devMsg"></span></div>
         <div id="devColPicker" class="col-picker" aria-label="Devices columns"></div>
-        <details id="devSourcesWrap"><summary>Google sources (what returned data / errors)</summary><div id="devSources" class="mono" style="font-size:0.78rem"></div></details>
-        <div id="devTable" style="overflow-x:auto"><p class="empty">Loading…</p></div>
+        <details id="devSourcesWrap" class="sources-panel">
+          <summary>Google sources (what returned data / errors)</summary>
+          <div id="devSources" class="sources-body mono"></div>
+        </details>
+        <div id="devTable" class="insight-table"><p class="empty">Loading…</p></div>
       </div>
     </section>
 
@@ -530,8 +568,11 @@
         </details>
         <div class="row"><input type="search" id="actSearch" placeholder="Search active users (email, EMIS, model…)" style="min-width:22rem" /> <span class="msg" id="actMsg"></span></div>
         <div id="actColPicker" class="col-picker" aria-label="Active users columns"></div>
-        <details id="actSourcesWrap"><summary>Google sources (what returned data / errors)</summary><div id="actSources" class="mono" style="font-size:0.78rem"></div></details>
-        <div id="actTable" style="overflow-x:auto"><p class="empty">Loading…</p></div>
+        <details id="actSourcesWrap" class="sources-panel">
+          <summary>Google sources (what returned data / errors)</summary>
+          <div id="actSources" class="sources-body mono"></div>
+        </details>
+        <div id="actTable" class="insight-table"><p class="empty">Loading…</p></div>
       </div>
     </section>
 

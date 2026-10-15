@@ -385,6 +385,9 @@ def _resolve_scope(header_email: str | None, as_raw: str | None) -> dict[str, An
         source = "as_override"
     superadmin = effective is None or is_superadmin(effective)
     own = _email_domain(effective) if effective else None
+    _tenant = os.getenv("SCOPE_TENANT_DOMAIN", "").strip().lower()
+    if _tenant and effective and not superadmin:
+        own = _tenant  # Cloudflare Access users are pinned to this tenant's domain
     return {
         "real_email": real,
         "email": effective,
@@ -413,7 +416,7 @@ class DomainScopeMiddleware:
         pairs = parse_qsl(qs, keep_blank_values=True)
         as_raw = next((v for k, v in pairs if k == "as" and v), None) or headers.get(AS_OVERRIDE_HEADER)
         try:
-            p4 = _resolve_scope(headers.get(IDENTITY_HEADER), as_raw)
+            p4 = _resolve_scope(headers.get(IDENTITY_HEADER) or headers.get("cf-access-authenticated-user-email"), as_raw)
         except ValueError as exc:
             status, detail = exc.args
             path = scope.get("path") or ""

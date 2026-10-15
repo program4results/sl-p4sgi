@@ -373,6 +373,7 @@
 
   <header>
     <h1>p4sgi</h1>
+    <div id="tenantTitle" style="font-size:1.05rem;font-weight:600;margin:2px 0 4px">Google Workspace for Education Domain &amp; Cybersecurity Administration — Putting AI into Administration</div>
     <div class="meta">
       Phase 4a — fleet / devices &amp; telemetry · v<span id="uiVersion">0.4.26</span> · <a href="/school/5103-1-08837/attendance?embed=1">attendance</a> · <a href="/radar/?emis=5103-1-08837">radar</a>
       &nbsp;|&nbsp; <a href="/api/v1/health" id="healthLink" title="Open health JSON"><span id="health">…</span></a>
@@ -1692,6 +1693,19 @@
       setSpin('domSpin', true);
       try {
         const data = await api('/api/v1/domains');
+        try {
+          const NAMES = {'sl.p4sgi.com':'Sierra Leone Ministry of Basic and Secondary Education'};
+          const t = document.getElementById('tenantTitle');
+          const base = 'Google Workspace for Education Domain & Cybersecurity Administration — Putting AI into Administration';
+          if (t) {
+            if (data.scoped && data.domains && data.domains.length === 1) {
+              const c = NAMES[data.domains[0]] || data.domains[0];
+              t.textContent = c + ' · ' + base; document.title = 'Sierra Leone MBSSE — p4sgi';
+            } else {
+              t.textContent = 'All countries (super admin) — ' + base;
+            }
+          }
+        } catch (_) {}
         availableDomains = data.domains && data.domains.length
           ? [...new Set(data.domains)].sort((a, b) => a.localeCompare(b))
           : [...DOMAIN_CATALOG];

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-30 (Africa/Johannesburg)  
 **Stack:** `sl.p4sgi` · **Version:** 0.4.11  
-**Scale target:** ~100 schools · **Pilot SoT school:** EMIS `110101` (Test Primary)  
+**Scale target:** ~100 schools · **Pilot SoT school:** EMIS `5103-1-08837` (Test Primary)  
 **Related:** [SITE_ATTENDANCE_EMBED.md](./SITE_ATTENDANCE_EMBED.md) · [RADAR_VS_SITE.md](./RADAR_VS_SITE.md) · [PHASE4a.md](./PHASE4a.md)
 
 Parents open a **per-school Google Site** Attendance page. Charts come from **one shared** Apps Script HtmlService Web app (`/exec`), keyed by `?emis=…`. Cloudflare is **not** required. Do **not** invent SEMIS / EMIS codes — only provision schools already known from GAM Directory / warehouse / school-configs.
@@ -47,7 +47,7 @@ Parents open a **per-school Google Site** Attendance page. Charts come from **on
 Example after fill:
 
 ```text
-https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?emis=110101&embed=1
+https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?emis=5103-1-08837&embed=1
 ```
 
 ---
@@ -65,7 +65,7 @@ https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?emis=110101&embed=1
    - Optional: Attendance Doc embed placeholder / instructions
 5. Record the shared `/exec` (no query string) as the fleet default for `googleRadarExecUrl`.
 6. Ensure GAM is authenticated on the gbu host (`~/.gam`) for Directory extracts used by provision jobs.
-7. Optional: copy `school-configs/110101.example.json` as the field checklist for Approve payloads.
+7. Optional: copy `school-configs/5103-1-08837.example.json` as the field checklist for Approve payloads.
 
 ### Per-school (repeat ~100× — only for known EMIS)
 
@@ -83,7 +83,7 @@ Dash **Approve** still only writes `school-configs/{emis}.json` (+ audit). It do
 ## school-config.json fields (GAM Directory → config)
 
 Path: `/home/george/drive_14tb/docker-data/sl.p4sgi/school-configs/{emis}.json`  
-Example checklist: `school-configs/110101.example.json`
+Example checklist: `school-configs/5103-1-08837.example.json`
 
 | Field | Source / rule | Scale note |
 |-------|----------------|------------|
@@ -106,15 +106,15 @@ Minimal publish-oriented shape:
 
 ```json
 {
-  "emis": "110101",
+  "emis": "5103-1-08837",
   "schoolName": "Test Primary School",
   "schoolEmail": "sl-test@sl.p4sgi.com",
   "googleRadarExecUrl": "https://script.google.com/macros/s/SHARED_DEPLOYMENT_ID/exec",
   "siteAttendanceUrl": "https://sites.google.com/p4sgi.com/test-primary-school/home/attendance",
   "attendanceDocId": "1DKQmr6GNGnx1i-f19Tw1w1QGRfUmJr7-l3JlDWv_Fck",
   "publishExecUrl": "",
-  "attendancePageUrl": "http://127.0.0.1:8088/school/110101/attendance?embed=1",
-  "radarPageUrl": "http://127.0.0.1:8088/radar/?emis=110101&embed=1"
+  "attendancePageUrl": "http://127.0.0.1:8088/school/5103-1-08837/attendance?embed=1",
+  "radarPageUrl": "http://127.0.0.1:8088/radar/?emis=5103-1-08837&embed=1"
 }
 ```
 
@@ -129,11 +129,11 @@ Tablets POST tiny JSON (**no PNG / no base64 charts**) to the **shared** `/exec`
 ```bash
 curl -sS -X POST "$GOOGLE_RADAR_EXEC_URL" \
   -H 'Content-Type: application/json' \
-  -d '{"emis":"110101","kind":"radar_parents","radar":{…}}'
+  -d '{"emis":"5103-1-08837","kind":"radar_parents","radar":{…}}'
 ```
 
 - Body must include **`emis`** (or `radar.emis`) so Script Properties key per school.
-- Schema: [radar_parents.schema.json](./radar_parents.schema.json); demo: `apps/api/static/radar/demo-110101.json`.
+- Schema: [radar_parents.schema.json](./radar_parents.schema.json); demo: `apps/api/static/radar/demo-5103-1-08837.json`.
 - Android / snapait: **docs / contract only** for 0.4.11 — no APK rebuild required by this doc.
 
 ---
@@ -195,7 +195,7 @@ curl -sS http://127.0.0.1:8088/api/v1/health
 # expect: "version":"0.4.11", "status":"ok"
 
 # Config present
-python3 -c "import json;print(json.load(open('/home/george/drive_14tb/docker-data/sl.p4sgi/school-configs/110101.json'))['googleRadarExecUrl'][:60])"
+python3 -c "import json;print(json.load(open('/home/george/drive_14tb/docker-data/sl.p4sgi/school-configs/5103-1-08837.json'))['googleRadarExecUrl'][:60])"
 
 # Parent path (incognito / off-LAN)
 # open siteAttendanceUrl → spiders for that emis

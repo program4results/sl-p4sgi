@@ -231,7 +231,7 @@
     const PERIODS = ["Daily", "Weekly", "Monthly", "Termly", "Annual"];
     const COLORS = { A: "#1E88E5", B: "#FDD835", C: "#43A047" };
     const params = new URLSearchParams(location.search);
-    const emis = (params.get("emis") || "110101").trim();
+    const emis = (params.get("emis") || "5103-1-08837").trim();
     const isEmbed = params.get("embed") === "1";
     if (isEmbed) document.body.classList.add("embed");
     const src = params.get("src");

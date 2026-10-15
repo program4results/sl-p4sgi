@@ -31,6 +31,7 @@ services:
       ASSIST_ENGINE: ${ASSIST_ENGINE:-}
       ASSIST_ENABLED: ${ASSIST_ENABLED:-1}
       ASSIST_MODEL: ${ASSIST_MODEL:-}
+      SCOPE_TENANT_DOMAIN: ${SCOPE_TENANT_DOMAIN:-}
       # Optional: let a super-admin send Admin-assist email drafts from the dashboard (off unless SMTP_HOST and SMTP_FROM are set).
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

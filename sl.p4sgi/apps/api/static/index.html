@@ -28,6 +28,20 @@
       display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
       padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
     }
+    #btnHelp { float: right; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.7rem; cursor: pointer; font: inherit; }
+    #btnHelp:hover { border-color: var(--accent); }
+    #helpModal { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 400; display: none; }
+    #helpModal.show { display: block; }
+    #helpBox { position: fixed; top: 6vh; left: 50%; transform: translateX(-50%); width: min(820px, 94vw); max-height: 88vh; overflow: auto;
+      background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 0 1.1rem 1.1rem; resize: both; }
+    #helpBox .hh { position: sticky; top: 0; background: var(--panel); display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0 0.4rem; }
+    #helpBox h3 { margin: 1rem 0 0.3rem; font-size: 1rem; color: var(--accent); }
+    #helpBox h4 { margin: 0.7rem 0 0.15rem; font-size: 0.92rem; color: var(--text); }
+    #helpBox p, #helpBox li { font-size: 0.88rem; line-height: 1.45; color: var(--text); margin: 0.2rem 0; }
+    #helpBox .muted { color: var(--muted); }
+    #helpBox a { color: var(--accent); }
+    #helpToc { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.2rem 0 0.4rem; }
+    #helpToc a { font-size: 0.8rem; border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.55rem; text-decoration: none; }
     header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.02em; }
     header .meta { color: var(--muted); font-size: 0.85rem; }
     header .meta a { color: var(--accent); text-decoration: none; }
@@ -407,6 +421,7 @@
   <div id="toasts" aria-live="polite"></div>
 
   <header>
+    <button type="button" id="btnHelp" title="Open help: how to sign in, how your account is protected, what each section does, and who to contact" aria-haspopup="dialog">? Help</button>
     <h1>p4sgi</h1>
     <div id="tenantTitle" style="font-size:1.05rem;font-weight:600;margin:2px 0 4px">Google Workspace for Education Domain &amp; Cybersecurity Administration — Putting AI into Administration</div>
     <div class="meta">
@@ -3714,6 +3729,43 @@
       });
       el('btnProvTpl').addEventListener('click', () => go('/api/v1/school-provision/templates', 'POST', false, 'Templates'));
     })();
+</script>
+<div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div id="helpBox" title="Help. Drag the bottom-right corner to resize.">
+    <div class="hh"><strong id="helpTitle" style="font-size:1.1rem">Help</strong>
+      <button type="button" class="secondary" id="btnHelpClose" title="Close help (Esc)">✕ Close</button></div>
+    <div id="helpToc">
+      <a href="#help-signin" title="How to sign in">Sign in</a><a href="#help-security" title="How your account is protected">Security</a>
+      <a href="#help-features" title="What each section does">Features</a><a href="#help-support" title="Who to contact">Support</a></div>
+    <h3 id="help-signin">Signing in</h3>
+    <p>Open <a href="https://sladmin.p4sgi.com">https://sladmin.p4sgi.com</a>. Use the email address your invitation was sent to. Only invited addresses can get in.</p>
+    <ul><li><b>Google:</b> choose Google and pick that same account.</li>
+    <li><b>Email code</b> (if you don't use Google): enter your address and press Send me a code. The code comes from <b>noreply@notify.cloudflare.com</b> and works for 10 minutes. Check your spam folder if it doesn't arrive.</li></ul>
+    <p>You stay signed in for 24 hours.</p>
+    <h3 id="help-security">Security</h3>
+    <ul><li>The site is protected by Cloudflare Access. Only addresses on the allow list can open it.</li>
+    <li>SL accounts only see <b>sl.p4sgi.com</b>. Other countries' domains are hidden by the server.</li>
+    <li>Sign-ins are logged, including blocked attempts.</li>
+    <li>AI helpers don't change anything by themselves. Real changes need the super admin to approve them.</li>
+    <li>Never share your sign-in code or forward your invitation. Ask for a separate invitation for each person.</li></ul>
+    <h3 id="help-features">What you can do</h3>
+    <h4 title="Domain filter">Domain filter</h4><p>Choose which school domains the tables show. SL accounts only ever see sl.p4sgi.com; the filter only narrows further.</p><p class="muted"><b>How:</b> Open Domain filter, tick the domains, and every section below follows your choice.</p><h4 title="AIdmin">AIdmin</h4><p>An AI helper available in every section. It explains the rows you select in plain language and suggests next steps. It does not change anything by itself.</p><p class="muted"><b>How:</b> Tick rows in a table and press AIdmin, or use the AIdmin button next to Domain filter for general questions.</p><h4 title="GAM reports">GAM reports</h4><p>Google Workspace (GAM) reports on users, devices and activity, with history and downloads.</p><p class="muted"><b>How:</b> Open GAM reports, press a report button to refresh it, then open or download a run.</p><h4 title="Active users and Devices">Active users and Devices</h4><p>Who is active in the domain and which devices are enrolled, with a column picker.</p><p class="muted"><b>How:</b> Use the column picker to show the columns you need. Refresh a report to pull fresh data.</p><h4 title="Schools and Provisioning jobs">Schools and Provisioning jobs</h4><p>School list (by EMIS number) and school account provisioning: a dry-run preview of the Google OU, user and Drive files a school needs. The super admin approves the real run.</p><p class="muted"><b>How:</b> Pick a school, run the preview, and review the job log. Ask the super admin to approve the run.</p><h4 title="Recent publish events and Attendance radar">Recent publish events and Attendance radar</h4><p>Attendance published by school tablets, and a radar of attendance by school.</p><p class="muted"><b>How:</b> Open Attendance radar or a school's attendance page from the header links.</p><h4 title="Fleet / devices and Telemetry summary">Fleet / devices and Telemetry summary</h4><p>Field tablets registered with the system, plus their health reports (encryption, developer mode, ADB state).</p><p class="muted"><b>How:</b> Check the device chips for warnings, then use AIdmin on flagged rows.</p><h4 title="Security audit">Security audit</h4><p>A read-only review of OAuth app risk, user hygiene and device compliance. Fixes are produced as dry-run plans for a person to carry out, and there is a list of known and approved apps.</p><p class="muted"><b>How:</b> Open Security audit, tick risky rows, and press Admin assist for an explanation and a plan.</p><h4 title="Privacy compliance (PIA)">Privacy compliance (PIA)</h4><p>Tracks the Sierra Leone ULID Privacy Impact Assessment against real evidence, and gives a go-live gate. A DPO email is required.</p><p class="muted"><b>How:</b> Set the DPO email, then work through the controls and attest with evidence.</p><h4 title="Ask the data (AI)">Ask the data (AI)</h4><p>Ask questions about the data in plain language. It runs on a local AI model by default and uses read-only views without personal columns. SQL mode is for the super admin only.</p><p class="muted"><b>How:</b> Type a question. Use docs mode for policy and how-to questions.</p><h4 title="Help & guides">Help & guides</h4><p>A searchable library of guides that grows as admins review AI answers.</p><p class="muted"><b>How:</b> Search a topic, or ask a question and vote on the answer.</p><h4 title="RUSTAiDMIN">RUSTAiDMIN</h4><p>Remote support for field tablets: RustDesk server settings and a console link. The super admin also has an ADB helper with a fixed list of commands and an audit log.</p><p class="muted"><b>How:</b> Copy the RustDesk settings to the tablet, then connect from the console.</p><h4 title="Drive exports">Drive exports</h4><p>Export any section as a dated Google Doc and Sheet into Drive.</p><p class="muted"><b>How:</b> Press Export on a section, or Export all at the top.</p>
+    <h3 id="help-support">Support</h3>
+    <p>Email <a href="mailto:geb@p4sgi.com">geb@p4sgi.com</a>. Tell us which section you were in and what you saw (a screenshot helps).</p>
+  </div>
+</div>
+<script>
+(function () {
+  var m = document.getElementById('helpModal');
+  function open() { m.classList.add('show'); }
+  function close() { m.classList.remove('show'); if (location.hash.indexOf('#help') === 0) history.replaceState(null, '', location.pathname + location.search); }
+  document.getElementById('btnHelp').onclick = open;
+  document.getElementById('btnHelpClose').onclick = close;
+  m.addEventListener('click', function (e) { if (e.target === m) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && m.classList.contains('show')) close(); });
+  m.querySelectorAll('#helpToc a').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); var t = document.getElementById(a.getAttribute('href').slice(1)); if (t) t.scrollIntoView({behavior: 'smooth'}); }; });
+  if (location.hash.indexOf('#help') === 0) open();
+})();
 </script>
 </body>
 </html>
